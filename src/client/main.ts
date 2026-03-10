@@ -306,35 +306,27 @@ function renderThemeMonsters(preset: string) {
     }
 
     if (headerEl) headerEl.textContent = '👾 Monsters in this World';
-    const monsterMap: Record<string, any[]> = {
-        'balanced': [
-            { name: 'Forest Slime', lv: 1, type: 'Mixed' },
-            { name: 'Gray Wolf', lv: 3, type: 'Mixed' },
-            { name: 'Goblin Scout', lv: 5, type: 'Mixed' }
-        ],
-        'inferno': [
-            { name: 'Flame Imp', lv: 4, type: 'Volcanic' },
-            { name: 'Lava Golem', lv: 12, type: 'Volcanic' },
-            { name: 'Magma Drake', lv: 25, type: 'Volcanic' }
-        ],
-        'cursed': [
-            { name: 'Restless Spirit', lv: 6, type: 'Dark' },
-            { name: 'Plague Rat', lv: 2, type: 'Dark' },
-            { name: 'Bone Horror', lv: 15, type: 'Dark' }
-        ],
-        'ancient': [
-            { name: 'Rune Guardian', lv: 10, type: 'Lore' },
-            { name: 'Ancient Automaton', lv: 18, type: 'Lore' },
-            { name: 'Spirit of Knowledge', lv: 30, type: 'Lore' }
-        ]
-    };
 
-    const monsters = monsterMap[preset] || monsterMap['balanced'];
-    monEl.innerHTML = monsters.map(m => `
+    let filterBiomes: string[] = [];
+    if (preset === 'balanced') filterBiomes = ['forest', 'coast', 'mountain', 'desert', 'Mixed'];
+    else if (preset === 'inferno') filterBiomes = ['volcanic', 'Volcanic'];
+    else if (preset === 'cursed') filterBiomes = ['cursed_land', 'swamp', 'Dark'];
+    else if (preset === 'ancient') filterBiomes = ['ruins', 'Lore'];
+
+    let monsters = G.allContent.monsters.filter((m: any) => filterBiomes.includes(m.biome) || filterBiomes.includes(m.type) || !m.biome);
+
+    if (!monsters || monsters.length === 0) {
+        monEl.innerHTML = '<div style="color:var(--muted); font-size:11px">Fetching global database...</div>';
+        return;
+    }
+
+    monsters = monsters.sort(() => Math.random() - 0.5).slice(0, 3);
+
+    monEl.innerHTML = monsters.map((m: any) => `
         <div class="monster-badge fade-in" style="border: 1px solid rgba(255,255,255,0.05); background: var(--surface2)">
             <span class="m-name" style="font-weight:600">${m.name}</span>
-            <span class="m-lv" style="color:var(--accent); margin-left:5px">Lv.${m.lv}</span>
-            <span class="m-type" style="font-size:9px; color:var(--muted); margin-left:8px; background:rgba(0,0,0,0.2); padding:1px 4px; border-radius:3px">${m.type}</span>
+            <span class="m-lv" style="color:var(--accent); margin-left:5px">Lv.${m.level || m.lv || 1}</span>
+            <span class="m-type" style="font-size:9px; color:var(--muted); margin-left:8px; background:rgba(0,0,0,0.2); padding:1px 4px; border-radius:3px">${m.biome || m.type || 'Unknown'}</span>
         </div>
     `).join('');
 }
@@ -365,31 +357,23 @@ function renderThemeBiomes(preset: string) {
     }
 
     if (headerEl) headerEl.textContent = '🌍 World Biomes';
-    const themeMap: Record<string, any[]> = {
-        'balanced': [
-            { name: 'Emerald Plains', description: 'Rolling green hills filled with life.' },
-            { name: 'Whispering Woods', description: 'A dense forest where the wind carries secrets.' },
-            { name: 'Sky-High Peaks', description: 'Mountain ranges that touch the clouds.' }
-        ],
-        'inferno': [
-            { name: 'Obsidian Crags', description: 'Sharp, black volcanic rocks and sulfurous air.' },
-            { name: 'Lava Arteries', description: 'Rivers of molten rock that divide the land.' },
-            { name: 'Ashen Wasteland', description: 'A grey expanse where nothing grows but fire.' }
-        ],
-        'cursed': [
-            { name: 'Miasma Swamp', description: 'Choking fog and stagnant, poisonous waters.' },
-            { name: 'Soul-Bound Grove', description: 'Trees that weep with the voices of the lost.' },
-            { name: 'Empty Abyss', description: 'A lightless pit where gravity feels heavy.' }
-        ],
-        'ancient': [
-            { name: 'Solaris Temple', description: 'Golden ruins glowing with eternal sunlight.' },
-            { name: 'Ivory spires', description: 'Towering marble ruins of a forgotten empire.' },
-            { name: 'Celestial Garden', description: 'Plants that grow under starlight, even by day.' }
-        ]
-    };
 
-    const biomes = themeMap[preset] || themeMap['balanced'];
-    biomeEl.innerHTML = biomes.map(b => `
+    let filterBiomes: string[] = [];
+    if (preset === 'balanced') filterBiomes = ['forest', 'coast', 'mountain', 'desert'];
+    else if (preset === 'inferno') filterBiomes = ['volcanic'];
+    else if (preset === 'cursed') filterBiomes = ['cursed_land', 'swamp'];
+    else if (preset === 'ancient') filterBiomes = ['ruins'];
+
+    let biomes = G.allContent.biomes.filter((b: any) => filterBiomes.includes(b.id) || filterBiomes.includes(b.name));
+
+    if (!biomes || biomes.length === 0) {
+        biomeEl.innerHTML = '<div style="color:var(--muted); font-size:11px">Fetching global database...</div>';
+        return;
+    }
+
+    biomes = biomes.sort(() => Math.random() - 0.5).slice(0, 3);
+
+    biomeEl.innerHTML = biomes.map((b: any) => `
         <div class="biome-card fade-in" style="border-left: 3px solid var(--accent)">
             <div class="b-name" style="font-weight:700; color:var(--text)">${b.name}</div>
             <div class="b-desc" style="font-size:10px; color:var(--muted); margin-top:2px">${b.description}</div>
@@ -399,6 +383,8 @@ function renderThemeBiomes(preset: string) {
     const preview = document.getElementById('content-preview');
     if (preview) preview.style.display = 'block';
 }
+
+
 
 function wizardGoStep(step: number) {
     // Validate on forward to Step 4 (Confirm)
@@ -411,9 +397,14 @@ function wizardGoStep(step: number) {
         // Populate summary
         const summaryEl = document.getElementById('confirm-summary');
         if (summaryEl) {
-            const worldName = wizardState.worldName || 'Custom World';
+            let worldName = wizardState.worldName || 'Custom World';
             const selectedPreset = document.querySelector('.preset-card.selected') as HTMLElement;
             const isCustom = selectedPreset?.dataset.preset === 'custom';
+
+            if (isCustom) {
+                const customNameField = (document.getElementById('input-world-name') as HTMLInputElement)?.value.trim();
+                if (customNameField) worldName = customNameField;
+            }
 
             let tagSummary = '';
             if (isCustom) {
@@ -793,8 +784,15 @@ async function submitNewGame() {
 
     // --- STEP 1: Enter game screen IMMEDIATELY ---
     const seed = sv ? Number(sv) : Math.floor(Math.random() * 999999999);
-    const selectedPreset = document.querySelector('.preset-card.selected');
+    const selectedPreset = document.querySelector('.preset-card.selected') as HTMLElement;
     const presetName = selectedPreset?.querySelector('.preset-name')?.textContent || 'Unknown World';
+    const isCustom = selectedPreset?.dataset.preset === 'custom';
+
+    let finalWorldName = presetName;
+    if (isCustom) {
+        const customName = (document.getElementById('input-world-name') as HTMLInputElement)?.value.trim();
+        if (customName) finalWorldName = customName;
+    }
 
     G.worldSeed = seed;
     G.regions = [];
@@ -813,7 +811,7 @@ async function submitNewGame() {
             speed: G.selectedLegend.speed
         },
         worldSeed: seed,
-        worldName: presetName,
+        worldName: finalWorldName,
         signatureSkill: G.selectedLegend.skill_data
     };
 
@@ -824,12 +822,25 @@ async function submitNewGame() {
     // --- STEP 2: Sync with server in background (non-blocking) ---
     (async () => {
         try {
+            let autoCustomSelection: { biomes: string[], monsters: string[] } | null = null;
+            if (isCustom) {
+                autoCustomSelection = G.customSelection;
+            } else {
+                autoCustomSelection = { biomes: [], monsters: [] };
+                const presetId = selectedPreset?.dataset.preset || 'balanced';
+                if (presetId === 'balanced') autoCustomSelection.biomes = ['forest', 'coast', 'mountain', 'desert'];
+                else if (presetId === 'inferno') autoCustomSelection.biomes = ['volcanic'];
+                else if (presetId === 'cursed') autoCustomSelection.biomes = ['cursed_land', 'swamp'];
+                else if (presetId === 'ancient') autoCustomSelection.biomes = ['ruins'];
+            }
+
             const res = await fetch(API + '/start', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     worldSeed: seed,
                     characterId: G.selectedLegend.id,
-                    userId: G.user?.id, email: G.user?.email
+                    userId: G.user?.id, email: G.user?.email,
+                    customSelection: autoCustomSelection
                 })
             });
             const j = await res.json();

@@ -1243,15 +1243,20 @@
                             </div>
                         </div>
 
-                        <!-- Seed Row (shown only for custom) -->
+                        <!-- Seed & Name Row (shown only for custom) -->
                         <div id="seed-row"
-                            style="display:none; margin-top:12px; display:flex; gap:10px; align-items:center">
-                            <div style="flex:1">
-                                <label>World Seed <span style="color:var(--muted);font-size:10px">(blank =
-                                        random)</span></label>
-                                <input type="number" id="input-seed" placeholder="e.g. 123456789" autocomplete="off">
-                            </div>
-                            <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+                            style="display:none; flex-direction:column; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+                            <div style="display:flex; gap:10px; align-items:flex-end">
+                                <div style="flex:2">
+                                    <label>Custom World Name</label>
+                                    <input type="text" id="input-world-name" placeholder="E.g. The Unknown Realm"
+                                        autocomplete="off">
+                                </div>
+                                <div style="flex:1">
+                                    <label>Seed <span style="color:var(--muted);font-size:9px">(optional)</span></label>
+                                    <input type="number" id="input-seed" placeholder="e.g. 123456789"
+                                        autocomplete="off">
+                                </div>
                                 <button type="button" class="btn btn-action" onclick="rollRandomSeed()">🎲 Roll</button>
                             </div>
                         </div>

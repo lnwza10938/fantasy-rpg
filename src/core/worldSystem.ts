@@ -76,12 +76,12 @@ export class WorldSystem {
      * Generates or retrieves a full deterministic world from a numeric seed.
      * Caches all content-heavy data in a WorldInstance.
      */
-    public async generateWorld(seed: number): Promise<WorldInstance> {
+    public async generateWorld(seed: number, customSelection?: { biomes: string[], monsters: string[] }): Promise<WorldInstance> {
         console.log(`[WorldSystem] Loading world instance for seed ${seed}...`);
         this.rng = new SeededRNG(seed);
 
         // Fetch all possible maps, monsters, factions, and lore from DB ONCE
-        const [allMaps, allMonsters, allFactions, allLore] = await Promise.all([
+        let [allMaps, allMonsters, allFactions, allLore] = await Promise.all([
             getMaps(),
             getMonsters(),
             getFactions(),
@@ -90,12 +90,31 @@ export class WorldSystem {
 
         if (allMaps.length === 0) throw new Error('No maps found in database.');
 
+        // Filter maps/monsters if custom selection exists
+        if (customSelection) {
+            if (customSelection.biomes && customSelection.biomes.length > 0) {
+                const filteredMaps = allMaps.filter(m => customSelection.biomes.includes(m.name) || (m.biome && customSelection.biomes.includes(m.biome)));
+                if (filteredMaps.length > 0) allMaps = filteredMaps;
+            }
+            if (customSelection.monsters && customSelection.monsters.length > 0) {
+                const filteredMonsters = allMonsters.filter(m => customSelection.monsters.includes(m.name));
+                if (filteredMonsters.length > 0) allMonsters = filteredMonsters;
+            }
+        }
+
         const regionCount = Math.min(allMaps.length, this.rng.nextInt(8, 12));
         const selectedMaps = [...allMaps].sort(() => this.rng.next() - 0.5).slice(0, regionCount);
 
         const regions: Region[] = selectedMaps.map(m => {
             // Pick monsters that match the map's biome
-            const biomeMonsters = allMonsters.filter((mon: any) => !m.biome || mon.biome === m.biome);
+            let biomeMonsters = allMonsters.filter((mon: any) => !m.biome || mon.biome === m.biome);
+
+            // If we have custom monsters, prefer them even if they don't strictly match the biome for Custom Worlds
+            if (customSelection?.monsters?.length) {
+                const customInBiome = biomeMonsters.filter(mon => customSelection.monsters.includes(mon.name));
+                if (customInBiome.length > 0) biomeMonsters = customInBiome;
+            }
+
             const poolSize = this.rng.nextInt(3, 5);
             const pool = (biomeMonsters.length > 0 ? biomeMonsters : allMonsters)
                 .sort(() => this.rng.next() - 0.5)

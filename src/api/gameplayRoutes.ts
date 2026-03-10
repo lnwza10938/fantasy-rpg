@@ -93,7 +93,7 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
 // --- /start ---
 router.post('/start', async (req, res) => {
     try {
-        const { playerName, characterName, worldSeed, userId, email, signatureSkill, characterId } = req.body;
+        const { playerName, characterName, worldSeed, userId, email, signatureSkill, characterId, customSelection } = req.body;
 
         // --- AUTH INTEGRATION ---
         let player;
@@ -119,7 +119,7 @@ router.post('/start', async (req, res) => {
         }
 
         const seed = worldSeed ?? Math.floor(Math.random() * 999999999);
-        const instance = await worldSystem.generateWorld(seed);
+        const instance = await worldSystem.generateWorld(seed, customSelection);
 
         // Create game state session
         const gsm = new GameStateManager(player.id, character.id, seed);
