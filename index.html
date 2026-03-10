@@ -1067,54 +1067,187 @@
             </div>
 
 
+            <!-- ===== GAME UI — SHARED HUD (shown on all game screens) ===== -->
+
             <!-- WORLD MAP -->
             <div id="screen-world" class="screen">
-                <div id="status-bar" class="status-bar"></div>
-                <div class="game-nav" id="game-nav"></div>
+                <!-- Sticky HUD -->
+                <div class="game-hud card"
+                    style="position:sticky;top:0;z-index:10;margin-bottom:12px;padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <div id="hud-char" style="font-weight:700;font-size:13px;flex:1;min-width:100px">⚔️ Hero</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <span class="stat">❤️ HP: <span id="hud-hp" class="val-green">100</span>/<span id="hud-maxhp"
+                                class="val-green">100</span></span>
+                        <span class="stat">💧 MP: <span id="hud-mp" class="val-accent">50</span>/<span id="hud-maxmp"
+                                class="val-accent">50</span></span>
+                        <span class="stat">⭐ Lv <span id="hud-lv" class="val-gold">1</span></span>
+                        <span class="stat">💰 <span id="hud-gold" class="val-gold">0</span>g</span>
+                    </div>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('character')">👤 Char</button>
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('inventory')">🎒 Bag</button>
+                        <button class="btn btn-gold" style="font-size:11px;padding:5px 10px"
+                            onclick="saveGame()">💾</button>
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('login')">🏠</button>
+                    </div>
+                </div>
+                <!-- Region Grid -->
                 <div class="card fade-in">
-                    <h3>🗺️ Select a Region</h3>
+                    <h3>🗺️ World Map — Choose a Region</h3>
+                    <p style="font-size:11px;color:var(--muted);margin-bottom:12px">Pick a region to explore. Higher
+                        danger = better rewards.</p>
                     <div id="region-list" class="region-grid"></div>
                 </div>
-            </div>
-
-            <!-- CHARACTER -->
-            <div id="screen-character" class="screen">
-                <div id="status-bar-char" class="status-bar"></div>
-                <div class="game-nav" id="nav-char"></div>
-                <div class="card fade-in">
-                    <h3>👤 Character</h3>
-                    <div id="char-bars"></div>
-                    <div id="char-stats" class="char-grid" style="margin-top:12px"></div>
+                <!-- EXP Bar -->
+                <div class="card fade-in" style="padding:12px 16px">
+                    <div class="bar-label"><span>⭐ EXP</span><span id="exp-display">0 / 100</span></div>
+                    <div class="bar">
+                        <div id="exp-bar" class="bar-fill bar-exp" style="width:0%"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- EXPLORE -->
             <div id="screen-explore" class="screen">
-                <div id="status-bar-explore" class="status-bar"></div>
-                <div class="game-nav" id="nav-explore"></div>
+                <!-- HUD -->
+                <div class="game-hud card"
+                    style="position:sticky;top:0;z-index:10;margin-bottom:12px;padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <div id="hud-char-exp" style="font-weight:700;font-size:13px;flex:1;min-width:100px">⚔️ Hero</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <span class="stat">❤️ <span id="exp-hp" class="val-green">100</span>/<span id="exp-maxhp"
+                                class="val-green">100</span></span>
+                        <span class="stat">💧 <span id="exp-mp" class="val-accent">50</span>/<span id="exp-maxmp"
+                                class="val-accent">50</span></span>
+                        <span class="stat">💰 <span id="exp-gold" class="val-gold">0</span>g</span>
+                    </div>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('world')">🗺️ Map</button>
+                        <button class="btn btn-gold" style="font-size:11px;padding:5px 10px" onclick="saveGame()">💾
+                            Save</button>
+                    </div>
+                </div>
+
                 <div class="card fade-in">
                     <h3 id="explore-title">🧭 Exploring...</h3>
                     <div id="event-log" class="log-box"></div>
                     <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
-                        <button class="btn btn-action" onclick="exploreRegion()">🔄 Explore Again</button>
+                        <button class="btn btn-primary" onclick="exploreRegion()">⚔️ Explore Again</button>
                         <button class="btn btn-action" onclick="showScreen('world')">← Back to Map</button>
-                        <button class="btn btn-gold" onclick="saveGame()">💾 Save</button>
+                    </div>
+                </div>
+
+                <!-- Quick stats during explore -->
+                <div class="card fade-in" style="padding:12px 16px">
+                    <div class="bar-label"><span>❤️ HP</span><span id="explore-hp-text">100/100</span></div>
+                    <div class="bar" style="margin-bottom:8px">
+                        <div id="explore-hp-bar" class="bar-fill bar-hp" style="width:100%"></div>
+                    </div>
+                    <div class="bar-label"><span>💧 MP</span><span id="explore-mp-text">50/50</span></div>
+                    <div class="bar">
+                        <div id="explore-mp-bar" class="bar-fill bar-mana" style="width:100%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHARACTER SHEET -->
+            <div id="screen-character" class="screen">
+                <div class="card fade-in"
+                    style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;margin-bottom:0">
+                    <h3 style="margin:0">👤 Character Sheet</h3>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('world')">🗺️ Map</button>
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('inventory')">🎒 Bag</button>
+                    </div>
+                </div>
+
+                <!-- HP / MP Bars -->
+                <div class="card fade-in" style="padding:14px 16px">
+                    <div class="bar-label"><span>❤️ HP</span><span id="char-hp-text">100/100</span></div>
+                    <div class="bar" style="margin-bottom:8px">
+                        <div id="char-hp-bar" class="bar-fill bar-hp" style="width:100%"></div>
+                    </div>
+                    <div class="bar-label"><span>💧 MP</span><span id="char-mp-text">50/50</span></div>
+                    <div class="bar" style="margin-bottom:8px">
+                        <div id="char-mp-bar" class="bar-fill bar-mana" style="width:100%"></div>
+                    </div>
+                    <div class="bar-label"><span>⭐ EXP</span><span id="char-exp-text">0/100</span></div>
+                    <div class="bar">
+                        <div id="char-exp-bar" class="bar-fill bar-exp" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="card fade-in">
+                    <h3>📊 Base Stats</h3>
+                    <div id="char-stats" class="char-grid"></div>
+                </div>
+
+                <!-- Equipment Quick View -->
+                <div class="card fade-in">
+                    <h3>🛡️ Equipped</h3>
+                    <div id="equip-quick" class="equip-slots">
+                        <div class="equip-slot">
+                            <div class="slot-name">⚔️ Weapon</div>
+                            <div class="slot-item" id="eq-weapon">— None —</div>
+                        </div>
+                        <div class="equip-slot">
+                            <div class="slot-name">🛡️ Armor</div>
+                            <div class="slot-item" id="eq-armor">— None —</div>
+                        </div>
+                        <div class="equip-slot">
+                            <div class="slot-name">💍 Accessory</div>
+                            <div class="slot-item" id="eq-access">— None —</div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- INVENTORY -->
             <div id="screen-inventory" class="screen">
-                <div id="status-bar-inv" class="status-bar"></div>
-                <div class="game-nav" id="nav-inv"></div>
-                <div class="card fade-in">
-                    <h3>⚔️ Equipment</h3>
-                    <div id="equip-display" class="equip-slots"></div>
+                <div class="card fade-in"
+                    style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px">
+                    <h3 style="margin:0">🎒 Inventory</h3>
+                    <div style="display:flex;gap:6px">
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('world')">🗺️ Map</button>
+                        <button class="btn btn-action" style="font-size:11px;padding:5px 10px"
+                            onclick="showScreen('character')">👤 Char</button>
+                    </div>
                 </div>
                 <div class="card fade-in">
-                    <h3>🎒 Inventory</h3>
+                    <h3>⚔️ Equipment Slots</h3>
+                    <div id="equip-display" class="equip-slots">
+                        <div class="equip-slot">
+                            <div class="slot-name">⚔️ Weapon</div>
+                            <div class="slot-item" id="inv-weapon">— None —</div>
+                        </div>
+                        <div class="equip-slot">
+                            <div class="slot-name">🛡️ Armor</div>
+                            <div class="slot-item" id="inv-armor">— None —</div>
+                        </div>
+                        <div class="equip-slot">
+                            <div class="slot-name">💍 Accessory</div>
+                            <div class="slot-item" id="inv-access">— None —</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card fade-in">
+                    <h3>🧪 Items</h3>
                     <div id="inv-display" class="inv-grid">
-                        <p style="color:var(--muted);font-size:12px">No items yet.</p>
+                        <p style="color:var(--muted);font-size:12px">No items yet. Explore to find loot!</p>
+                    </div>
+                </div>
+                <!-- Legend / Achievements placeholder -->
+                <div class="card fade-in">
+                    <h3>📜 Legend</h3>
+                    <div id="legend-display" style="font-size:11px;color:var(--muted);line-height:1.8">
+                        <p>Your deeds are yet unwritten...</p>
                     </div>
                 </div>
             </div>
@@ -1122,9 +1255,56 @@
             <!-- COMBAT -->
             <div id="screen-combat" class="screen">
                 <div class="card fade-in">
-                    <h3 id="combat-title">⚔️ Combat</h3>
-                    <div id="combat-log" class="log-box"></div>
-                    <div id="combat-result" style="margin-top:12px"></div>
+                    <h3 id="combat-title" style="color:var(--red)">⚔️ Combat!</h3>
+
+                    <!-- Combatants -->
+                    <div
+                        style="display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:14px">
+                        <!-- Player side -->
+                        <div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center">
+                            <div style="font-size:28px">🧙</div>
+                            <div id="combat-player-name" style="font-weight:700;font-size:13px;margin:4px 0">Hero</div>
+                            <div class="bar-label" style="justify-content:center"><span id="combat-player-hp"
+                                    style="color:var(--green)">100/100</span></div>
+                            <div class="bar">
+                                <div id="combat-player-bar" class="bar-fill bar-hp" style="width:100%"></div>
+                            </div>
+                        </div>
+                        <!-- VS -->
+                        <div style="font-size:20px;font-weight:900;color:var(--red);text-align:center">VS</div>
+                        <!-- Enemy side -->
+                        <div
+                            style="background:rgba(239,83,80,0.08);border:1px solid rgba(239,83,80,0.2);border-radius:10px;padding:12px;text-align:center">
+                            <div style="font-size:28px">👹</div>
+                            <div id="combat-enemy-name"
+                                style="font-weight:700;font-size:13px;margin:4px 0;color:var(--red)">Enemy</div>
+                            <div class="bar-label" style="justify-content:center"><span id="combat-enemy-hp"
+                                    style="color:var(--red)">100/100</span></div>
+                            <div class="bar">
+                                <div id="combat-enemy-bar" class="bar-fill" style="width:100%;background:var(--red)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Combat Log -->
+                    <div id="combat-log" class="log-box" style="max-height:280px"></div>
+
+                    <!-- Result & Actions -->
+                    <div id="combat-result" style="margin-top:12px">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <button class="btn btn-action" id="btn-combat-back" onclick="showScreen('explore')"
+                                style="display:none">← Back to Explore</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rewards panel (shown after combat ends) -->
+                <div id="combat-rewards" class="card fade-in" style="display:none">
+                    <h3 style="color:var(--gold)">🏆 Victory Rewards</h3>
+                    <div id="rewards-content" style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px"></div>
+                    <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="showScreen('world')">🗺️
+                        Back to World Map</button>
                 </div>
             </div>
         </div>

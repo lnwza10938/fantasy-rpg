@@ -77,11 +77,10 @@ export async function getCharacter(id: string): Promise<CharacterStats> {
 }
 
 export async function deleteCharacter(id: string) {
-    const { error } = await supabase
-        .from('characters')
-        .delete()
-        .eq('id', id);
-
+    // Delete player_states first (in case there's no DB-level cascade)
+    await supabase.from('player_states').delete().eq('character_id', id);
+    // Then delete the character itself
+    const { error } = await supabase.from('characters').delete().eq('id', id);
     if (error) throw error;
 }
 

@@ -167,6 +167,9 @@ function updateAllStatusBars() {
     ['status-bar', 'status-bar-char', 'status-bar-explore', 'status-bar-inv'].forEach(id => {
         const el = document.getElementById(id); if (el) el.innerHTML = html;
     });
+    // Update new HUD elements
+    updateHUD();
+    renderCharacter();
 }
 
 function showToast(msg: string, type = 'success') {
@@ -526,6 +529,25 @@ function selectRegion(i: number) {
     showScreen('explore');
 }
 
+// --- HUD ---
+function updateHUD() {
+    const s = G.gs; if (!s) return;
+    const name = s.characterName || 'Hero';
+    // World screen HUD
+    const f = (id: string, v: any) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+    f('hud-char', `⚔️ ${name} (Lv.${s.level})`); f('hud-char-exp', `⚔️ ${name}`);
+    f('hud-hp', s.hp); f('hud-maxhp', s.maxHP); f('hud-mp', s.mana); f('hud-maxmp', s.maxMana);
+    f('hud-lv', s.level); f('hud-gold', s.gold);
+    // Explore HUD
+    f('exp-hp', s.hp); f('exp-maxhp', s.maxHP); f('exp-mp', s.mana); f('exp-maxmp', s.maxMana);
+    f('exp-gold', s.gold);
+    // EXP bar
+    const expPct = Math.round(s.exp / (s.level * 100) * 100);
+    f('exp-display', `${s.exp} / ${s.level * 100}`);
+    const expBar = document.getElementById('exp-bar');
+    if (expBar) expBar.style.width = expPct + '%';
+}
+
 // --- CHARACTER ---
 function renderCharacter() {
     const s = G.gs; if (!s) return;
@@ -533,14 +555,21 @@ function renderCharacter() {
     const mpPct = Math.round(s.mana / s.maxMana * 100);
     const expPct = Math.round(s.exp / (s.level * 100) * 100);
 
-    const barsEl = document.getElementById('char-bars');
-    const statsEl = document.getElementById('char-stats');
+    // New bar elements
+    const f = (id: string, v: any) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+    f('char-hp-text', `${s.hp}/${s.maxHP}`); f('char-mp-text', `${s.mana}/${s.maxMana}`);
+    f('char-exp-text', `${s.exp}/${s.level * 100}`);
+    const setBar = (id: string, pct: number) => { const el = document.getElementById(id); if (el) el.style.width = pct + '%'; };
+    setBar('char-hp-bar', hpPct); setBar('char-mp-bar', mpPct); setBar('char-exp-bar', expPct);
+    // Explore bars too
+    f('explore-hp-text', `${s.hp}/${s.maxHP}`); f('explore-mp-text', `${s.mana}/${s.maxMana}`);
+    setBar('explore-hp-bar', hpPct); setBar('explore-mp-bar', mpPct);
 
-    if (barsEl) barsEl.innerHTML = `
-        <div class="bar-container"><div class="bar-label"><span>❤️ HP</span><span>${s.hp} / ${s.maxHP}</span></div><div class="bar"><div class="bar-fill bar-hp" style="width:${hpPct}%"></div></div></div>
-        <div class="bar-container"><div class="bar-label"><span>🔷 Mana</span><span>${s.mana} / ${s.maxMana}</span></div><div class="bar"><div class="bar-fill bar-mana" style="width:${mpPct}%"></div></div></div>
-        <div class="bar-container"><div class="bar-label"><span>✨ EXP</span><span>${s.exp} / ${s.level * 100}</span></div><div class="bar"><div class="bar-fill bar-exp" style="width:${expPct}%"></div></div></div>
-    `;
+    const statsEl = document.getElementById('char-stats');
+    // Legacy char-bars support
+    const barsEl = document.getElementById('char-bars');
+    if (barsEl) barsEl.innerHTML = '';
+
     if (statsEl) statsEl.innerHTML = `
         <div class="char-stat"><div class="label">Level</div><div class="value" style="color:var(--accent)">${s.level}</div></div>
         <div class="char-stat"><div class="label">Gold</div><div class="value" style="color:var(--gold)">${s.gold}</div></div>
@@ -551,22 +580,34 @@ function renderCharacter() {
     `;
 }
 
+
 // --- INVENTORY ---
 function renderInventory() {
     const s = G.gs; if (!s) return;
     const eq = s.equipment;
+    const weaponText = eq.weapon || '— None —';
+    const armorText = eq.armor || '— None —';
+    const accessText = eq.accessory || '— None —';
+
+    // Update all equipment slot elements (both inventory and character screens)
+    ['inv-weapon', 'eq-weapon'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = weaponText; });
+    ['inv-armor', 'eq-armor'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = armorText; });
+    ['inv-access', 'eq-access'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = accessText; });
+
+    // Legacy equip-display
     const equipEl = document.getElementById('equip-display');
+    if (equipEl && equipEl.children.length === 0) {
+        equipEl.innerHTML = `
+            <div class="equip-slot"><div class="slot-name">⚔️ Weapon</div><div class="slot-item">${weaponText}</div></div>
+            <div class="equip-slot"><div class="slot-name">🛡️ Armor</div><div class="slot-item">${armorText}</div></div>
+            <div class="equip-slot"><div class="slot-name">💎 Accessory</div><div class="slot-item">${accessText}</div></div>
+        `;
+    }
+
     const invEl = document.getElementById('inv-display');
-
-    if (equipEl) equipEl.innerHTML = `
-        <div class="equip-slot"><div class="slot-name">⚔️ Weapon</div><div class="slot-item">${eq.weapon || 'Empty'}</div></div>
-        <div class="equip-slot"><div class="slot-name">🛡️ Armor</div><div class="slot-item">${eq.armor || 'Empty'}</div></div>
-        <div class="equip-slot"><div class="slot-name">💎 Accessory</div><div class="slot-item">${eq.accessory || 'Empty'}</div></div>
-    `;
-
     if (invEl) {
         if (s.inventory.length === 0) {
-            invEl.innerHTML = '<p style="color:var(--muted);font-size:12px">No items yet.</p>';
+            invEl.innerHTML = '<p style="color:var(--muted);font-size:12px">No items yet. Explore to find loot!</p>';
         } else {
             invEl.innerHTML = s.inventory.map((i: any) =>
                 `<div class="inv-item"><span class="name">${i.itemId}</span><span class="qty">x${i.qty}</span></div>`
@@ -574,6 +615,7 @@ function renderInventory() {
         }
     }
 }
+
 
 // --- EXPLORE ---
 async function exploreRegion() {
