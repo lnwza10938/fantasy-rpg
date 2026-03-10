@@ -290,6 +290,7 @@ document.getElementById('form-start')?.addEventListener('submit', async (e: Even
     btnEl.textContent = '⏳ Creating world...';
     btnEl.disabled = true;
 
+    console.log(`[World Creation] Sending request to ${API}/start`, { playerName: pn, characterName: cn, seed: sv });
     try {
         const res = await fetch(API + '/start', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -301,20 +302,60 @@ document.getElementById('form-start')?.addEventListener('submit', async (e: Even
                 email: G.user?.email
             })
         });
+
         const j = await res.json();
+
         if (j.success) {
-            G.playerId = j.data.playerId; G.characterId = j.data.characterId;
-            G.worldSeed = j.data.worldSeed; G.regions = j.data.regions;
+            console.log('[World Creation] Success:', j.data);
+            G.playerId = j.data.playerId;
+            G.characterId = j.data.characterId;
+            G.worldSeed = j.data.worldSeed;
+            G.regions = j.data.regions;
             G.gs = j.data.state;
-            renderRegions(); updateAllStatusBars(); showScreen('world');
-            showToast('World created! ⚔️', 'success');
+
+            // Re-render and transition
+            renderRegions();
+            updateAllStatusBars();
+            showScreen('world');
+            showToast('World Ready! ⚔️', 'success');
         } else {
+            // If character exists, try to LOAD it instead of showing error
+            if (j.error && (j.error.includes('already exists') || j.error.includes('duplicate'))) {
+                console.log('[World Creation] Character already exists, attempting to load...');
+                // We don't have the ID yet, so we'll fetch the save list to find the ID by name
+                const listRes = await fetch(API + '/load/list/all');
+                const listData = await listRes.json();
+                if (listData.success) {
+                    const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
+                    if (existing) {
+                        await loadGame(existing.character_id);
+                        return;
+                    }
+                }
+            }
             errEl.textContent = j.error || 'Failed to create world.';
             errEl.style.display = 'block';
         }
-    } catch {
-        errEl.textContent = 'Connection failed. Is the server running?';
+    } catch (err: any) {
+        console.error('[World Creation] Fetch error:', err);
+        // LAST RESORT: Try to find any save with this name and load it anyway
+        try {
+            const listRes = await fetch(API + '/load/list/all');
+            const listData = await listRes.json();
+            if (listData.success) {
+                const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
+                if (existing) {
+                    console.log('[World Creation] Connection failed but character found in DB. Auto-loading...');
+                    await loadGame(existing.character_id);
+                    return;
+                }
+            }
+        } catch (inner) { console.error('Silent fail on auto-load fallback', inner); }
+
+        errEl.textContent = `Connection failed: ${err.message || 'Can\'t reach server'}. But if your character was created, you can try loading it from the list below.`;
         errEl.style.display = 'block';
+        // Proactively fetch saves if connection failed so user can see their character
+        fetchSaveList();
     } finally {
         btnEl.textContent = '⚔️ Enter the World';
         btnEl.disabled = false;

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS player_states (
     equipment_json jsonb DEFAULT '{"weapon":null,"armor":null,"accessory":null}',
     world_seed bigint NOT NULL DEFAULT 0,
     last_event text,
-    phase text DEFAULT 'IDLE',
+    character_name text,
+    last_action_log text,
     updated_at timestamp WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
