@@ -106,6 +106,8 @@ function onLoginSuccess() {
     showScreen('login');
     loadWorldContent(); // Load DB content for the world creation screen
     fetchSaveList();   // Fetch existing saves so user can see their data
+    renderThemeBiomes('balanced'); // Initial biome preview
+    renderThemeMonsters('balanced'); // Initial monster preview
 }
 
 async function logout() {
@@ -255,6 +257,96 @@ function selectPreset(el: HTMLElement, worldName: string, charName: string, seed
 
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
     if (seed !== null) { svEl.value = String(seed); } else { svEl.value = ''; }
+
+    // Update Biome & Monster Previews based on Selection
+    renderThemeBiomes(el.dataset.preset || 'balanced');
+    renderThemeMonsters(el.dataset.preset || 'balanced');
+}
+
+function renderThemeMonsters(preset: string) {
+    const monEl = document.getElementById('monster-list');
+    if (!monEl) return;
+
+    const monsterMap: Record<string, any[]> = {
+        'balanced': [
+            { name: 'Forest Slime', lv: 1, type: 'Mixed' },
+            { name: 'Gray Wolf', lv: 3, type: 'Mixed' },
+            { name: 'Goblin Scout', lv: 5, type: 'Mixed' }
+        ],
+        'inferno': [
+            { name: 'Flame Imp', lv: 4, type: 'Volcanic' },
+            { name: 'Lava Golem', lv: 12, type: 'Volcanic' },
+            { name: 'Magma Drake', lv: 25, type: 'Volcanic' }
+        ],
+        'cursed': [
+            { name: 'Restless Spirit', lv: 6, type: 'Dark' },
+            { name: 'Plague Rat', lv: 2, type: 'Dark' },
+            { name: 'Bone Horror', lv: 15, type: 'Dark' }
+        ],
+        'ancient': [
+            { name: 'Rune Guardian', lv: 10, type: 'Lore' },
+            { name: 'Ancient Automaton', lv: 18, type: 'Lore' },
+            { name: 'Spirit of Knowledge', lv: 30, type: 'Lore' }
+        ],
+        'custom': [
+            { name: 'Void Stalker', lv: '?', type: 'Chaos' },
+            { name: 'Glitch Wraith', lv: '!', type: 'Chaos' },
+            { name: 'Reality Eater', lv: '∞', type: 'Chaos' }
+        ]
+    };
+
+    const monsters = monsterMap[preset] || monsterMap['balanced'];
+    monEl.innerHTML = monsters.map(m => `
+        <div class="monster-badge fade-in" style="border: 1px solid rgba(255,255,255,0.05); background: var(--surface2)">
+            <span class="m-name" style="font-weight:600">${m.name}</span>
+            <span class="m-lv" style="color:var(--accent); margin-left:5px">Lv.${m.lv}</span>
+            <span class="m-type" style="font-size:9px; color:var(--muted); margin-left:8px; background:rgba(0,0,0,0.2); padding:1px 4px; border-radius:3px">${m.type}</span>
+        </div>
+    `).join('');
+}
+
+function renderThemeBiomes(preset: string) {
+    const biomeEl = document.getElementById('biome-list');
+    if (!biomeEl) return;
+
+    const themeMap: Record<string, any[]> = {
+        'balanced': [
+            { name: 'Emerald Plains', description: 'Rolling green hills filled with life.' },
+            { name: 'Whispering Woods', description: 'A dense forest where the wind carries secrets.' },
+            { name: 'Sky-High Peaks', description: 'Mountain ranges that touch the clouds.' }
+        ],
+        'inferno': [
+            { name: 'Obsidian Crags', description: 'Sharp, black volcanic rocks and sulfurous air.' },
+            { name: 'Lava Arteries', description: 'Rivers of molten rock that divide the land.' },
+            { name: 'Ashen Wasteland', description: 'A grey expanse where nothing grows but fire.' }
+        ],
+        'cursed': [
+            { name: 'Miasma Swamp', description: 'Choking fog and stagnant, poisonous waters.' },
+            { name: 'Soul-Bound Grove', description: 'Trees that weep with the voices of the lost.' },
+            { name: 'Empty Abyss', description: 'A lightless pit where gravity feels heavy.' }
+        ],
+        'ancient': [
+            { name: 'Solaris Temple', description: 'Golden ruins glowing with eternal sunlight.' },
+            { name: 'Ivory spires', description: 'Towering marble ruins of a forgotten empire.' },
+            { name: 'Celestial Garden', description: 'Plants that grow under starlight, even by day.' }
+        ],
+        'custom': [
+            { name: 'Prismatic Rift', description: 'A chaotic blend of multiple elemental planes.' },
+            { name: 'Void Frontier', description: 'The edge of existence where reality frays.' },
+            { name: 'Techno-Ruins', description: 'Lost technology merged with primal magic.' }
+        ]
+    };
+
+    const biomes = themeMap[preset] || themeMap['balanced'];
+    biomeEl.innerHTML = biomes.map(b => `
+        <div class="biome-card fade-in" style="border-left: 3px solid var(--accent)">
+            <div class="b-name" style="font-weight:700; color:var(--text)">${b.name}</div>
+            <div class="b-desc" style="font-size:10px; color:var(--muted); margin-top:2px">${b.description}</div>
+        </div>
+    `).join('');
+
+    const preview = document.getElementById('content-preview');
+    if (preview) preview.style.display = 'block';
 }
 
 function wizardGoStep(step: number) {
@@ -590,20 +682,9 @@ async function loadWorldContent() {
         const res = await fetch(API + '/content');
         const j = await res.json();
         if (!j.success) return;
-        const { biomes, monsters, factions, maps } = j.data;
+        const { monsters, factions, maps } = j.data;
 
-        // Biomes
-        const biomeEl = document.getElementById('biome-list');
-        if (biomeEl && biomes) {
-            biomeEl.innerHTML = biomes.map((b: any) => `
-                <div class="biome-card">
-                    <div class="b-name">${b.name}</div>
-                    <div class="b-desc">${b.description}</div>
-                </div>
-            `).join('');
-        }
-
-        // Monsters
+        // Monsters (Fetched from DB)
         const monEl = document.getElementById('monster-list');
         if (monEl && monsters && monsters.length > 0) {
             monEl.innerHTML = monsters.map((m: any) => `
