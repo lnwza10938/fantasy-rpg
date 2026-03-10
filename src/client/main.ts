@@ -1,6 +1,9 @@
+/// <reference types="vite/client" />
 import { createClient } from '@supabase/supabase-js';
 
+// @ts-ignore - Vite handles import.meta.env at build time, bypassing strict IDE module checks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+// @ts-ignore
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
