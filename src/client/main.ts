@@ -124,25 +124,22 @@ window.addEventListener('load', async () => {
 
 // --- SCREEN ---
 function showScreen(name: string) {
+    // Ensure game-container is always visible when navigating app screens
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) gameContainer.style.display = 'block';
+
+    const loginEl = document.getElementById('screen-login');
+    const gameUi = document.getElementById('game-ui-screen');
+
     if (name === 'login') {
-        // Show login, hide game UI
-        document.getElementById('game-container')!.style.display = 'none';
-        const loginEl = document.getElementById('screen-login');
-        if (loginEl) { loginEl.style.display = 'block'; }
+        // Show wizard, hide game UI
+        if (loginEl) loginEl.style.display = 'block';
+        if (gameUi) gameUi.classList.remove('active');
         return;
     }
-    // For all game screens: ensure game-container is visible
-    const gameContainer = document.getElementById('game-container');
-    if (gameContainer) gameContainer.style.display = '';
 
-    // Hide login wizard
-    ['screen-login'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-    });
-
-    // Show the 4-panel game UI
-    const gameUi = document.getElementById('game-ui-screen');
+    // For all game screens: hide wizard, show game UI
+    if (loginEl) loginEl.style.display = 'none';
     if (gameUi) gameUi.classList.add('active');
 
     // Map screen names to center tabs
