@@ -345,79 +345,119 @@ async function submitNewGame() {
     const pnEl = document.getElementById('input-player') as HTMLInputElement;
     const cnEl = document.getElementById('input-character') as HTMLInputElement;
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
-    const btnEl = document.getElementById('btn-start') as HTMLButtonElement;
     const errEl = document.getElementById('start-error') as HTMLElement;
     const pn = pnEl?.value.trim();
     const cn = cnEl?.value.trim();
     const sv = svEl?.value.trim();
 
     if (!pn || !cn) {
-        if (errEl) { errEl.textContent = 'Please fill in both Player Name and Character Name.'; errEl.style.display = 'block'; }
+        if (errEl) { errEl.textContent = 'กรุณากรอก Player Name และ Character Name'; errEl.style.display = 'block'; }
         wizardGoStep(2);
         return;
     }
     if (errEl) errEl.style.display = 'none';
-    if (btnEl) { btnEl.textContent = '⏳ Creating world...'; btnEl.disabled = true; }
 
-    console.log(`[World Creation] Sending request to ${API}/start`, { playerName: pn, characterName: cn, seed: sv });
-    try {
-        const res = await fetch(API + '/start', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                playerName: pn,
-                characterName: cn,
-                worldSeed: sv ? Number(sv) : undefined,
-                userId: G.user?.id,
-                email: G.user?.email
-            })
-        });
+    // --- STEP 1: Enter game screen IMMEDIATELY with local defaults ---
+    const seed = sv ? Number(sv) : Math.floor(Math.random() * 999999999);
+    const selectedPreset = document.querySelector('.preset-card.selected');
+    const presetName = selectedPreset?.querySelector('.preset-name')?.textContent || 'Unknown World';
 
-        const j = await res.json();
+    G.worldSeed = seed;
+    G.regions = [];
+    G.gs = {
+        characterName: cn,
+        playerName: pn,
+        level: 1, exp: 0, gold: 0,
+        hp: 100, maxHP: 100,
+        mana: 50, maxMana: 50,
+        equipment: { weapon: null, armor: null, accessory: null },
+        inventory: [],
+        effectiveStats: { attack: 10, defense: 5, speed: 8 },
+        worldSeed: seed,
+        worldName: presetName,
+    };
 
-        if (j.success) {
-            console.log('[World Creation] Success:', j.data);
-            G.playerId = j.data.playerId;
-            G.characterId = j.data.characterId;
-            G.worldSeed = j.data.worldSeed;
-            G.regions = j.data.regions;
-            G.gs = j.data.state;
+    // Show a loading splash in the region grid
+    const regionListEl = document.getElementById('region-list');
+    if (regionListEl) regionListEl.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">
+            <div style="font-size:36px;margin-bottom:12px">🌍</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:6px">Generating ${presetName}...</div>
+            <div style="font-size:11px">Connecting to server</div>
+        </div>
+    `;
 
-            renderRegions();
-            updateAllStatusBars();
-            showScreen('world');
-            showToast('World Ready! ⚔️', 'success');
-        } else {
-            // If character exists, try to LOAD it instead of showing error
-            if (j.error && (j.error.includes('already exists') || j.error.includes('duplicate'))) {
-                console.log('[World Creation] Character already exists, attempting to load...');
-                const listRes = await fetch(API + '/load/list/all');
-                const listData = await listRes.json();
-                if (listData.success) {
-                    const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
-                    if (existing) { await loadGame(existing.character_id); return; }
-                }
-            }
-            if (errEl) { errEl.textContent = j.error || 'Failed to create world.'; errEl.style.display = 'block'; }
-        }
-    } catch (err: any) {
-        console.error('[World Creation] Fetch error:', err);
+    updateAllStatusBars();
+    showScreen('world');
+    showToast(`Welcome, ${cn}! ⚔️`, 'success');
+
+    // --- STEP 2: Sync with server in background (non-blocking) ---
+    (async () => {
         try {
+            // First check if character already exists
             const listRes = await fetch(API + '/load/list/all');
             const listData = await listRes.json();
-            if (listData.success) {
+            if (listData.success && listData.data.length > 0) {
                 const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
-                if (existing) { await loadGame(existing.character_id); return; }
+                if (existing) {
+                    console.log('[World] Character exists, loading from server...');
+                    const loadRes = await fetch(API + '/load/' + existing.character_id);
+                    const loadJ = await loadRes.json();
+                    if (loadJ.success) {
+                        G.characterId = existing.character_id;
+                        G.gs = loadJ.data.gameState;
+                        G.worldSeed = loadJ.data.gameState.worldSeed;
+                        G.regions = loadJ.data.regions;
+                        renderRegions();
+                        updateAllStatusBars();
+                        showToast('Character loaded! ✅', 'info');
+                        return;
+                    }
+                }
             }
-        } catch (inner) { console.error('Silent fail on auto-load fallback', inner); }
 
-        if (errEl) {
-            errEl.textContent = `Connection failed: ${err.message || "Can't reach server"}.`;
-            errEl.style.display = 'block';
+            // Create new character on server
+            const res = await fetch(API + '/start', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    playerName: pn, characterName: cn,
+                    worldSeed: seed,
+                    userId: G.user?.id, email: G.user?.email
+                })
+            });
+            const j = await res.json();
+            if (j.success) {
+                G.playerId = j.data.playerId;
+                G.characterId = j.data.characterId;
+                G.worldSeed = j.data.worldSeed;
+                G.regions = j.data.regions;
+                G.gs = { ...G.gs, ...j.data.state };
+                renderRegions();
+                updateAllStatusBars();
+                showToast('World synced! 🌍', 'success');
+            } else {
+                // If creation failed but user is already in game, just show placeholder regions
+                G.regions = [
+                    { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
+                    { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
+                    { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
+                ];
+                renderRegions();
+                showToast('Offline mode – limited regions', 'info');
+            }
+        } catch (err) {
+            console.warn('[World] Server sync failed, using offline mode:', err);
+            // User is already in game — show placeholder regions
+            G.regions = [
+                { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
+                { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
+                { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
+                { name: 'Crimson Coast', dangerLevel: 7, enemyTypes: ['Pirate', 'Sea Serpent'] },
+            ];
+            renderRegions();
+            showToast('Offline mode – using default regions', 'info');
         }
-        fetchSaveList();
-    } finally {
-        if (btnEl) { btnEl.textContent = '⚔️ Enter the World'; btnEl.disabled = false; }
-    }
+    })();
 }
 
 // --- LOAD ---
