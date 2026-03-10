@@ -100,6 +100,7 @@ function onLoginSuccess() {
     if (gameContainer) gameContainer.style.display = 'block';
     if (userDisplay && G.user) userDisplay.textContent = `Logged in as: ${G.user.email}`;
     showScreen('login');
+    loadWorldContent(); // Load DB content for the world creation screen
 }
 
 async function logout() {
@@ -176,15 +177,119 @@ function showToast(msg: string, type = 'success') {
     }
 }
 
-// --- START ---
-document.getElementById('form-start')?.addEventListener('submit', async e => {
+// --- WORLD CREATION FUNCTIONS ---
+
+// Expose functions so inline onclick= HTML attributes work with Vite modules
+(window as any).selectPreset = selectPreset;
+(window as any).rollRandomSeed = rollRandomSeed;
+(window as any).fetchSaveList = fetchSaveList;
+(window as any).loadGame = loadGame;
+(window as any).saveGame = saveGame;
+(window as any).logout = logout;
+(window as any).toggleAuthMode = toggleAuthMode;
+(window as any).handleAuth = handleAuth;
+(window as any).exploreRegion = exploreRegion;
+(window as any).showScreen = showScreen;
+
+function selectPreset(el: HTMLElement, worldName: string, charName: string, seed: number | null) {
+    document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    const pnEl = document.getElementById('input-player') as HTMLInputElement;
+    const cnEl = document.getElementById('input-character') as HTMLInputElement;
+    const svEl = document.getElementById('input-seed') as HTMLInputElement;
+    if (worldName && !pnEl?.value) { pnEl.value = worldName; }
+    if (charName && !cnEl?.value) { cnEl.value = charName; }
+    if (seed !== null) { svEl.value = String(seed); } else { svEl.value = ''; }
+}
+
+function rollRandomSeed() {
+    const svEl = document.getElementById('input-seed') as HTMLInputElement;
+    svEl.value = String(Math.floor(Math.random() * 999999999));
+}
+
+async function loadWorldContent() {
+    try {
+        const res = await fetch(API + '/content');
+        const j = await res.json();
+        if (!j.success) return;
+        const { biomes, monsters, factions, maps } = j.data;
+
+        // Biomes
+        const biomeEl = document.getElementById('biome-list');
+        if (biomeEl && biomes) {
+            biomeEl.innerHTML = biomes.map((b: any) => `
+                <div class="biome-card">
+                    <div class="b-name">${b.name}</div>
+                    <div class="b-desc">${b.description}</div>
+                </div>
+            `).join('');
+        }
+
+        // Monsters
+        const monEl = document.getElementById('monster-list');
+        if (monEl && monsters && monsters.length > 0) {
+            monEl.innerHTML = monsters.map((m: any) => `
+                <div class="monster-badge">
+                    <span class="m-name">${m.name}</span>
+                    <span class="m-lv">Lv.${m.level}</span>
+                    <span class="m-type">${m.biome || m.type || 'Unknown'}</span>
+                </div>
+            `).join('');
+        } else if (monEl) {
+            monEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No monsters in DB yet.</p>';
+        }
+
+        // Factions
+        const facEl = document.getElementById('faction-list');
+        if (facEl && factions && factions.length > 0) {
+            facEl.innerHTML = factions.map((f: any) => `
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px">
+                    <div style="font-weight:700">${f.name}</div>
+                    <div style="color:var(--muted);font-size:10px;margin-top:2px">${f.ideology || f.type || ''}</div>
+                </div>
+            `).join('');
+        } else if (facEl) {
+            facEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No factions in DB yet.</p>';
+        }
+
+        // Maps
+        const mapEl = document.getElementById('map-list');
+        if (mapEl && maps && maps.length > 0) {
+            mapEl.innerHTML = maps.map((m: any) => `
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between">
+                    <span style="font-weight:600">${m.name}</span>
+                    <span style="color:var(--red);font-size:10px">⚠ Lv.${m.danger_level}</span>
+                </div>
+            `).join('');
+        } else if (mapEl) {
+            mapEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No custom maps yet.</p>';
+        }
+
+        const preview = document.getElementById('content-preview');
+        if (preview) preview.style.display = 'block';
+    } catch (e) { console.warn('Could not load world content', e); }
+}
+
+document.getElementById('form-start')?.addEventListener('submit', async (e: Event) => {
     e.preventDefault();
     const pnEl = document.getElementById('input-player') as HTMLInputElement;
     const cnEl = document.getElementById('input-character') as HTMLInputElement;
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
-    const pn = pnEl?.value;
-    const cn = cnEl?.value;
-    const sv = svEl?.value;
+    const btnEl = document.getElementById('btn-start') as HTMLButtonElement;
+    const errEl = document.getElementById('start-error') as HTMLElement;
+    const pn = pnEl?.value.trim();
+    const cn = cnEl?.value.trim();
+    const sv = svEl?.value.trim();
+
+    if (!pn || !cn) {
+        errEl.textContent = 'Please fill in both Player Name and Character Name.';
+        errEl.style.display = 'block';
+        return;
+    }
+    errEl.style.display = 'none';
+    btnEl.textContent = '⏳ Creating world...';
+    btnEl.disabled = true;
+
     try {
         const res = await fetch(API + '/start', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -202,8 +307,18 @@ document.getElementById('form-start')?.addEventListener('submit', async e => {
             G.worldSeed = j.data.worldSeed; G.regions = j.data.regions;
             G.gs = j.data.state;
             renderRegions(); updateAllStatusBars(); showScreen('world');
-        } else { showToast(j.error, 'error') }
-    } catch { showToast('Connection failed', 'error') }
+            showToast('World created! ⚔️', 'success');
+        } else {
+            errEl.textContent = j.error || 'Failed to create world.';
+            errEl.style.display = 'block';
+        }
+    } catch {
+        errEl.textContent = 'Connection failed. Is the server running?';
+        errEl.style.display = 'block';
+    } finally {
+        btnEl.textContent = '⚔️ Enter the World';
+        btnEl.disabled = false;
+    }
 });
 
 // --- LOAD ---

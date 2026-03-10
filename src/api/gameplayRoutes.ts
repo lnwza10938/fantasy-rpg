@@ -12,7 +12,19 @@ import { GameStateManager, GamePhase } from '../core/gameState.js';
 import { supabase } from '../db/supabase.js';
 import { v4 as uuidv4 } from 'uuid';
 import type { CharacterStats } from '../models/combatTypes.js';
-import { getItems, getEquipment } from '../db/contentRepositories.js';
+import { getItems, getEquipment, getMonsters, getFactions, getMaps } from '../db/contentRepositories.js';
+
+// --- /content endpoint for World Creation UI ---
+const BIOME_LIST = [
+    { id: 'forest', name: '🌲 Forest', description: 'Ancient trees teeming with creatures' },
+    { id: 'desert', name: '🏜️ Desert', description: 'Scorched sands hiding deadly secrets' },
+    { id: 'volcanic', name: '🌋 Volcanic', description: 'Molten rock and fire-born monsters' },
+    { id: 'coast', name: '🌊 Coast', description: 'Sea shores with mysterious depths' },
+    { id: 'mountain', name: '⛰️ Mountain', description: 'Jagged peaks above the clouds' },
+    { id: 'ruins', name: '🏚️ Ruins', description: 'Fallen kingdoms with undead guardians' },
+    { id: 'cursed_land', name: '💀 Cursed Land', description: 'Blighted realms of eternal darkness' },
+    { id: 'swamp', name: '🌿 Swamp', description: 'Murky bogs hiding ancient horrors' },
+];
 
 const router = Router();
 
@@ -137,6 +149,27 @@ router.post('/world', async (req, res) => {
         res.json({ success: true, data: { worldSeed: seed, regions: instance.regions } });
     } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
 });
+
+// --- /content (for world creation UI) ---
+router.get('/content', async (_req, res) => {
+    try {
+        const [monsters, factions, maps] = await Promise.all([
+            getMonsters(),
+            getFactions(),
+            getMaps()
+        ]);
+        res.json({
+            success: true,
+            data: {
+                biomes: BIOME_LIST,
+                monsters: monsters.slice(0, 24), // top 24 for display
+                factions,
+                maps: maps.slice(0, 12),
+            }
+        });
+    } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
+});
+
 
 // --- /event ---
 router.post('/event', async (req, res) => {

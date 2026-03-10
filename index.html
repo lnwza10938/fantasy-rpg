@@ -177,6 +177,146 @@
             gap: 12px
         }
 
+        .start-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px
+        }
+
+        /* Preset Cards */
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            margin-bottom: 4px
+        }
+
+        .preset-card {
+            background: var(--surface2);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all .2s;
+            text-align: center
+        }
+
+        .preset-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px)
+        }
+
+        .preset-card.selected {
+            border-color: var(--accent);
+            background: rgba(79, 195, 247, 0.08)
+        }
+
+        .preset-icon {
+            font-size: 28px;
+            margin-bottom: 6px
+        }
+
+        .preset-name {
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 4px
+        }
+
+        .preset-desc {
+            font-size: 10px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            line-height: 1.4
+        }
+
+        .preset-tags {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            flex-wrap: wrap
+        }
+
+        .tag {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--surface3);
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px
+        }
+
+        .tag-hard {
+            background: rgba(239, 83, 80, 0.2);
+            color: var(--red)
+        }
+
+        .tag-easy {
+            background: rgba(102, 187, 106, 0.2);
+            color: var(--green)
+        }
+
+        /* Biome Grid */
+        .biome-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 8px
+        }
+
+        .biome-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px
+        }
+
+        .biome-card .b-name {
+            font-weight: 700;
+            font-size: 12px;
+            margin-bottom: 3px
+        }
+
+        .biome-card .b-desc {
+            color: var(--muted);
+            line-height: 1.4
+        }
+
+        /* Monster Grid */
+        .monster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px
+        }
+
+        .monster-badge {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px
+        }
+
+        .monster-badge .m-name {
+            font-weight: 600;
+            font-size: 11px
+        }
+
+        .monster-badge .m-lv {
+            color: var(--gold);
+            font-size: 10px
+        }
+
+        .monster-badge .m-type {
+            color: var(--muted);
+            font-size: 9px;
+            text-transform: uppercase
+        }
+
         /* Status Bar */
         .status-bar {
             display: flex;
@@ -524,30 +664,117 @@
         <div class="container">
             <!-- LOGIN / START -->
             <div id="screen-login" class="screen">
+                <!-- World Presets -->
                 <div class="card fade-in">
-                    <h3>🏰 Begin Your Journey</h3>
-                    <form id="form-start">
-                        <div class="login-grid">
-                            <div><label>Player Name</label><input type="text" id="input-player" required
-                                    placeholder="Your name"></div>
-                            <div><label>Character Name</label><input type="text" id="input-character" required
-                                    placeholder="Hero name"></div>
-                            <div><label>World Seed</label><input type="number" id="input-seed" placeholder="Random">
-                            </div>
-                            <div style="display:flex;align-items:flex-end"><button type="submit" class="btn btn-primary"
-                                    style="width:100%">⚔ Enter World</button></div>
+                    <h3>✨ Choose a World Preset</h3>
+                    <div id="preset-grid" class="preset-grid">
+                        <div class="preset-card selected" data-preset="balanced"
+                            onclick="selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)">
+                            <div class="preset-icon">⚖️</div>
+                            <div class="preset-name">Balanced Realm</div>
+                            <div class="preset-desc">Classic adventure with diverse biomes</div>
+                            <div class="preset-tags"><span class="tag">Medium</span><span class="tag">Mixed</span></div>
                         </div>
-                    </form>
-                    <div
-                        style="margin-top:20px; text-align:center; padding-top:16px; border-top: 1px solid var(--border)">
-                        <label style="margin-bottom:8px">Or Resume Adventure</label>
-                        <div id="save-list" style="display:flex; flex-direction:column; gap:8px">
-                            <button class="btn btn-action" onclick="fetchSaveList()" style="width:100%">📂 List All
-                                Saves</button>
+                        <div class="preset-card" data-preset="inferno"
+                            onclick="selectPreset(this, 'The Scorched World', 'Ashborn', 696969420)">
+                            <div class="preset-icon">🔥</div>
+                            <div class="preset-name">Inferno World</div>
+                            <div class="preset-desc">Volcanic wastelands and fire-born horrors</div>
+                            <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
+                                    class="tag">Volcanic</span></div>
+                        </div>
+                        <div class="preset-card" data-preset="cursed"
+                            onclick="selectPreset(this, 'The Cursed Lands', 'Darkwalker', 111222333)">
+                            <div class="preset-icon">💀</div>
+                            <div class="preset-name">Cursed Lands</div>
+                            <div class="preset-desc">Ancient evil permeates every shadow</div>
+                            <div class="preset-tags"><span class="tag tag-hard">Hard</span><span class="tag">Dark</span>
+                            </div>
+                        </div>
+                        <div class="preset-card" data-preset="ancient"
+                            onclick="selectPreset(this, 'The Ancient World', 'Lorekeeper', 987654321)">
+                            <div class="preset-icon">🏛️</div>
+                            <div class="preset-name">Ancient Ruins</div>
+                            <div class="preset-desc">Lost empires and hidden knowledge</div>
+                            <div class="preset-tags"><span class="tag tag-easy">Easy</span><span class="tag">Lore</span>
+                            </div>
+                        </div>
+                        <div class="preset-card" data-preset="custom" onclick="selectPreset(this, '', '', null)">
+                            <div class="preset-icon">🎲</div>
+                            <div class="preset-name">Custom World</div>
+                            <div class="preset-desc">Build your own adventure from scratch</div>
+                            <div class="preset-tags"><span class="tag">Custom</span><span class="tag">Any</span></div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Character + World Config -->
+                <div class="card fade-in">
+                    <h3>🧙 Character &amp; World Setup</h3>
+                    <form id="form-start">
+                        <div class="start-grid">
+                            <div>
+                                <label>Player Name</label>
+                                <input type="text" id="input-player" placeholder="Your name" required
+                                    autocomplete="off">
+                            </div>
+                            <div>
+                                <label>Character Name</label>
+                                <input type="text" id="input-character" placeholder="Hero name" required
+                                    autocomplete="off">
+                            </div>
+                            <div>
+                                <label>World Seed <span style="color:var(--muted);font-size:10px">(blank =
+                                        random)</span></label>
+                                <input type="number" id="input-seed" placeholder="e.g. 123456789">
+                            </div>
+                            <div style="display:flex;align-items:flex-end">
+                                <button type="button" class="btn btn-action" style="width:100%"
+                                    onclick="rollRandomSeed()">🎲 Roll Random</button>
+                            </div>
+                        </div>
+                        <div id="start-error"
+                            style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:rgba(239,83,80,0.1);border-radius:6px;border:1px solid rgba(239,83,80,0.3);margin-top:10px">
+                        </div>
+                        <button type="submit" id="btn-start" class="btn btn-primary"
+                            style="width:100%;margin-top:14px;padding:13px;font-size:15px;letter-spacing:1px">
+                            ⚔️ Enter the World
+                        </button>
+                    </form>
+                </div>
+
+                <!-- DB Content Preview -->
+                <div id="content-preview" style="display:none">
+                    <div class="card fade-in">
+                        <h3>🌍 World Biomes</h3>
+                        <div id="biome-list" class="biome-grid"></div>
+                    </div>
+                    <div class="card fade-in">
+                        <h3>👾 Monsters in this World</h3>
+                        <div id="monster-list" class="monster-grid"></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                        <div class="card fade-in">
+                            <h3>⚔️ Factions</h3>
+                            <div id="faction-list" style="display:flex;flex-direction:column;gap:6px"></div>
+                        </div>
+                        <div class="card fade-in">
+                            <h3>🗺️ Known Maps</h3>
+                            <div id="map-list" style="display:flex;flex-direction:column;gap:6px"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load Save -->
+                <div class="card fade-in">
+                    <h3>📂 Resume Adventure</h3>
+                    <div id="save-list" style="display:flex;flex-direction:column;gap:8px">
+                        <button class="btn btn-action" onclick="fetchSaveList()" style="width:100%">📂 Load
+                            Saves</button>
+                    </div>
+                </div>
             </div>
+
 
             <!-- WORLD MAP -->
             <div id="screen-world" class="screen">
