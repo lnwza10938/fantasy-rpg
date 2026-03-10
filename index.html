@@ -524,6 +524,20 @@
             line-height: 1.4
         }
 
+        .biome-card.selectable:hover,
+        .monster-badge.selectable:hover {
+            border-color: var(--accent);
+            cursor: pointer;
+            background: var(--surface3);
+        }
+
+        .biome-card.selected,
+        .monster-badge.selected {
+            border-color: var(--accent) !important;
+            background: rgba(79, 195, 247, 0.1) !important;
+            box-shadow: 0 0 10px rgba(79, 195, 247, 0.2);
+        }
+
         /* Monster Grid */
         .monster-grid {
             display: grid;

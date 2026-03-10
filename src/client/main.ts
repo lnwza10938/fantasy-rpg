@@ -11,9 +11,11 @@ const API = '/api';
 let G: any = {
     playerId: null, characterId: null, worldSeed: null, regions: [],
     selectedRegion: null, selectedRegionIndex: 0,
-    user: null, // Supabase user
+    user: null,
     gs: null,
-    selectedLegend: null as any // Track the legend selected in the wizard
+    selectedLegend: null as any,
+    allContent: { biomes: [], monsters: [], factions: [], maps: [] },
+    customSelection: { biomes: [] as string[], monsters: [] as string[] }
 };
 
 // Vault and Forge state
@@ -240,6 +242,7 @@ function showToast(msg: string, type = 'success') {
 (window as any).confirmForge = confirmForge;
 (window as any).backFromForge = backFromForge;
 (window as any).selectLegend = selectLegend;
+(window as any).toggleCustomTag = toggleCustomTag;
 
 // Wizard state
 let wizardState = { worldName: 'The Balanced Realm', charSuggestion: 'Hero', seed: 500000000 as number | null, skillCode: '', skillData: null as any };
@@ -263,10 +266,46 @@ function selectPreset(el: HTMLElement, worldName: string, charName: string, seed
     renderThemeMonsters(el.dataset.preset || 'balanced');
 }
 
+function toggleCustomTag(type: 'biomes' | 'monsters', name: string) {
+    const list = G.customSelection[type];
+    const index = list.indexOf(name);
+    if (index > -1) {
+        list.splice(index, 1);
+    } else {
+        list.push(name);
+    }
+    const preset = document.querySelector('.preset-card.selected') as HTMLElement;
+    if (preset?.dataset.preset === 'custom') {
+        renderThemeBiomes('custom');
+        renderThemeMonsters('custom');
+    }
+}
+
 function renderThemeMonsters(preset: string) {
     const monEl = document.getElementById('monster-list');
     if (!monEl) return;
+    const headerEl = monEl.parentElement?.querySelector('h3');
 
+    if (preset === 'custom') {
+        if (headerEl) headerEl.textContent = '👾 Select Monsters for Your World';
+        if (G.allContent.monsters.length === 0) {
+            monEl.innerHTML = '<div style="color:var(--muted); font-size:11px">Loading global database...</div>';
+            return;
+        }
+        monEl.innerHTML = G.allContent.monsters.map((m: any) => {
+            const isSelected = G.customSelection.monsters.includes(m.name);
+            return `
+                <div class="monster-badge selectable ${isSelected ? 'selected' : ''}" onclick="toggleCustomTag('monsters', '${m.name}')">
+                    <span class="m-name">${m.name}</span>
+                    <span class="m-lv">Lv.${m.level}</span>
+                    <span class="m-type">${m.biome || m.type || 'Unknown'}</span>
+                </div>
+            `;
+        }).join('');
+        return;
+    }
+
+    if (headerEl) headerEl.textContent = '👾 Monsters in this World';
     const monsterMap: Record<string, any[]> = {
         'balanced': [
             { name: 'Forest Slime', lv: 1, type: 'Mixed' },
@@ -287,11 +326,6 @@ function renderThemeMonsters(preset: string) {
             { name: 'Rune Guardian', lv: 10, type: 'Lore' },
             { name: 'Ancient Automaton', lv: 18, type: 'Lore' },
             { name: 'Spirit of Knowledge', lv: 30, type: 'Lore' }
-        ],
-        'custom': [
-            { name: 'Void Stalker', lv: '?', type: 'Chaos' },
-            { name: 'Glitch Wraith', lv: '!', type: 'Chaos' },
-            { name: 'Reality Eater', lv: '∞', type: 'Chaos' }
         ]
     };
 
@@ -308,7 +342,29 @@ function renderThemeMonsters(preset: string) {
 function renderThemeBiomes(preset: string) {
     const biomeEl = document.getElementById('biome-list');
     if (!biomeEl) return;
+    const headerEl = biomeEl.parentElement?.querySelector('h3');
 
+    if (preset === 'custom') {
+        if (headerEl) headerEl.textContent = '🌍 Select World Biomes (Tags)';
+        if (G.allContent.biomes.length === 0) {
+            biomeEl.innerHTML = '<div style="color:var(--muted); font-size:11px">Loading global database...</div>';
+            return;
+        }
+        biomeEl.innerHTML = G.allContent.biomes.map((b: any) => {
+            const isSelected = G.customSelection.biomes.includes(b.name);
+            return `
+                <div class="biome-card selectable ${isSelected ? 'selected' : ''}" onclick="toggleCustomTag('biomes', '${b.name}')">
+                    <div class="b-name">${b.name}</div>
+                    <div class="b-desc">${b.description}</div>
+                </div>
+            `;
+        }).join('');
+        const preview = document.getElementById('content-preview');
+        if (preview) preview.style.display = 'block';
+        return;
+    }
+
+    if (headerEl) headerEl.textContent = '🌍 World Biomes';
     const themeMap: Record<string, any[]> = {
         'balanced': [
             { name: 'Emerald Plains', description: 'Rolling green hills filled with life.' },
@@ -329,11 +385,6 @@ function renderThemeBiomes(preset: string) {
             { name: 'Solaris Temple', description: 'Golden ruins glowing with eternal sunlight.' },
             { name: 'Ivory spires', description: 'Towering marble ruins of a forgotten empire.' },
             { name: 'Celestial Garden', description: 'Plants that grow under starlight, even by day.' }
-        ],
-        'custom': [
-            { name: 'Prismatic Rift', description: 'A chaotic blend of multiple elemental planes.' },
-            { name: 'Void Frontier', description: 'The edge of existence where reality frays.' },
-            { name: 'Techno-Ruins', description: 'Lost technology merged with primal magic.' }
         ]
     };
 
@@ -361,11 +412,27 @@ function wizardGoStep(step: number) {
         const summaryEl = document.getElementById('confirm-summary');
         if (summaryEl) {
             const worldName = wizardState.worldName || 'Custom World';
+            const selectedPreset = document.querySelector('.preset-card.selected') as HTMLElement;
+            const isCustom = selectedPreset?.dataset.preset === 'custom';
+
+            let tagSummary = '';
+            if (isCustom) {
+                const bTags = G.customSelection.biomes.length > 0 ? G.customSelection.biomes.join(', ') : 'Default';
+                const mTags = G.customSelection.monsters.length > 0 ? G.customSelection.monsters.join(', ') : 'Default';
+                tagSummary = `
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-size:10px;">
+                        <span style="color:var(--muted)">Biomes:</span> ${bTags}<br>
+                        <span style="color:var(--muted)">Monsters:</span> ${mTags}
+                    </div>
+                `;
+            }
+
             summaryEl.innerHTML = `
                 <div style="text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:15px; margin-bottom:10px">
                     <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Selected World</div>
                     <div style="font-size:16px; font-weight:700">${worldName}</div>
                     <div style="font-size:11px; color:var(--muted)">Seed: ${wizardState.seed || 'Random'}</div>
+                    ${tagSummary}
                 </div>
                 <div style="text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:15px;">
                     <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Chosen Legend</div>
@@ -682,23 +749,14 @@ async function loadWorldContent() {
         const res = await fetch(API + '/content');
         const j = await res.json();
         if (!j.success) return;
-        const { monsters, factions, maps } = j.data;
+        const { biomes, monsters, factions, maps } = j.data;
 
-        // Monsters (Fetched from DB)
-        const monEl = document.getElementById('monster-list');
-        if (monEl && monsters && monsters.length > 0) {
-            monEl.innerHTML = monsters.map((m: any) => `
-                <div class="monster-badge">
-                    <span class="m-name">${m.name}</span>
-                    <span class="m-lv">Lv.${m.level}</span>
-                    <span class="m-type">${m.biome || m.type || 'Unknown'}</span>
-                </div>
-            `).join('');
-        } else if (monEl) {
-            monEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No monsters in DB yet.</p>';
-        }
+        G.allContent.biomes = biomes || [];
+        G.allContent.monsters = monsters || [];
+        G.allContent.factions = factions || [];
+        G.allContent.maps = maps || [];
 
-        // Factions
+        // Factions and Maps can still be rendered directly if they aren't theme-dependent
         const facEl = document.getElementById('faction-list');
         if (facEl && factions && factions.length > 0) {
             facEl.innerHTML = factions.map((f: any) => `
@@ -707,11 +765,8 @@ async function loadWorldContent() {
                     <div style="color:var(--muted);font-size:10px;margin-top:2px">${f.ideology || f.type || ''}</div>
                 </div>
             `).join('');
-        } else if (facEl) {
-            facEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No factions in DB yet.</p>';
         }
 
-        // Maps
         const mapEl = document.getElementById('map-list');
         if (mapEl && maps && maps.length > 0) {
             mapEl.innerHTML = maps.map((m: any) => `
@@ -720,8 +775,6 @@ async function loadWorldContent() {
                     <span style="color:var(--red);font-size:10px">⚠ Lv.${m.danger_level}</span>
                 </div>
             `).join('');
-        } else if (mapEl) {
-            mapEl.innerHTML = '<p style="font-size:11px;color:var(--muted)">No custom maps yet.</p>';
         }
 
         const preview = document.getElementById('content-preview');
