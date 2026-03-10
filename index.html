@@ -1093,26 +1093,27 @@
         function translateTo(lang) {
             currentLang = lang;
             localStorage.setItem('rpg_lang', lang);
-            // Update active button
+
+            // Update UI
             document.querySelectorAll('.lang-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.lang === lang);
             });
 
-            if (lang === '') {
-                // === RESET: Clear ALL googtrans cookies across all domain variants ===
-                const domain = location.hostname;
-                const expire = 'expires=Thu, 01 Jan 1970 00:00:00 UTC';
-                document.cookie = `googtrans=; ${expire}; path=/`;
-                document.cookie = `googtrans=; ${expire}; path=/; domain=${domain}`;
-                document.cookie = `googtrans=; ${expire}; path=/; domain=.${domain}`;
-                localStorage.removeItem('rpg_lang');
-                // Reload with special flag so Google Translate won't init
-                location.href = location.pathname + '?notranslate=1';
+            // Set cookies for persistence
+            const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
+            const val = lang ? '/auto/' + lang : '';
+            const expire = lang ? '' : 'expires=Thu, 01 Jan 1970 00:00:00 UTC; ';
+
+            document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
+            document.cookie = `googtrans=${val}; ${expire}path=/`;
+
+            // Trigger translation without reload
+            const select = document.querySelector('.goog-te-combo');
+            if (select) {
+                select.value = lang;
+                select.dispatchEvent(new Event('change'));
             } else {
-                const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
-                const val = '/auto/' + lang;
-                document.cookie = `googtrans=${val}; path=/; domain=${domain}`;
-                document.cookie = `googtrans=${val}; path=/`;
+                // Fallback for first time or if widget not ready
                 location.reload();
             }
         }
