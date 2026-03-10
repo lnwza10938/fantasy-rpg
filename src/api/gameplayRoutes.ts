@@ -2,7 +2,7 @@
 // Game Loop API: /start, /world, /event, /combat, /spawn, /save, /load
 
 import { Router } from 'express';
-import { createPlayer, createCharacter, getCharacter, getPlayerByUserId } from '../db/repositories.js';
+import { createPlayer, createCharacter, getCharacter, getPlayerByUserId, deleteCharacter } from '../db/repositories.js';
 import { worldSystem, SeededRNG } from '../core/worldSystem.js';
 import { eventSystem } from '../core/eventSystem.js';
 import { combatSystem } from '../core/combatSystem.js';
@@ -396,6 +396,28 @@ router.get('/load/:characterId', async (req, res) => {
             }
         });
     } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- DELETE /load/:characterId ---
+router.delete('/load/:characterId', async (req, res) => {
+    try {
+        const { characterId } = req.params;
+        if (!characterId) {
+            res.status(400).json({ success: false, error: 'characterId required' });
+            return;
+        }
+
+        // Delete from DB (Repo handles characters table, which should cascade to player_states if set up, 
+        // but let's be explicit and delete from characters which is the parent)
+        await deleteCharacter(characterId);
+
+        // Remove from in-memory sessions
+        sessions.delete(characterId);
+
+        res.json({ success: true, message: 'Character deleted successfully' });
+    } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
 // --- /item/use ---

@@ -76,6 +76,15 @@ export async function getCharacter(id: string): Promise<CharacterStats> {
     };
 }
 
+export async function deleteCharacter(id: string) {
+    const { error } = await supabase
+        .from('characters')
+        .delete()
+        .eq('id', id);
+
+    if (error) throw error;
+}
+
 // --- Combat Logs ---
 
 export async function saveCombatLog(battleId: string, log: string) {

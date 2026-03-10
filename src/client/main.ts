@@ -189,6 +189,7 @@ function showToast(msg: string, type = 'success') {
 (window as any).logout = logout;
 (window as any).toggleAuthMode = toggleAuthMode;
 (window as any).handleAuth = handleAuth;
+(window as any).deleteSave = deleteSave;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
 
@@ -379,22 +380,43 @@ async function fetchSaveList() {
             j.data.forEach((s: any) => {
                 const card = document.createElement('div');
                 card.className = 'region-card';
-                card.style.cssText = 'text-align:left; padding:8px 12px';
+                card.style.cssText = 'text-align:left; padding:8px 12px; position:relative;';
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between">
-                        <span class="name">👤 ${s.character_name}</span>
+                    <div style="display:flex; justify-content:space-between; align-items: center; margin-right: 24px;">
+                        <span class="name" style="cursor:pointer" onclick="loadGame('${s.character_id}')">👤 ${s.character_name}</span>
                         <span class="danger">Lv.${s.level}</span>
                     </div>
-                    <div class="enemies" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+                    <div class="enemies" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer" onclick="loadGame('${s.character_id}')">
                         ${s.last_action_log || 'No logs available'}
                     </div>
                     <div style="font-size:9px; color:var(--muted); margin-top:4px">${new Date(s.updated_at).toLocaleString()}</div>
+                    <button class="btn-delete" title="Delete Save" onclick="event.stopPropagation(); deleteSave('${s.character_id}', '${s.character_name}')" 
+                        style="position:absolute; top:8px; right:8px; background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
+                        🗑️
+                    </button>
                 `;
-                card.onclick = () => loadGame(s.character_id);
                 listEl.appendChild(card);
             });
         }
     } catch { showToast('Could not fetch saves', 'error'); }
+}
+
+async function deleteSave(cid: string, name: string) {
+    if (!confirm(`Are you sure you want to permanently delete the legend of ${name}?`)) return;
+
+    try {
+        const res = await fetch(API + '/load/' + cid, { method: 'DELETE' });
+        const j = await res.json();
+        if (j.success) {
+            showToast(`Legend of ${name} has been erased.`, 'info');
+            fetchSaveList(); // Refresh list
+        } else {
+            showToast(j.error || 'Delete failed', 'error');
+        }
+    } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Connection error during deletion', 'error');
+    }
 }
 
 async function loadGame(cid: string) {
