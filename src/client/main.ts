@@ -137,26 +137,35 @@ function showScreen(name: string) {
     if (gameContainer) gameContainer.style.display = 'block';
 
     const loginEl = document.getElementById('screen-login');
+    const vaultEl = document.getElementById('screen-vault');
+    const forgeEl = document.getElementById('screen-forge');
     const gameUi = document.getElementById('game-ui-screen');
 
-    if (name === 'login') {
-        // Show wizard, hide game UI
-        if (loginEl) loginEl.style.display = 'block';
-        if (gameUi) gameUi.classList.remove('active');
-        return;
-    }
-
-    // For all game screens: hide wizard, show game UI
+    // Hide all major screens
     if (loginEl) loginEl.style.display = 'none';
-    if (gameUi) gameUi.classList.add('active');
+    if (vaultEl) vaultEl.style.display = 'none';
+    if (forgeEl) forgeEl.style.display = 'none';
+    if (gameUi) gameUi.classList.remove('active');
 
-    // Map screen names to center tabs
-    if (name === 'world') gpTab('map');
-    else if (name === 'explore') gpTab('explore');
-    else if (name === 'combat') gpTab('combat');
-    // character/inventory are visible in left/right panels always
-    if (name === 'character') renderCharacter();
-    if (name === 'inventory') renderInventory();
+    if (name === 'login') {
+        if (loginEl) loginEl.style.display = 'block';
+    } else if (name === 'vault') {
+        if (vaultEl) vaultEl.style.display = 'block';
+    } else if (name === 'forge') {
+        if (forgeEl) forgeEl.style.display = 'block';
+    } else {
+        // For all gameplay screens (world, explore, combat, etc.), show the 4-panel game UI
+        if (gameUi) gameUi.classList.add('active');
+
+        // Map screen names to center tabs
+        if (name === 'world') gpTab('map');
+        else if (name === 'explore') gpTab('explore');
+        else if (name === 'combat') gpTab('combat');
+
+        // Refresh stats
+        if (name === 'character') renderCharacter();
+        if (name === 'inventory') renderInventory();
+    }
 }
 
 // Switch center-top tabs: map | explore | combat
