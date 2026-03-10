@@ -96,7 +96,7 @@ router.post('/start', async (req, res) => {
             }
         } else {
             // Fallback for non-auth (guest/local testing)
-            player = await createPlayer(playerName, `guest_${Date.now()}`, 'guest@local');
+            player = await createPlayer(playerName, null, 'guest@local');
         }
 
         const seed = worldSeed ?? Math.floor(Math.random() * 999999999);

@@ -4,7 +4,7 @@ import type { CharacterStats } from '../models/combatTypes.js';
 
 // --- Players ---
 
-export async function createPlayer(name: string, userId: string, email: string) {
+export async function createPlayer(name: string, userId: string | null, email: string) {
     const { data, error } = await supabase
         .from('players')
         .insert([{ name, user_id: userId, email }])
