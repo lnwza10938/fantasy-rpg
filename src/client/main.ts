@@ -587,10 +587,14 @@ function showForge() {
 }
 
 function backFromForge() {
+    // Refresh both candidate lists if they exist
+    fetchVaultSelections();
+    renderFullVault();
+
     // Go back to wherever we were (Vault or Wizard Step 2)
     const vaultScreen = document.getElementById('screen-vault');
     if (vaultScreen && vaultScreen.style.display === 'block') {
-        showScreen('vault'); // Refresh vault if needed
+        showScreen('vault');
     } else {
         showScreen('login');
         wizardGoStep(2);
