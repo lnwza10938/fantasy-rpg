@@ -243,6 +243,7 @@ function showToast(msg: string, type = 'success') {
 (window as any).backFromForge = backFromForge;
 (window as any).selectLegend = selectLegend;
 (window as any).toggleCustomTag = toggleCustomTag;
+(window as any).forgeGoStep = forgeGoStep;
 
 // Wizard state
 let wizardState = { worldName: 'The Balanced Realm', charSuggestion: 'Hero', seed: 500000000 as number | null, skillCode: '', skillData: null as any };
@@ -532,16 +533,45 @@ async function renderFullVault() {
     }
 }
 
+function forgeGoStep(step: number) {
+    const s1 = document.getElementById('forge-step-1');
+    const s2 = document.getElementById('forge-step-2');
+
+    if (step === 2) {
+        // Validate name before proceeding
+        const nameVal = (document.getElementById('forge-name') as HTMLInputElement)?.value.trim();
+        if (!nameVal) {
+            alert('Please enter a name for your legend.');
+            return;
+        }
+    }
+
+    if (s1 && s2) {
+        s1.style.display = step === 1 ? 'block' : 'none';
+        s2.style.display = step === 2 ? 'block' : 'none';
+    }
+}
+
 function showForge() {
     showScreen('forge');
     // Reset state
     forgeState = { skillCode: '', skillData: null };
     (document.getElementById('forge-name') as HTMLInputElement).value = '';
+
+    // Reset appearance to default
+    (document.getElementById('forge-gender') as HTMLSelectElement).value = 'male';
+    (document.getElementById('forge-skin') as HTMLSelectElement).value = 'fair';
+    (document.getElementById('forge-face') as HTMLSelectElement).value = 'round';
+    (document.getElementById('forge-hair') as HTMLSelectElement).value = 'black';
+    (document.getElementById('forge-eyes') as HTMLSelectElement).value = 'brown';
+
     document.getElementById('forge-skill-display')!.style.display = 'none';
     document.getElementById('forge-skill-placeholder')!.style.display = 'block';
     document.getElementById('forge-skill-box')!.style.display = 'none';
     (document.getElementById('btn-forge-confirm') as HTMLButtonElement).disabled = true;
     (document.getElementById('forge-error') as HTMLElement).style.display = 'none';
+
+    forgeGoStep(1);
 }
 
 function backFromForge() {
@@ -637,6 +667,14 @@ async function confirmForge() {
     btn.disabled = true;
     btn.textContent = 'Baking...';
 
+    const appearance = {
+        gender: (document.getElementById('forge-gender') as HTMLSelectElement)?.value || 'male',
+        skinTone: (document.getElementById('forge-skin') as HTMLSelectElement)?.value || 'fair',
+        faceShape: (document.getElementById('forge-face') as HTMLSelectElement)?.value || 'round',
+        hairStyle: (document.getElementById('forge-hair') as HTMLSelectElement)?.value || 'black',
+        eyeColor: (document.getElementById('forge-eyes') as HTMLSelectElement)?.value || 'brown'
+    };
+
     try {
         const res = await fetch(API + '/character', {
             method: 'POST',
@@ -646,7 +684,8 @@ async function confirmForge() {
                 playerName: G.user?.email?.split('@')[0] || 'Hero',
                 userId: G.user?.id,
                 email: G.user?.email,
-                signatureSkill: { code: forgeState.skillCode, ...forgeState.skillData }
+                signatureSkill: { code: forgeState.skillCode, ...forgeState.skillData },
+                appearance: appearance // Dev placeholder data for generating portraits later
             })
         });
         const j = await res.json();

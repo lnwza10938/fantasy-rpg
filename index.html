@@ -1534,83 +1534,162 @@
                         <h2 style="margin:0">Forge Your Legend</h2>
                     </div>
 
-                    <div style="margin-bottom:20px">
-                        <label>Legend Name</label>
-                        <input type="text" id="forge-name" placeholder="Enter name..."
-                            style="font-size:18px; padding:12px">
-                    </div>
-
-                    <div class="card" style="background:var(--surface2); padding:20px">
+                    <div id="forge-step-1">
+                        <!-- Character Portrait Placeholder -->
                         <div
-                            style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px">
-                            <h4
-                                style="margin:0; text-transform:uppercase; font-size:12px; letter-spacing:1px; color:var(--accent)">
-                                Signature Skill</h4>
-                            <button id="btn-roll-forge" class="btn btn-action" onclick="rollForgeSkill()">🎲 Roll New
-                                Skill</button>
+                            style="background:var(--surface2); border:2px dashed var(--border); border-radius:12px; height:200px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; text-align:center; padding:20px">
+                            <span style="color:var(--muted); font-size:12px">
+                                <b>Dev Note:</b><br><br>Character portrait will be dynamically generated here based on
+                                the selected appearance settings later.
+                            </span>
                         </div>
 
-                        <!-- 9-Pointed Star Area -->
-                        <div id="forge-skill-display" class="star-container"
-                            style="position:relative; width:180px; height:180px; margin:20px auto; display:none">
-                            <svg viewBox="0 0 100 100" style="width:100%; height:100%">
-                                <defs>
-                                    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style="stop-color:var(--accent);stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:var(--accent2);stop-opacity:1" />
-                                    </linearGradient>
-                                </defs>
-                                <polygon
-                                    points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
-                                    fill="url(#starGrad)" style="transform-origin:center; opacity:0.15" />
-                                <polygon
-                                    points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
-                                    fill="none" stroke="url(#starGrad)" stroke-width="1.5"
-                                    style="transform-origin:center; transition: all 0.5s" />
-                            </svg>
-                            <div id="skill-code-forge"
-                                style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; text-align:center">
-                                <div
-                                    style="font-family:monospace; font-size:18px; font-weight:900; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5)">
-                                    000-000-000</div>
+                        <!-- Basic Identity -->
+                        <div style="margin-bottom:20px">
+                            <label>Legend Name</label>
+                            <input type="text" id="forge-name" placeholder="Enter name..."
+                                style="font-size:18px; padding:12px">
+                        </div>
+
+                        <!-- Appearance Selectors -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px">
+                            <div>
+                                <label>Gender <span style="font-size:10px">(เพศ)</span></label>
+                                <select class="form-select" id="forge-gender"
+                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="androgynous">Androgynous</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Skin Tone <span style="font-size:10px">(สีผิว)</span></label>
+                                <select class="form-select" id="forge-skin"
+                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
+                                    <option value="fair">Fair</option>
+                                    <option value="tanned">Tanned</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="pale">Pale</option>
+                                    <option value="obsidian">Obsidian (Fantasy)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Face Shape <span style="font-size:10px">(ใบหน้า)</span></label>
+                                <select class="form-select" id="forge-face"
+                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
+                                    <option value="round">Round</option>
+                                    <option value="sharp">Sharp & Angular</option>
+                                    <option value="soft">Soft</option>
+                                    <option value="rugged">Rugged</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Hair Style & Color <span style="font-size:10px">(สีผม)</span></label>
+                                <select class="form-select" id="forge-hair"
+                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
+                                    <option value="black">Raven Black</option>
+                                    <option value="blonde">Golden Blonde</option>
+                                    <option value="brown">Chestnut Brown</option>
+                                    <option value="white">Ghost White</option>
+                                    <option value="red">Crimson Red</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Eye Color <span style="font-size:10px">(สีตา)</span></label>
+                                <select class="form-select" id="forge-eyes"
+                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
+                                    <option value="brown">Earth Brown</option>
+                                    <option value="blue">Ocean Blue</option>
+                                    <option value="green">Emerald Green</option>
+                                    <option value="red">Ruby Red (Fantasy)</option>
+                                    <option value="purple">Amethyst (Fantasy)</option>
+                                </select>
                             </div>
                         </div>
 
-                        <div id="forge-skill-placeholder"
-                            style="text-align:center; padding: 40px 0; color:var(--muted); font-size:13px">
-                            Roll to discover your legend's unique power.
-                        </div>
-
-                        <div id="forge-skill-box" class="card"
-                            style="display:none; background:rgba(255,255,255,0.03); margin-top:15px; text-align:left">
-                            <div style="display:flex; justify-content:space-between; align-items:flex-start">
-                                <h3 id="forge-skill-name" style="color:var(--accent); margin:0"></h3>
-                                <div id="forge-skill-cost" class="tag"></div>
-                            </div>
-                            <p id="forge-skill-desc" style="font-size:12px; line-height:1.5; margin:10px 0"></p>
-                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:10px">
-                                <div><label>CD</label>
-                                    <div id="forge-skill-cd"></div>
-                                </div>
-                                <div><label>Target</label>
-                                    <div id="forge-skill-target"></div>
-                                </div>
-                                <div><label>Scaling</label>
-                                    <div id="forge-skill-scaling"></div>
-                                </div>
-                            </div>
+                        <div style="display:flex; gap:10px; margin-top:30px">
+                            <button class="btn btn-action" onclick="backFromForge()" style="flex:1">Cancel</button>
+                            <button class="btn btn-primary" onclick="forgeGoStep(2)" style="flex:2">Next: Manifest
+                                Destiny ✨</button>
                         </div>
                     </div>
 
-                    <div id="forge-error"
-                        style="display:none; color:var(--red); font-size:12px; margin-top:15px; text-align:center">
+                    <!-- STEP 2: SKILL ROLL -->
+                    <div id="forge-step-2" style="display:none">
+                        <div class="card" style="background:var(--surface2); padding:20px">
+                            <div
+                                style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px">
+                                <h4
+                                    style="margin:0; text-transform:uppercase; font-size:12px; letter-spacing:1px; color:var(--accent)">
+                                    Signature Skill</h4>
+                                <button id="btn-roll-forge" class="btn btn-action" onclick="rollForgeSkill()">🎲 Roll
+                                    New
+                                    Skill</button>
+                            </div>
+
+                            <!-- 9-Pointed Star Area -->
+                            <div id="forge-skill-display" class="star-container"
+                                style="position:relative; width:180px; height:180px; margin:20px auto; display:none">
+                                <svg viewBox="0 0 100 100" style="width:100%; height:100%">
+                                    <defs>
+                                        <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:var(--accent);stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:var(--accent2);stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <polygon
+                                        points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
+                                        fill="url(#starGrad)" style="transform-origin:center; opacity:0.15" />
+                                    <polygon
+                                        points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
+                                        fill="none" stroke="url(#starGrad)" stroke-width="1.5"
+                                        style="transform-origin:center; transition: all 0.5s" />
+                                </svg>
+                                <div id="skill-code-forge"
+                                    style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; text-align:center">
+                                    <div
+                                        style="font-family:monospace; font-size:18px; font-weight:900; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5)">
+                                        000-000-000</div>
+                                </div>
+                            </div>
+
+                            <div id="forge-skill-placeholder"
+                                style="text-align:center; padding: 40px 0; color:var(--muted); font-size:13px">
+                                Roll to discover your legend's unique power.
+                            </div>
+
+                            <div id="forge-skill-box" class="card"
+                                style="display:none; background:rgba(255,255,255,0.03); margin-top:15px; text-align:left">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                                    <h3 id="forge-skill-name" style="color:var(--accent); margin:0"></h3>
+                                    <div id="forge-skill-cost" class="tag"></div>
+                                </div>
+                                <p id="forge-skill-desc" style="font-size:12px; line-height:1.5; margin:10px 0"></p>
+                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:10px">
+                                    <div><label>CD</label>
+                                        <div id="forge-skill-cd"></div>
+                                    </div>
+                                    <div><label>Target</label>
+                                        <div id="forge-skill-target"></div>
+                                    </div>
+                                    <div><label>Scaling</label>
+                                        <div id="forge-skill-scaling"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="forge-error"
+                            style="display:none; color:var(--red); font-size:12px; margin-top:15px; text-align:center">
+                        </div>
+
+                        <div style="display:flex; gap:10px; margin-top:30px">
+                            <button class="btn btn-action" onclick="forgeGoStep(1)" style="flex:1">← Back</button>
+                            <button id="btn-forge-confirm" class="btn btn-primary" onclick="confirmForge()"
+                                style="flex:2" disabled>Bake into Legend ⚔️</button>
+                        </div>
                     </div>
 
-                    <div style="display:flex; gap:10px; margin-top:30px">
-                        <button class="btn btn-action" onclick="backFromForge()" style="flex:1">Cancel</button>
-                        <button id="btn-forge-confirm" class="btn btn-primary" onclick="confirmForge()" style="flex:2"
-                            disabled>Bake into Legend ⚔️</button>
-                    </div>
                 </div>
             </div>
 
