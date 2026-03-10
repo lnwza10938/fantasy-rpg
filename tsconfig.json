@@ -8,7 +8,9 @@
       "dom",
       "dom.iterable"
     ],
-    "types": [],
+    "types": [
+      "vite/client"
+    ],
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,

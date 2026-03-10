@@ -51,12 +51,12 @@ export class SpawnSystem {
         }
 
         // Fallback: use worldSystem data
-        const world = worldSystem.getWorld();
+        const world = worldSystem.getInstance();
         if (!world || world.regions.length === 0) {
             return [{ monsterName: 'Goblin', weight: 1.0 }];
         }
         const region = world.regions[0]!;
-        return region.enemyPool.map(name => ({ monsterName: name, weight: 1.0 / region.enemyPool.length }));
+        return region.enemyPool.map((name: string) => ({ monsterName: name, weight: 1.0 / region.enemyPool.length }));
     }
 
     /**
