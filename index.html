@@ -905,111 +905,159 @@
         </div>
 
         <div class="container">
-            <!-- LOGIN / START -->
+            <!-- CREATE / START WIZARD -->
             <div id="screen-login" class="screen">
-                <!-- World Presets -->
-                <div class="card fade-in">
-                    <h3>✨ Choose a World Preset</h3>
-                    <div id="preset-grid" class="preset-grid">
-                        <div class="preset-card selected" data-preset="balanced"
-                            onclick="selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)">
-                            <div class="preset-icon">⚖️</div>
-                            <div class="preset-name">Balanced Realm</div>
-                            <div class="preset-desc">Classic adventure with diverse biomes</div>
-                            <div class="preset-tags"><span class="tag">Medium</span><span class="tag">Mixed</span></div>
-                        </div>
-                        <div class="preset-card" data-preset="inferno"
-                            onclick="selectPreset(this, 'The Scorched World', 'Ashborn', 696969420)">
-                            <div class="preset-icon">🔥</div>
-                            <div class="preset-name">Inferno World</div>
-                            <div class="preset-desc">Volcanic wastelands and fire-born horrors</div>
-                            <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
-                                    class="tag">Volcanic</span></div>
-                        </div>
-                        <div class="preset-card" data-preset="cursed"
-                            onclick="selectPreset(this, 'The Cursed Lands', 'Darkwalker', 111222333)">
-                            <div class="preset-icon">💀</div>
-                            <div class="preset-name">Cursed Lands</div>
-                            <div class="preset-desc">Ancient evil permeates every shadow</div>
-                            <div class="preset-tags"><span class="tag tag-hard">Hard</span><span class="tag">Dark</span>
-                            </div>
-                        </div>
-                        <div class="preset-card" data-preset="ancient"
-                            onclick="selectPreset(this, 'The Ancient World', 'Lorekeeper', 987654321)">
-                            <div class="preset-icon">🏛️</div>
-                            <div class="preset-name">Ancient Ruins</div>
-                            <div class="preset-desc">Lost empires and hidden knowledge</div>
-                            <div class="preset-tags"><span class="tag tag-easy">Easy</span><span class="tag">Lore</span>
-                            </div>
-                        </div>
-                        <div class="preset-card" data-preset="custom" onclick="selectPreset(this, '', '', null)">
-                            <div class="preset-icon">🎲</div>
-                            <div class="preset-name">Custom World</div>
-                            <div class="preset-desc">Build your own adventure from scratch</div>
-                            <div class="preset-tags"><span class="tag">Custom</span><span class="tag">Any</span></div>
-                        </div>
+
+                <!-- Step Progress Indicator -->
+                <div id="wizard-steps"
+                    style="display:flex; gap:0; margin-bottom:20px; border-radius:10px; overflow:hidden">
+                    <div id="step-indicator-1"
+                        style="flex:1; padding:10px 0; text-align:center; font-size:12px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; transition:all .3s">
+                        1️⃣ Choose World
+                    </div>
+                    <div id="step-indicator-2"
+                        style="flex:1; padding:10px 0; text-align:center; font-size:12px; font-weight:700; background:var(--surface2); color:var(--muted); transition:all .3s">
+                        2️⃣ Create Character
+                    </div>
+                    <div id="step-indicator-3"
+                        style="flex:1; padding:10px 0; text-align:center; font-size:12px; font-weight:700; background:var(--surface2); color:var(--muted); transition:all .3s">
+                        3️⃣ Start Adventure
                     </div>
                 </div>
 
-                <!-- Character + World Config -->
-                <div class="card fade-in">
-                    <h3>🧙 Character &amp; World Setup</h3>
-                    <form id="form-start">
-                        <div class="start-grid">
-                            <div>
-                                <label>Player Name</label>
-                                <input type="text" id="input-player" placeholder="Your name" required
-                                    autocomplete="off">
+                <!-- STEP 1: Choose World -->
+                <div id="wizard-step-1" class="fade-in">
+                    <div class="card">
+                        <h3>✨ Step 1: Choose a World</h3>
+                        <div id="preset-grid" class="preset-grid">
+                            <div class="preset-card selected" data-preset="balanced"
+                                onclick="selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)">
+                                <div class="preset-icon">⚖️</div>
+                                <div class="preset-name">Balanced Realm</div>
+                                <div class="preset-desc">Classic adventure with diverse biomes</div>
+                                <div class="preset-tags"><span class="tag">Medium</span><span class="tag">Mixed</span>
+                                </div>
                             </div>
-                            <div>
-                                <label>Character Name</label>
-                                <input type="text" id="input-character" placeholder="Hero name" required
-                                    autocomplete="off">
+                            <div class="preset-card" data-preset="inferno"
+                                onclick="selectPreset(this, 'The Scorched World', 'Ashborn', 696969420)">
+                                <div class="preset-icon">🔥</div>
+                                <div class="preset-name">Inferno World</div>
+                                <div class="preset-desc">Volcanic wastelands and fire-born horrors</div>
+                                <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
+                                        class="tag">Volcanic</span></div>
                             </div>
-                            <div>
+                            <div class="preset-card" data-preset="cursed"
+                                onclick="selectPreset(this, 'The Cursed Lands', 'Darkwalker', 111222333)">
+                                <div class="preset-icon">💀</div>
+                                <div class="preset-name">Cursed Lands</div>
+                                <div class="preset-desc">Ancient evil permeates every shadow</div>
+                                <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
+                                        class="tag">Dark</span></div>
+                            </div>
+                            <div class="preset-card" data-preset="ancient"
+                                onclick="selectPreset(this, 'The Ancient World', 'Lorekeeper', 987654321)">
+                                <div class="preset-icon">🏛️</div>
+                                <div class="preset-name">Ancient Ruins</div>
+                                <div class="preset-desc">Lost empires and hidden knowledge</div>
+                                <div class="preset-tags"><span class="tag tag-easy">Easy</span><span
+                                        class="tag">Lore</span></div>
+                            </div>
+                            <div class="preset-card" data-preset="custom" onclick="selectPreset(this, '', '', null)">
+                                <div class="preset-icon">🎲</div>
+                                <div class="preset-name">Custom World</div>
+                                <div class="preset-desc">Build your own adventure from scratch</div>
+                                <div class="preset-tags"><span class="tag">Custom</span><span class="tag">Any</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seed Row (shown only for custom) -->
+                        <div id="seed-row"
+                            style="display:none; margin-top:12px; display:flex; gap:10px; align-items:center">
+                            <div style="flex:1">
                                 <label>World Seed <span style="color:var(--muted);font-size:10px">(blank =
                                         random)</span></label>
                                 <input type="number" id="input-seed" placeholder="e.g. 123456789">
                             </div>
-                            <div style="display:flex;align-items:flex-end">
-                                <button type="button" class="btn btn-action" style="width:100%"
-                                    onclick="rollRandomSeed()">🎲 Roll Random</button>
+                            <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+                                <button type="button" class="btn btn-action" onclick="rollRandomSeed()">🎲 Roll</button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- DB Content Preview (Monsters/Biomes) -->
+                    <div id="content-preview" style="display:none">
+                        <div class="card fade-in">
+                            <h3>🌍 World Biomes</h3>
+                            <div id="biome-list" class="biome-grid"></div>
+                        </div>
+                        <div class="card fade-in">
+                            <h3>👾 Monsters in this World</h3>
+                            <div id="monster-list" class="monster-grid"></div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                            <div class="card fade-in">
+                                <h3>⚔️ Factions</h3>
+                                <div id="faction-list" style="display:flex;flex-direction:column;gap:6px"></div>
+                            </div>
+                            <div class="card fade-in">
+                                <h3>🗺️ Known Maps</h3>
+                                <div id="map-list" style="display:flex;flex-direction:column;gap:6px"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btn-step1-next"
+                        style="width:100%; margin-top:8px; padding:13px; font-size:15px" onclick="wizardGoStep(2)">Next:
+                        Create Character →</button>
+                </div>
+
+                <!-- STEP 2: Create Character -->
+                <div id="wizard-step-2" class="fade-in" style="display:none">
+                    <div class="card">
+                        <h3>🧙 Step 2: Create Your Character</h3>
+                        <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+                            <div>
+                                <label>Player Name (Your nickname)</label>
+                                <input type="text" id="input-player" placeholder="e.g. Mon" autocomplete="off">
+                            </div>
+                            <div>
+                                <label>Character Name (Hero's legend)</label>
+                                <input type="text" id="input-character" placeholder="e.g. Ashborn the Bold"
+                                    autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:8px">
+                        <button class="btn btn-action" style="flex:1; padding:12px" onclick="wizardGoStep(1)">←
+                            Back</button>
+                        <button class="btn btn-primary" id="btn-step2-next" style="flex:2; padding:12px; font-size:15px"
+                            onclick="wizardGoStep(3)">Next: Review & Start →</button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Confirm & Start -->
+                <div id="wizard-step-3" class="fade-in" style="display:none">
+                    <div class="card">
+                        <h3>⚔️ Step 3: Begin Your Legend</h3>
+                        <div id="wizard-summary" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+                            <!-- Filled in by JS -->
                         </div>
                         <div id="start-error"
                             style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:rgba(239,83,80,0.1);border-radius:6px;border:1px solid rgba(239,83,80,0.3);margin-top:10px">
                         </div>
-                        <button type="submit" id="btn-start" class="btn btn-primary"
-                            style="width:100%;margin-top:14px;padding:13px;font-size:15px;letter-spacing:1px">
-                            ⚔️ Enter the World
-                        </button>
-                    </form>
-                </div>
-
-                <!-- DB Content Preview -->
-                <div id="content-preview" style="display:none">
-                    <div class="card fade-in">
-                        <h3>🌍 World Biomes</h3>
-                        <div id="biome-list" class="biome-grid"></div>
                     </div>
-                    <div class="card fade-in">
-                        <h3>👾 Monsters in this World</h3>
-                        <div id="monster-list" class="monster-grid"></div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                        <div class="card fade-in">
-                            <h3>⚔️ Factions</h3>
-                            <div id="faction-list" style="display:flex;flex-direction:column;gap:6px"></div>
-                        </div>
-                        <div class="card fade-in">
-                            <h3>🗺️ Known Maps</h3>
-                            <div id="map-list" style="display:flex;flex-direction:column;gap:6px"></div>
-                        </div>
+                    <div style="display:flex; gap:10px; margin-top:8px">
+                        <button class="btn btn-action" style="flex:1; padding:12px" onclick="wizardGoStep(2)">←
+                            Back</button>
+                        <button class="btn btn-primary" id="btn-start"
+                            style="flex:2; padding:13px; font-size:16px; letter-spacing:1px"
+                            onclick="submitNewGame()">⚔️ Enter the World</button>
                     </div>
                 </div>
 
-                <!-- Load Save -->
-                <div class="card fade-in">
+                <!-- Load Existing Save -->
+                <div class="card fade-in" style="margin-top:16px">
                     <h3>📂 Resume Adventure</h3>
                     <div id="save-list" style="display:flex;flex-direction:column;gap:8px">
                         <button class="btn btn-action" onclick="fetchSaveList()" style="width:100%">📂 Load

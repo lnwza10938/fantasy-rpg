@@ -192,16 +192,82 @@ function showToast(msg: string, type = 'success') {
 (window as any).deleteSave = deleteSave;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
+(window as any).wizardGoStep = wizardGoStep;
+(window as any).submitNewGame = submitNewGame;
+
+// Wizard state
+let wizardState = { worldName: 'The Balanced Realm', charSuggestion: 'Hero', seed: 500000000 as number | null };
 
 function selectPreset(el: HTMLElement, worldName: string, charName: string, seed: number | null) {
     document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
-    const pnEl = document.getElementById('input-player') as HTMLInputElement;
-    const cnEl = document.getElementById('input-character') as HTMLInputElement;
+    wizardState.worldName = worldName;
+    wizardState.charSuggestion = charName;
+    wizardState.seed = seed;
+
+    // Show or hide seed row
+    const seedRow = document.getElementById('seed-row');
+    if (seedRow) seedRow.style.display = el.dataset.preset === 'custom' ? 'flex' : 'none';
+
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
-    if (worldName && !pnEl?.value) { pnEl.value = worldName; }
-    if (charName && !cnEl?.value) { cnEl.value = charName; }
     if (seed !== null) { svEl.value = String(seed); } else { svEl.value = ''; }
+}
+
+function wizardGoStep(step: number) {
+    const pn = (document.getElementById('input-player') as HTMLInputElement)?.value.trim();
+    const cn = (document.getElementById('input-character') as HTMLInputElement)?.value.trim();
+
+    // Validate on forward
+    if (step === 3) {
+        if (!pn || !cn) {
+            alert('Please enter both Player Name and Character Name.');
+            return;
+        }
+        // Populate summary card
+        const selectedPreset = document.querySelector('.preset-card.selected');
+        const presetName = selectedPreset?.querySelector('.preset-name')?.textContent || 'Custom World';
+        const presetIcon = selectedPreset?.querySelector('.preset-icon')?.textContent || '🎲';
+        const sv = (document.getElementById('input-seed') as HTMLInputElement)?.value.trim();
+        const seedDisplay = sv || 'Random 🎲';
+        const summaryEl = document.getElementById('wizard-summary');
+        if (summaryEl) {
+            summaryEl.innerHTML = `
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
+                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">World</div>
+                    <div style="font-size:20px">${presetIcon} <strong>${presetName}</strong></div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Seed: ${seedDisplay}</div>
+                </div>
+                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
+                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Character</div>
+                    <div style="font-size:18px">👤 <strong>${cn}</strong></div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Player: ${pn}</div>
+                </div>
+            `;
+        }
+    }
+
+    // Show/hide steps
+    [1, 2, 3].forEach(s => {
+        const stepEl = document.getElementById(`wizard-step-${s}`);
+        const indEl = document.getElementById(`step-indicator-${s}`);
+        if (stepEl) stepEl.style.display = s === step ? 'block' : 'none';
+        if (indEl) {
+            if (s === step) {
+                indEl.style.background = 'linear-gradient(135deg,var(--accent),var(--accent2))';
+                indEl.style.color = '#fff';
+            } else if (s < step) {
+                indEl.style.background = 'rgba(79,195,247,0.15)';
+                indEl.style.color = 'var(--accent)';
+            } else {
+                indEl.style.background = 'var(--surface2)';
+                indEl.style.color = 'var(--muted)';
+            }
+        }
+    });
+
+    // Scroll to top
+    document.getElementById('screen-login')?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
 }
 
 function rollRandomSeed() {
@@ -272,8 +338,7 @@ async function loadWorldContent() {
     } catch (e) { console.warn('Could not load world content', e); }
 }
 
-document.getElementById('form-start')?.addEventListener('submit', async (e: Event) => {
-    e.preventDefault();
+async function submitNewGame() {
     const pnEl = document.getElementById('input-player') as HTMLInputElement;
     const cnEl = document.getElementById('input-character') as HTMLInputElement;
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
@@ -284,13 +349,12 @@ document.getElementById('form-start')?.addEventListener('submit', async (e: Even
     const sv = svEl?.value.trim();
 
     if (!pn || !cn) {
-        errEl.textContent = 'Please fill in both Player Name and Character Name.';
-        errEl.style.display = 'block';
+        if (errEl) { errEl.textContent = 'Please fill in both Player Name and Character Name.'; errEl.style.display = 'block'; }
+        wizardGoStep(2);
         return;
     }
-    errEl.style.display = 'none';
-    btnEl.textContent = '⏳ Creating world...';
-    btnEl.disabled = true;
+    if (errEl) errEl.style.display = 'none';
+    if (btnEl) { btnEl.textContent = '⏳ Creating world...'; btnEl.disabled = true; }
 
     console.log(`[World Creation] Sending request to ${API}/start`, { playerName: pn, characterName: cn, seed: sv });
     try {
@@ -315,7 +379,6 @@ document.getElementById('form-start')?.addEventListener('submit', async (e: Even
             G.regions = j.data.regions;
             G.gs = j.data.state;
 
-            // Re-render and transition
             renderRegions();
             updateAllStatusBars();
             showScreen('world');
@@ -324,45 +387,35 @@ document.getElementById('form-start')?.addEventListener('submit', async (e: Even
             // If character exists, try to LOAD it instead of showing error
             if (j.error && (j.error.includes('already exists') || j.error.includes('duplicate'))) {
                 console.log('[World Creation] Character already exists, attempting to load...');
-                // We don't have the ID yet, so we'll fetch the save list to find the ID by name
                 const listRes = await fetch(API + '/load/list/all');
                 const listData = await listRes.json();
                 if (listData.success) {
                     const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
-                    if (existing) {
-                        await loadGame(existing.character_id);
-                        return;
-                    }
+                    if (existing) { await loadGame(existing.character_id); return; }
                 }
             }
-            errEl.textContent = j.error || 'Failed to create world.';
-            errEl.style.display = 'block';
+            if (errEl) { errEl.textContent = j.error || 'Failed to create world.'; errEl.style.display = 'block'; }
         }
     } catch (err: any) {
         console.error('[World Creation] Fetch error:', err);
-        // LAST RESORT: Try to find any save with this name and load it anyway
         try {
             const listRes = await fetch(API + '/load/list/all');
             const listData = await listRes.json();
             if (listData.success) {
                 const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
-                if (existing) {
-                    console.log('[World Creation] Connection failed but character found in DB. Auto-loading...');
-                    await loadGame(existing.character_id);
-                    return;
-                }
+                if (existing) { await loadGame(existing.character_id); return; }
             }
         } catch (inner) { console.error('Silent fail on auto-load fallback', inner); }
 
-        errEl.textContent = `Connection failed: ${err.message || 'Can\'t reach server'}. But if your character was created, you can try loading it from the list below.`;
-        errEl.style.display = 'block';
-        // Proactively fetch saves if connection failed so user can see their character
+        if (errEl) {
+            errEl.textContent = `Connection failed: ${err.message || "Can't reach server"}.`;
+            errEl.style.display = 'block';
+        }
         fetchSaveList();
     } finally {
-        btnEl.textContent = '⚔️ Enter the World';
-        btnEl.disabled = false;
+        if (btnEl) { btnEl.textContent = '⚔️ Enter the World'; btnEl.disabled = false; }
     }
-});
+}
 
 // --- LOAD ---
 async function fetchSaveList() {
