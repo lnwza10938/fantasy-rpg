@@ -124,12 +124,44 @@ window.addEventListener('load', async () => {
 
 // --- SCREEN ---
 function showScreen(name: string) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + name)?.classList.add('active');
-    if (name !== 'login' && name !== 'combat') renderNav();
+    if (name === 'login') {
+        // Show login, hide game UI
+        document.getElementById('game-container')!.style.display = 'none';
+        const loginEl = document.getElementById('screen-login');
+        if (loginEl) { loginEl.style.display = 'block'; }
+        return;
+    }
+    // For all game screens: ensure game-container is visible
+    const gameContainer = document.getElementById('game-container');
+    if (gameContainer) gameContainer.style.display = '';
+
+    // Hide login wizard
+    ['screen-login'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
+    // Show the 4-panel game UI
+    const gameUi = document.getElementById('game-ui-screen');
+    if (gameUi) gameUi.classList.add('active');
+
+    // Map screen names to center tabs
+    if (name === 'world') gpTab('map');
+    else if (name === 'explore') gpTab('explore');
+    else if (name === 'combat') gpTab('combat');
+    // character/inventory are visible in left/right panels always
     if (name === 'character') renderCharacter();
     if (name === 'inventory') renderInventory();
 }
+
+// Switch center-top tabs: map | explore | combat
+function gpTab(tab: string) {
+    ['map', 'explore', 'combat'].forEach(t => {
+        document.getElementById('sub-' + t)?.classList.toggle('active', t === tab);
+        document.getElementById('tab-' + t)?.classList.toggle('active', t === tab);
+    });
+}
+
 
 function renderNav() {
     const html = `
@@ -195,6 +227,7 @@ function showToast(msg: string, type = 'success') {
 (window as any).deleteSave = deleteSave;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
+(window as any).gpTab = gpTab;
 (window as any).wizardGoStep = wizardGoStep;
 (window as any).submitNewGame = submitNewGame;
 
@@ -617,19 +650,35 @@ function selectRegion(i: number) {
 function updateHUD() {
     const s = G.gs; if (!s) return;
     const name = s.characterName || 'Hero';
-    // World screen HUD
     const f = (id: string, v: any) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+    const setBar = (id: string, pct: number) => { const el = document.getElementById(id) as HTMLElement; if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%'; };
+
+    // ── Old HUD compat ──
     f('hud-char', `⚔️ ${name} (Lv.${s.level})`); f('hud-char-exp', `⚔️ ${name}`);
     f('hud-hp', s.hp); f('hud-maxhp', s.maxHP); f('hud-mp', s.mana); f('hud-maxmp', s.maxMana);
     f('hud-lv', s.level); f('hud-gold', s.gold);
-    // Explore HUD
     f('exp-hp', s.hp); f('exp-maxhp', s.maxHP); f('exp-mp', s.mana); f('exp-maxmp', s.maxMana);
     f('exp-gold', s.gold);
-    // EXP bar
+
+    // ── New 4-panel LEFT sidebar ──
+    f('gp-char-name', name);
+    f('gp-char-class', `Level ${s.level} Adventurer`);
+    const hpPct = Math.round(s.hp / s.maxHP * 100);
+    const mpPct = Math.round(s.mana / s.maxMana * 100);
     const expPct = Math.round(s.exp / (s.level * 100) * 100);
+    f('gp-hp-txt', `${s.hp}/${s.maxHP}`);
+    f('gp-mp-txt', `${s.mana}/${s.maxMana}`);
+    f('gp-exp-txt', `${s.exp}/${s.level * 100}`);
+    setBar('gp-hp-bar', hpPct); setBar('gp-mp-bar', mpPct); setBar('gp-exp-bar', expPct);
+    f('gp-atk', s.effectiveStats?.attack ?? 10);
+    f('gp-def', s.effectiveStats?.defense ?? 5);
+    f('gp-spd', s.effectiveStats?.speed ?? 8);
+    f('gp-gold', s.gold);
+
+    // ── EXP bar (old compat) ──
+    const expPctOld = Math.round(s.exp / (s.level * 100) * 100);
     f('exp-display', `${s.exp} / ${s.level * 100}`);
-    const expBar = document.getElementById('exp-bar');
-    if (expBar) expBar.style.width = expPct + '%';
+    setBar('exp-bar', expPctOld);
 }
 
 // --- CHARACTER ---
