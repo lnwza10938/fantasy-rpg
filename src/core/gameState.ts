@@ -41,6 +41,9 @@ export interface GameStateData {
     // Metadata
     characterName: string;
     effectiveStats: EffectiveStats;
+
+    // AI Signature Skill
+    signatureSkill?: any;
 }
 
 export interface InventorySlot {
@@ -101,7 +104,7 @@ export class GameStateManager {
     }
 
     /** Update live character values */
-    public updateCharacter(updates: Partial<Pick<GameStateData, 'hp' | 'mana' | 'exp' | 'level' | 'gold' | 'maxHP' | 'maxMana' | 'characterName'>>) {
+    public updateCharacter(updates: Partial<Pick<GameStateData, 'hp' | 'mana' | 'exp' | 'level' | 'gold' | 'maxHP' | 'maxMana' | 'characterName' | 'signatureSkill'>>) {
         Object.assign(this.state, updates);
         this.refreshEffectiveStats();
     }

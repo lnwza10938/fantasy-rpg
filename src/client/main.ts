@@ -12,8 +12,12 @@ let G: any = {
     playerId: null, characterId: null, worldSeed: null, regions: [],
     selectedRegion: null, selectedRegionIndex: 0,
     user: null, // Supabase user
-    gs: null
+    gs: null,
+    selectedLegend: null as any // Track the legend selected in the wizard
 };
+
+// Vault and Forge state
+let forgeState = { skillCode: '', skillData: null as any };
 
 // --- AUTH ---
 let authMode = 'login';
@@ -226,10 +230,17 @@ function showToast(msg: string, type = 'success') {
 (window as any).showScreen = showScreen;
 (window as any).gpTab = gpTab;
 (window as any).wizardGoStep = wizardGoStep;
+(window as any).rollSkill = rollSkill;
 (window as any).submitNewGame = submitNewGame;
+(window as any).showVault = showVault;
+(window as any).showForge = showForge;
+(window as any).rollForgeSkill = rollForgeSkill;
+(window as any).confirmForge = confirmForge;
+(window as any).backFromForge = backFromForge;
+(window as any).selectLegend = selectLegend;
 
 // Wizard state
-let wizardState = { worldName: 'The Balanced Realm', charSuggestion: 'Hero', seed: 500000000 as number | null };
+let wizardState = { worldName: 'The Balanced Realm', charSuggestion: 'Hero', seed: 500000000 as number | null, skillCode: '', skillData: null as any };
 
 function selectPreset(el: HTMLElement, worldName: string, charName: string, seed: number | null) {
     document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
@@ -247,40 +258,38 @@ function selectPreset(el: HTMLElement, worldName: string, charName: string, seed
 }
 
 function wizardGoStep(step: number) {
-    const pn = (document.getElementById('input-player') as HTMLInputElement)?.value.trim();
-    const cn = (document.getElementById('input-character') as HTMLInputElement)?.value.trim();
-
-    // Validate on forward
-    if (step === 3) {
-        if (!pn || !cn) {
-            alert('Please enter both Player Name and Character Name.');
+    // Validate on forward to Step 4 (Confirm)
+    if (step === 4) {
+        if (!G.selectedLegend) {
+            alert('Please select a legend for this adventure.');
             return;
         }
-        // Populate summary card
-        const selectedPreset = document.querySelector('.preset-card.selected');
-        const presetName = selectedPreset?.querySelector('.preset-name')?.textContent || 'Custom World';
-        const presetIcon = selectedPreset?.querySelector('.preset-icon')?.textContent || '🎲';
-        const sv = (document.getElementById('input-seed') as HTMLInputElement)?.value.trim();
-        const seedDisplay = sv || 'Random 🎲';
-        const summaryEl = document.getElementById('wizard-summary');
+
+        // Populate summary
+        const summaryEl = document.getElementById('confirm-summary');
         if (summaryEl) {
+            const worldName = wizardState.worldName || 'Custom World';
             summaryEl.innerHTML = `
-                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
-                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">World</div>
-                    <div style="font-size:20px">${presetIcon} <strong>${presetName}</strong></div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Seed: ${seedDisplay}</div>
+                <div style="text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:15px; margin-bottom:10px">
+                    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Selected World</div>
+                    <div style="font-size:16px; font-weight:700">${worldName}</div>
+                    <div style="font-size:11px; color:var(--muted)">Seed: ${wizardState.seed || 'Random'}</div>
                 </div>
-                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
-                    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Character</div>
-                    <div style="font-size:18px">👤 <strong>${cn}</strong></div>
-                    <div style="font-size:11px;color:var(--muted);margin-top:4px">Player: ${pn}</div>
+                <div style="text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:15px;">
+                    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Chosen Legend</div>
+                    <div style="font-size:16px; font-weight:700">👤 ${G.selectedLegend.name}</div>
+                    <div style="font-size:11px; color:var(--accent); font-weight:600; margin-top:4px">🌟 ${G.selectedLegend.skill_data?.name || 'Innate Power'}</div>
                 </div>
             `;
         }
     }
 
+    if (step === 2) {
+        fetchVaultSelections();
+    }
+
     // Show/hide steps
-    [1, 2, 3].forEach(s => {
+    [1, 2, 3, 4].forEach(s => {
         const stepEl = document.getElementById(`wizard-step-${s}`);
         const indEl = document.getElementById(`step-indicator-${s}`);
         if (stepEl) stepEl.style.display = s === step ? 'block' : 'none';
@@ -298,9 +307,277 @@ function wizardGoStep(step: number) {
         }
     });
 
-    // Scroll to top
-    document.getElementById('screen-login')?.scrollTo(0, 0);
+    const loginScreen = document.getElementById('screen-login');
+    if (loginScreen) loginScreen.scrollTo(0, 0);
     window.scrollTo(0, 0);
+}
+
+// --- VAULT & FORGE LOGIC ---
+
+async function fetchVaultSelections() {
+    const grid = document.getElementById('vault-selection-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Loading vault...</div>';
+
+    try {
+        const res = await fetch(`${API}/characters?userId=${G.user?.id || ''}`);
+        const j = await res.json();
+        if (j.success && j.data.length > 0) {
+            grid.innerHTML = j.data.map((c: any) => `
+                <div class="legend-card ${G.selectedLegend?.id === c.id ? 'selected' : ''}" onclick="selectLegend('${c.id}', ${JSON.stringify(c).replace(/"/g, '&quot;')})">
+                    <div class="name">${c.name}</div>
+                    <div style="font-size:11px; color:var(--muted)">Lv.${c.level} Adventurer</div>
+                    <div class="skill-badge">🌟 ${c.skill_data?.name || 'Innate'}</div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Your vault is empty. Forge a legend first!</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Error loading vault.</div>';
+    }
+}
+
+function selectLegend(id: string, legend: any) {
+    G.selectedLegend = legend;
+    document.querySelectorAll('#vault-selection-grid .legend-card').forEach(el => el.classList.remove('selected'));
+    // Visual update will happen on re-render in fetchVaultSelections if we want, or manually here
+    const nextBtn = document.getElementById('btn-vault-next') as HTMLButtonElement;
+    if (nextBtn) nextBtn.disabled = false;
+
+    // Add selected class to the clicked element (the one that triggered the event)
+    const target = event?.currentTarget as HTMLElement;
+    if (target) target.classList.add('selected');
+}
+
+function showVault() {
+    showScreen('vault');
+    renderFullVault();
+}
+
+async function renderFullVault() {
+    const grid = document.getElementById('vault-full-list');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Opening the archives...</div>';
+
+    try {
+        const res = await fetch(`${API}/characters?userId=${G.user?.id || ''}`);
+        const j = await res.json();
+        if (j.success && j.data.length > 0) {
+            grid.innerHTML = j.data.map((c: any) => `
+                <div class="legend-card">
+                    <div class="name">${c.name}</div>
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:10px">Lv.${c.level} Adventurer</div>
+                    <div style="background:rgba(255,255,255,0.03); border-radius:6px; padding:10px; font-size:11px">
+                        <div style="color:var(--accent); font-weight:700; margin-bottom:4px">🌟 ${c.skill_data?.name || 'Unique Skill'}</div>
+                        <div style="opacity:0.8; line-height:1.4">${c.skill_data?.description || 'No description available.'}</div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            grid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted);">No legends have been recorded yet.</div>';
+        }
+    } catch (e) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Vault connection failed.</div>';
+    }
+}
+
+function showForge() {
+    showScreen('forge');
+    // Reset state
+    forgeState = { skillCode: '', skillData: null };
+    (document.getElementById('forge-name') as HTMLInputElement).value = '';
+    document.getElementById('forge-skill-display')!.style.display = 'none';
+    document.getElementById('forge-skill-placeholder')!.style.display = 'block';
+    document.getElementById('forge-skill-box')!.style.display = 'none';
+    (document.getElementById('btn-forge-confirm') as HTMLButtonElement).disabled = true;
+    (document.getElementById('forge-error') as HTMLElement).style.display = 'none';
+}
+
+function backFromForge() {
+    // Go back to wherever we were (Vault or Wizard Step 2)
+    const vaultScreen = document.getElementById('screen-vault');
+    if (vaultScreen && vaultScreen.style.display === 'block') {
+        showScreen('vault'); // Refresh vault if needed
+    } else {
+        showScreen('login');
+        wizardGoStep(2);
+    }
+}
+
+async function rollForgeSkill() {
+    const btn = document.getElementById('btn-roll-forge') as HTMLButtonElement;
+    const confirmBtn = document.getElementById('btn-forge-confirm') as HTMLButtonElement;
+    const display = document.getElementById('skill-code-forge') as HTMLElement;
+    const resultBox = document.getElementById('forge-skill-box') as HTMLElement;
+    const starArea = document.getElementById('forge-skill-display') as HTMLElement;
+    const placeholder = document.getElementById('forge-skill-placeholder') as HTMLElement;
+    const screen = document.getElementById('screen-forge');
+
+    if (!btn || !confirmBtn || !display || !resultBox || !starArea || !placeholder || !screen) return;
+
+    btn.disabled = true;
+    confirmBtn.disabled = true;
+    placeholder.style.display = 'none';
+    starArea.style.display = 'block';
+    resultBox.style.display = 'none';
+    screen.classList.add('forging');
+
+    let codeStr = '';
+    let rolls = 0;
+    const rollInterval = setInterval(() => {
+        codeStr = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join('');
+        display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; letter-spacing:2px; color:var(--accent)">${codeStr.match(/.{1,3}/g)?.join('-')}</div>`;
+        rolls++;
+        if (rolls > 15) {
+            clearInterval(rollInterval);
+            fetchForgeInterpretation(codeStr);
+        }
+    }, 50);
+
+    async function fetchForgeInterpretation(code: string) {
+        display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join('-')}</div><div style="font-size:9px;color:var(--accent)">Interpreting...</div>`;
+
+        try {
+            const res = await fetch(API + '/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'skill', context: code })
+            });
+            const j = await res.json();
+
+            if (j.success && j.data) {
+                forgeState.skillCode = code;
+                forgeState.skillData = j.data;
+
+                document.getElementById('forge-skill-name')!.textContent = j.data.name;
+                document.getElementById('forge-skill-cost')!.textContent = j.data.mana_cost + ' MP';
+                document.getElementById('forge-skill-desc')!.textContent = j.data.description;
+                document.getElementById('forge-skill-cd')!.textContent = String(j.data.cooldown);
+                document.getElementById('forge-skill-target')!.textContent = j.data.target_type;
+                document.getElementById('forge-skill-scaling')!.textContent = j.data.scaling_stat;
+
+                resultBox.style.display = 'block';
+                display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join('-')}</div>`;
+                confirmBtn.disabled = false;
+            } else {
+                display.innerHTML = `<div style="color:var(--red);font-size:10px">Interpretation Failed</div>`;
+            }
+        } catch (e) {
+            display.innerHTML = `<div style="color:var(--red);font-size:10px">Connection Error</div>`;
+        } finally {
+            if (screen) screen.classList.remove('forging');
+            btn.disabled = false;
+        }
+    }
+}
+
+async function confirmForge() {
+    const nameEl = document.getElementById('forge-name') as HTMLInputElement;
+    const errEl = document.getElementById('forge-error') as HTMLElement;
+    const btn = document.getElementById('btn-forge-confirm') as HTMLButtonElement;
+    const name = nameEl.value.trim();
+
+    if (!name) {
+        errEl.textContent = 'Please enter a name for your legend.';
+        errEl.style.display = 'block';
+        return;
+    }
+    errEl.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Baking...';
+
+    try {
+        const res = await fetch(API + '/character', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                characterName: name,
+                playerName: G.user?.email?.split('@')[0] || 'Hero',
+                userId: G.user?.id,
+                email: G.user?.email,
+                signatureSkill: { code: forgeState.skillCode, ...forgeState.skillData }
+            })
+        });
+        const j = await res.json();
+        if (j.success) {
+            showToast('Legend forged successfully! ✨', 'success');
+            // Select this character if we're in the wizard flow
+            G.selectedLegend = j.data;
+            backFromForge();
+        } else {
+            errEl.textContent = j.error || 'Failed to forge legend.';
+            errEl.style.display = 'block';
+        }
+    } catch (e) {
+        errEl.textContent = 'Server connection failed.';
+        errEl.style.display = 'block';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Bake into Legend ⚔️';
+    }
+}
+
+async function rollSkill() {
+    const btn = document.getElementById('btn-roll-skill') as HTMLButtonElement;
+    const nextBtn = document.getElementById('btn-step3-next') as HTMLButtonElement;
+    const display = document.getElementById('skill-code-display') as HTMLElement;
+    const resultBox = document.getElementById('skill-result-box') as HTMLElement;
+
+    // Disable buttons
+    btn.disabled = true;
+    nextBtn.disabled = true;
+    resultBox.style.display = 'none';
+
+    // Animate rolling
+    let codeStr = '';
+    let rolls = 0;
+    const rollInterval = setInterval(() => {
+        codeStr = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10)).join('');
+        const formatted = codeStr.match(/.{1,3}/g)?.join('-') || codeStr;
+        display.innerHTML = `<div style="font-family:monospace; font-size:32px; font-weight:900; letter-spacing:4px; color:var(--accent); text-shadow:0 0 10px rgba(99,102,241,0.5)">${formatted}</div>`;
+        rolls++;
+        if (rolls > 15) {
+            clearInterval(rollInterval);
+            fetchAIinterpretation(codeStr);
+        }
+    }, 50);
+
+    async function fetchAIinterpretation(code: string) {
+        display.innerHTML = `<div style="font-family:monospace; font-size:32px; font-weight:900; letter-spacing:4px; color:var(--text); text-shadow:0 0 10px rgba(255,255,255,0.5)">${code.match(/.{1,3}/g)?.join('-')}</div><div style="font-size:10px;color:var(--accent);margin-top:8px">Interpreting with AI...</div>`;
+
+        try {
+            const res = await fetch(API + '/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'skill', context: code })
+            });
+            const j = await res.json();
+
+            if (j.success && j.data) {
+                wizardState.skillCode = code;
+                wizardState.skillData = j.data;
+
+                // Populate UI
+                document.getElementById('skill-name-ui')!.textContent = j.data.name;
+                document.getElementById('skill-cost-ui')!.textContent = j.data.mana_cost + ' MP';
+                document.getElementById('skill-desc-ui')!.textContent = j.data.description;
+                document.getElementById('skill-cd-ui')!.textContent = String(j.data.cooldown);
+                document.getElementById('skill-target-ui')!.textContent = j.data.target_type;
+                document.getElementById('skill-scaling-ui')!.textContent = j.data.scaling_stat + ' (' + j.data.power_multiplier + 'x)';
+
+                resultBox.style.display = 'block';
+                display.innerHTML = `<div style="font-family:monospace; font-size:24px; font-weight:900; letter-spacing:4px; color:#fff">${code.match(/.{1,3}/g)?.join('-')}</div>`;
+                nextBtn.disabled = false;
+            } else {
+                display.innerHTML = `<div style="color:var(--red);font-size:12px">AI Interpretation Failed. Ensure API Key is set in Dev Panel.</div>`;
+            }
+        } catch (e) {
+            console.error(e);
+            display.innerHTML = `<div style="color:var(--red);font-size:12px">Network Error</div>`;
+        }
+        btn.disabled = false;
+    }
 }
 
 function rollRandomSeed() {
@@ -372,22 +649,15 @@ async function loadWorldContent() {
 }
 
 async function submitNewGame() {
-    const pnEl = document.getElementById('input-player') as HTMLInputElement;
-    const cnEl = document.getElementById('input-character') as HTMLInputElement;
+    if (!G.selectedLegend) return;
+
     const svEl = document.getElementById('input-seed') as HTMLInputElement;
     const errEl = document.getElementById('start-error') as HTMLElement;
-    const pn = pnEl?.value.trim();
-    const cn = cnEl?.value.trim();
     const sv = svEl?.value.trim();
 
-    if (!pn || !cn) {
-        if (errEl) { errEl.textContent = 'กรุณากรอก Player Name และ Character Name'; errEl.style.display = 'block'; }
-        wizardGoStep(2);
-        return;
-    }
     if (errEl) errEl.style.display = 'none';
 
-    // --- STEP 1: Enter game screen IMMEDIATELY with local defaults ---
+    // --- STEP 1: Enter game screen IMMEDIATELY ---
     const seed = sv ? Number(sv) : Math.floor(Math.random() * 999999999);
     const selectedPreset = document.querySelector('.preset-card.selected');
     const presetName = selectedPreset?.querySelector('.preset-name')?.textContent || 'Unknown World';
@@ -395,97 +665,62 @@ async function submitNewGame() {
     G.worldSeed = seed;
     G.regions = [];
     G.gs = {
-        characterName: cn,
-        playerName: pn,
-        level: 1, exp: 0, gold: 0,
-        hp: 100, maxHP: 100,
-        mana: 50, maxMana: 50,
+        characterName: G.selectedLegend.name,
+        playerName: G.user?.email?.split('@')[0] || 'Hero',
+        level: G.selectedLegend.level || 1,
+        exp: 0, gold: 0,
+        hp: G.selectedLegend.hp, maxHP: G.selectedLegend.max_hp,
+        mana: G.selectedLegend.mana, maxMana: G.selectedLegend.max_mana,
         equipment: { weapon: null, armor: null, accessory: null },
         inventory: [],
-        effectiveStats: { attack: 10, defense: 5, speed: 8 },
+        effectiveStats: {
+            attack: G.selectedLegend.attack,
+            defense: G.selectedLegend.defense,
+            speed: G.selectedLegend.speed
+        },
         worldSeed: seed,
         worldName: presetName,
+        signatureSkill: G.selectedLegend.skill_data
     };
-
-    // Show a loading splash in the region grid
-    const regionListEl = document.getElementById('region-list');
-    if (regionListEl) regionListEl.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">
-            <div style="font-size:36px;margin-bottom:12px">🌍</div>
-            <div style="font-size:14px;font-weight:700;margin-bottom:6px">Generating ${presetName}...</div>
-            <div style="font-size:11px">Connecting to server</div>
-        </div>
-    `;
 
     updateAllStatusBars();
     showScreen('world');
-    showToast(`Welcome, ${cn}! ⚔️`, 'success');
+    showToast(`Welcome back, ${G.selectedLegend.name}! ⚔️`, 'success');
 
     // --- STEP 2: Sync with server in background (non-blocking) ---
     (async () => {
         try {
-            // First check if character already exists
-            const listRes = await fetch(API + '/load/list/all');
-            const listData = await listRes.json();
-            if (listData.success && listData.data.length > 0) {
-                const existing = listData.data.find((s: any) => s.character_name.toLowerCase() === cn.toLowerCase());
-                if (existing) {
-                    console.log('[World] Character exists, loading from server...');
-                    const loadRes = await fetch(API + '/load/' + existing.character_id);
-                    const loadJ = await loadRes.json();
-                    if (loadJ.success) {
-                        G.characterId = existing.character_id;
-                        G.gs = loadJ.data.gameState;
-                        G.worldSeed = loadJ.data.gameState.worldSeed;
-                        G.regions = loadJ.data.regions;
-                        renderRegions();
-                        updateAllStatusBars();
-                        showToast('Character loaded! ✅', 'info');
-                        return;
-                    }
-                }
-            }
-
-            // Create new character on server
             const res = await fetch(API + '/start', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    playerName: pn, characterName: cn,
                     worldSeed: seed,
+                    characterId: G.selectedLegend.id,
                     userId: G.user?.id, email: G.user?.email
                 })
             });
             const j = await res.json();
             if (j.success) {
-                G.playerId = j.data.playerId;
                 G.characterId = j.data.characterId;
                 G.worldSeed = j.data.worldSeed;
+                G.gs = j.data.gameState;
                 G.regions = j.data.regions;
-                G.gs = { ...G.gs, ...j.data.state };
                 renderRegions();
                 updateAllStatusBars();
-                showToast('World synced! 🌍', 'success');
+                showToast('Adventure synced! 🌍', 'success');
             } else {
-                // If creation failed but user is already in game, just show placeholder regions
+                showToast('Sync issue: ' + (j.error || 'Server busy'), 'error');
+            }
+        } catch (err) {
+            console.warn('[World] Server sync failed, using local state:', err);
+            // Default regions if offline
+            if (!G.regions || G.regions.length === 0) {
                 G.regions = [
                     { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
                     { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
                     { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
                 ];
                 renderRegions();
-                showToast('Offline mode – limited regions', 'info');
             }
-        } catch (err) {
-            console.warn('[World] Server sync failed, using offline mode:', err);
-            // User is already in game — show placeholder regions
-            G.regions = [
-                { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
-                { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
-                { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
-                { name: 'Crimson Coast', dangerLevel: 7, enemyTypes: ['Pirate', 'Sea Serpent'] },
-            ];
-            renderRegions();
-            showToast('Offline mode – using default regions', 'info');
         }
     })();
 }

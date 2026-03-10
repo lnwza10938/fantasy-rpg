@@ -6,13 +6,15 @@ export interface AIGeneratorConfig {
     apiKey: string;
     model: string;
     baseUrl: string;
+    provider: 'openai' | 'gemini' | 'groq' | 'openrouter';
 }
 
 // Runtime config — set via Dev Panel, never hardcoded
 let config: AIGeneratorConfig = {
     apiKey: '',
     model: 'gpt-4o-mini',
-    baseUrl: 'https://api.openai.com/v1'
+    baseUrl: 'https://api.openai.com/v1',
+    provider: 'openai'
 };
 
 export function setAIConfig(newConfig: Partial<AIGeneratorConfig>) {
@@ -49,6 +51,21 @@ Make it immersive and mysterious. Return ONLY the JSON object.`,
     lore: `Generate a piece of world lore as JSON:
 { "title": "string", "text": "string", "region": "string" }
 Make it mysterious and hinting at ancient history. Return ONLY the JSON object.`,
+
+    skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG. 
+Each digit (1-9) represents: Trigger, Role, Target, Effect, Scaling, Delivery, Duration, Modifier, Special.
+Translate the 9-digit code provided in the context into a balanced, thematic skill.
+Return ONLY this JSON format:
+{
+  "name": "Creative Spell Name",
+  "description": "Full flavor text explaining the mechanical effects",
+  "mana_cost": 10-50,
+  "cooldown": 0-5,
+  "target_type": "enemy|self|all_enemies|ally",
+  "effect_type": "damage|heal|buff|debuff",
+  "scaling_stat": "attack|defense|speed|maxMana|maxHP",
+  "power_multiplier": 0.5-2.0
+}`
 };
 
 export class WorldGenerator {
@@ -60,33 +77,47 @@ export class WorldGenerator {
     public async generate(type: keyof typeof PROMPTS, context?: string): Promise<any | null> {
         if (!isAIConfigured()) return null;
 
+        const systemMsg = 'You are a fantasy RPG content generator. Return ONLY valid JSON.';
         const prompt = PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : '');
 
         try {
-            const response = await fetch(`${config.baseUrl}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${config.apiKey}`
-                },
-                body: JSON.stringify({
-                    model: config.model,
-                    messages: [
-                        { role: 'system', content: 'You are a fantasy RPG content generator. Return ONLY valid JSON.' },
-                        { role: 'user', content: prompt }
-                    ],
-                    temperature: 0.8,
-                    max_tokens: 500
-                })
-            });
+            let text = '';
 
-            if (!response.ok) {
-                console.error('AI API error:', response.status, await response.text());
-                return null;
+            if (config.provider === 'gemini') {
+                const url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
+                        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 }
+                    })
+                });
+                if (!response.ok) throw new Error(`Gemini Error: ${response.status} ${await response.text()}`);
+                const data = await response.json();
+                text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+            } else {
+                // OpenAI / Groq / OpenRouter format
+                const response = await fetch(`${config.baseUrl}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: config.model,
+                        messages: [
+                            { role: 'system', content: systemMsg },
+                            { role: 'user', content: prompt }
+                        ],
+                        temperature: 0.8,
+                        max_tokens: 1000
+                    })
+                });
+                if (!response.ok) throw new Error(`AI API error: ${response.status} ${await response.text()}`);
+                const data = await response.json();
+                text = data.choices?.[0]?.message?.content ?? '';
             }
-
-            const data = await response.json();
-            const text: string = data.choices?.[0]?.message?.content ?? '';
 
             // Extract JSON (handle potential markdown wrapping)
             const jsonMatch = text.match(/\{[\s\S]*\}/);

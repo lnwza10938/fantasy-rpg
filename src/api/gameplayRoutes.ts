@@ -93,34 +93,41 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
 // --- /start ---
 router.post('/start', async (req, res) => {
     try {
-        const { playerName, characterName, worldSeed, userId, email } = req.body;
-        if (!playerName || !characterName) {
-            res.status(400).json({ success: false, error: 'playerName and characterName required' }); return;
-        }
+        const { playerName, characterName, worldSeed, userId, email, signatureSkill, characterId } = req.body;
 
         // --- AUTH INTEGRATION ---
         let player;
         if (userId && email) {
-            // Try to find existing player for this auth user
             player = await getPlayerByUserId(userId);
             if (!player) {
-                player = await createPlayer(playerName, userId, email);
+                player = await createPlayer(playerName || 'Hero', userId, email);
             }
         } else {
-            // Fallback for non-auth (guest/local testing)
-            player = await createPlayer(playerName, null, 'guest@local');
+            player = await createPlayer(playerName || 'Hero', null, 'guest@local');
+        }
+
+        let character;
+        if (characterId) {
+            // Load existing character from vault
+            character = await getCharacter(characterId);
+        } else {
+            // Create new character (legacy flow)
+            if (!characterName) {
+                res.status(400).json({ success: false, error: 'characterName required for new character' }); return;
+            }
+            character = await createCharacter(player.id, characterName, {}, signatureSkill);
         }
 
         const seed = worldSeed ?? Math.floor(Math.random() * 999999999);
-        const character = await createCharacter(player.id, characterName);
         const instance = await worldSystem.generateWorld(seed);
 
         // Create game state session
         const gsm = new GameStateManager(player.id, character.id, seed);
         gsm.updateCharacter({
-            hp: 100, maxHP: 100, mana: 50, maxMana: 50,
-            level: 1, exp: 0, gold: 0,
-            characterName: characterName
+            hp: character.hp, maxHP: character.maxHP, mana: character.mana, maxMana: character.maxMana,
+            level: character.level, exp: 0, gold: 0,
+            characterName: character.name,
+            signatureSkill: character.skillData || signatureSkill
         });
         sessions.set(character.id, gsm);
 
@@ -137,6 +144,54 @@ router.post('/start', async (req, res) => {
                 state: gsm.getState()
             }
         });
+    } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- /characters (List characters in vault) ---
+router.get('/characters', async (req, res) => {
+    try {
+        const { userId } = req.query;
+        let player;
+        if (userId) {
+            player = await getPlayerByUserId(userId as string);
+        } else {
+            // Placeholder: for the prototype, just get the first player or use a guest ID
+            // In a real app, this would be derived from the auth session
+            const { data } = await supabase.from('players').select('id').limit(1).single();
+            player = data;
+        }
+
+        if (!player) return res.json({ success: true, data: [] });
+
+        const { data, error } = await supabase
+            .from('characters')
+            .select('*')
+            .eq('player_id', player.id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json({ success: true, data });
+    } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- /character (Forge new legend) ---
+router.post('/character', async (req, res) => {
+    try {
+        const { playerName, characterName, userId, email, signatureSkill } = req.body;
+        if (!characterName) return res.status(400).json({ success: false, error: 'characterName required' });
+
+        let player;
+        if (userId && email) {
+            player = await getPlayerByUserId(userId);
+            if (!player) player = await createPlayer(playerName || 'Hero', userId, email);
+        } else {
+            // Find any guest player or create one
+            const { data } = await supabase.from('players').select('*').eq('email', 'guest@local').limit(1).single();
+            player = data || await createPlayer(playerName || 'Hero', null, 'guest@local');
+        }
+
+        const character = await createCharacter(player.id, characterName, {}, signatureSkill);
+        res.json({ success: true, data: character });
     } catch (err: any) { res.status(500).json({ success: false, error: err.message }); }
 });
 

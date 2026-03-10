@@ -13,6 +13,7 @@ export interface CharacterStats {
     defense: number;
     speed: number;
     skillMain: number; // 9-digit skill ID
+    skillData?: any;
 }
 
 export interface EffectiveStats extends CharacterStats {
