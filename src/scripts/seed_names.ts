@@ -1,0 +1,169 @@
+// src/scripts/seed_names.ts
+import { supabase } from '../db/supabase.js';
+
+const DATA = {
+    "cities": [
+        "Omenfell", "Grave's End", "Blackhallow", "Ironhold", "Mournstead", "Blightreach", "Greyhaven", "Shadowmere", "Nightfall", "Dreadfort",
+        "Ashport", "Wraith-Gate", "Cold-Harbor", "Stone-Shade", "Bleak-Water", "Cinder-Hold", "Grim-Reach", "Sorrow-Grip", "Void-Crest", "Pale-Hill",
+        "Iron-Tide", "Wither-Skerry", "Gloom-Crest", "Mist-Forge", "Dagon's Reach", "Eldritch-Key", "Barrow-Down", "Fen-Hold", "Storm-Wight", "Deep-Cairn",
+        "Vile-Point", "Frost-Keep", "Dark-Mill", "Silent-Cove", "Ruin-Watch", "Ossuary-Town", "Fell-Port", "Gore-Reach", "Hollow-Crest", "Wraith-Holm",
+        "Shatter-Peak", "Blood-Achor", "Night-Shade", "Grim-Hollow", "Mire-Crest", "Bone-Wick", "Salt-Grip", "Ash-Burn", "Cinder-Vale", "Tomb-Skerry",
+        "Black-Spire", "Grey-Crypt", "Iron-Vein", "Mourn-Harbor", "Wither-Gate", "Gloom-Forge", "Storm-Hold", "Deep-Vale", "Blight-Peak", "Mist-Wick",
+        "Stone-Grip", "Cold-Watch", "Bleak-Hollow", "Sorrow-Forge", "Void-Port", "Pale-Reach", "Iron-Crypt", "Wither-Down", "Gloom-Water", "Mist-Peak",
+        "Frost-Gate", "Dark-Forge", "Silent-Peak", "Ruin-Port", "Bone-Watch", "Salt-Hold", "Ash-Forge", "Cinder-Grip", "Tomb-Crest", "Black-Wick",
+        "Grey-Hold", "Iron-Peak", "Mourn-Vale", "Wither-Crest", "Gloom-Port", "Mist-Forge", "Storm-Peak", "Deep-Watch", "Blight-Grip", "Mist-Hold",
+        "Stone-Port", "Cold-Crest", "Bleak-Forge", "Sorrow-Wick", "Void-Watch", "Pale-Crypt", "Iron-Gate", "Wither-Forge", "Gloom-Wick", "Mist-Reach",
+        "Frost-Cairn", "Dark-Hill", "Silent-Forge", "Ruin-Forge", "Bone-Port", "Salt-Crest", "Ash-Watch", "Cinder-Hold", "Tomb-Peak", "Black-Reach",
+        "Omen-Watch", "Grave-Forge", "Black-Gate", "Iron-Crypt", "Mourn-Peak", "Blight-Forge", "Grey-Reach", "Shadow-Grip", "Night-Watch", "Dread-Port",
+        "Ash-Crest", "Wraith-Reach", "Cold-Forge", "Stone-Wick", "Bleak-Peak", "Cinder-Port", "Grim-Grip", "Sorrow-Hold", "Void-Forge", "Pale-Wick",
+        "Iron-Watch", "Wither-Port", "Gloom-Peak", "Mist-Crest", "Dagon's Watch", "Eldritch-Hold", "Barrow-Peak", "Fen-Forge", "Storm-Reach", "Deep-Port",
+        "Vile-Hollow", "Frost-Forge", "Dark-Crest", "Silent-Grip", "Ruin-Wick", "Ossuary-Hold", "Fell-Peak", "Gore-Watch", "Hollow-Port", "Wraith-Grip",
+        "Shatter-Hold", "Blood-Forge", "Night-Reach", "Grim-Watch", "Mire-Port", "Bone-Grip", "Salt-Peak", "Ash-Port", "Cinder-Forge", "Tomb-Watch",
+        "Black-Grip", "Grey-Forge", "Iron-Wick", "Mourn-Grip", "Wither-Peak", "Gloom-Hold", "Storm-Port", "Deep-Crest", "Blight-Watch", "Mist-Grip",
+        "Stone-Hold", "Cold-Peak", "Bleak-Watch", "Sorrow-Port", "Void-Crest", "Pale-Forge", "Iron-Hold", "Wither-Watch", "Gloom-Crest", "Mist-Peak",
+        "Frost-Hold", "Dark-Wick", "Silent-Hold", "Ruin-Crest", "Bone-Forge", "Salt-Watch", "Ash-Crest", "Cinder-Wick", "Tomb-Grip", "Black-Crest",
+        "Grey-Wick", "Iron-Forge", "Mourn-Watch", "Wither-Hold", "Gloom-Wick", "Mist-Watch", "Storm-Crest", "Deep-Forge", "Blight-Port", "Mist-Peak"
+    ],
+    "kingdoms": [
+        "The Iron Hegemony", "Realm of the Pale Sun", "The Weeping Duchy", "Kingdom of Black Ash", "The Ossuary Empire", "Sorrow-Bound Domains", "The Silent Caliphate", "Blighthaven Sovereign", "The Obsidian Throne", "Wraith-Lord Territories",
+        "The Cinder-Waste Shogunate", "Grim-Spire Confederates", "The Void-Kissed Collective", "Mist-Walker Tribes", "The Ancient Barrow League", "Storm-Crown Kingdom", "The Deep-Cairn Order", "Wither-Land Estates", "The Gloom-Veil Regent", "Frost-Keep Baronies",
+        "The Dark-Mill Union", "Silent-Peak Realm", "Ruin-Watch Dominion", "The Bone-Anchor State", "Iron-Vein Lordships", "Wither-Gate Clans", "The Gloom-Port Hierarchy", "Mist-Forge Principality", "The Storm-Reach Mandate", "Deep-Port Enclaves",
+        "The Vile-Hollow Regency", "Frost-Bitten Sect", "The Dark-Crest Protectorate", "Silent-Grip Archduchy", "The Ruin-Wick Guilds", "Ossuary-Hold Dynasty", "Fell-Peak Sultanate", "The Gore-Watch Legion", "Hollow-Port Command", "Wraith-Grip Empire",
+        "The Shatter-Hold Vestige", "Blood-Forge Exarchy", "Night-Reach Colony", "The Grim-Watch Diocese", "Mire-Port Covenant", "The Bone-Grip Sanctum", "Salt-Peak Commonwealth", "Ash-Port Aristocracy", "The Cinder-Forge Clans", "Tomb-Watch Autocracy",
+        "Black-Grip Kingdom", "Grey-Forge Commonwealth", "The Iron-Wick Collective", "Mourn-Grip Protectorate", "Wither-Peak Dominance", "The Gloom-Hold Hierarchy", "Storm-Port Sovereign", "Deep-Crest Baronies", "Blight-Watch Regent", "The Mist-Grip Order",
+        "Stone-Hold Dominion", "Cold-Peak Realm", "Bleak-Watch Union", "Sorrow-Port Archduchy", "Void-Crest Sultanate", "Pale-Forge Kingdom", "The Iron-Hold League", "Wither-Watch Mandate", "Gloom-Crest Dynasty", "Mist-Peak Command",
+        "The Frost-Hold Confederacy", "Dark-Wick Baronies", "Silent-Hold Regency", "Ruin-Crest Autocracy", "The Bone-Forge Legion", "Salt-Watch Covenant", "Ash-Crest Kingdom", "Cinder-Wick Tribes", "Tomb-Grip Order", "The Black-Crest Shogunate",
+        "Grey-Wick Domains", "Iron-Forge Sultanate", "Mourn-Watch Collective", "The Wither-Hold Union", "Gloom-Wick Realm", "Mist-Watch Enclaves", "The Storm-Crest Duchy", "Deep-Forge Sultanate", "Blight-Port Command", "The Mist-Peak Diocese",
+        "Stone-Reach Kingdom", "Cold-Watch Collective", "Bleak-Forge Shogunate", "Sorrow-Wick Duchy", "Void-Watch Union", "Pale-Crypt Hierarchy", "Iron-Gate Commonwealth", "Wither-Forge Legion", "Gloom-Hold Domains", "Mist-Reach Regency"
+    ],
+    "npc_names": [
+        "Arkanos", "Vaelen", "Isolda", "Mordred", "Thorne", "Gaius", "Lyra", "Elowen", "Malphas", "Kaelen",
+        "Valery", "Brom", "Silas", "Myra", "Vance", "Valerius", "Seraphina", "Darius", "Eamon",
+        "Garek", "Hollis", "Idril", "Jory", "Kellan", "Liora", "Marek", "Nolan", "Oryn", "Phaedra",
+        "Quinn", "Rael", "Soren", "Talia", "Urien", "Vara", "Willa", "Xander", "Yara", "Zale",
+        "Alaric", "Belinda", "Cormac", "Damian", "Elara", "Finnian", "Gisela", "Hakon", "Ingrid", "Joran",
+        "Kallista", "Leif", "Mara", "Niall", "Oona", "Piers", "Ragna", "Sigrid", "Torin", "Ula",
+        "Vann", "Wren", "Xenia", "Yrsa", "Zephyr", "Aethel", "Bryn", "Cael", "Dara", "Egil",
+        "Frey", "Gunnar", "Hilda", "Ivar", "Jana", "Knut", "Lana", "Morg", "Nora", "Olaf",
+        "Pia", "Rik", "Stig", "Tyra", "Ulf", "Vera", "Wynn", "Xeno", "Yael", "Zora",
+        "Adal", "Bert", "Cora", "Donn", "Elsa", "Falk", "Gale", "Hugh", "Inge", "Jens",
+        "Karl", "Lars", "Mina", "Nell", "Otto", "Paul", "Rudi", "Sven", "Tage", "Ulla",
+        "Vern", "Wolf", "Xara", "Yvan", "Zita", "Arren", "Bane", "Cade", "Dirk", "Enzo",
+        "Flint", "Grey", "Hale", "Ives", "Jax", "Kane", "Lock", "Mace", "Nash", "Orin",
+        "Pike", "Quill", "Reid", "Seth", "Tate", "Urso", "Vale", "Ward", "Xax", "Yule",
+        "Zane", "Aven", "Blair", "Cliff", "Dune", "Edge", "Frost", "Glint", "Haze", "Iron",
+        "Jade", "Keen", "Light", "Mist", "Night", "Oak", "Pyre", "Quartz", "Rain", "Stone",
+        "Thorn", "Umber", "Vail", "Wild", "Xyl", "Yew", "Zinc", "Abel", "Bred", "Cole",
+        "Dane", "Earl", "Ford", "Gile", "Herb", "Ivan", "Jude", "Kobe", "Leon", "Marl",
+        "Nile", "Opal", "Pear", "Quet", "Roan", "Saul", "Troy", "Uran", "Vito", "Watt",
+        "Xosa", "Yori", "Zeno", "Aric", "Bost", "Cris", "Derk", "Erit", "Fons", "Gort",
+        "Heid", "Imre", "Jarl", "Kori", "Ludo", "Mort", "Nels", "Orik", "Pert", "Quic",
+        "Rohn", "Sieg", "Trig", "Ulli", "Vigo", "Wort", "Xabi", "Yago", "Zsolt", "Agni",
+        "Beli", "Cern", "Dion", "Eris", "Fenr", "Gery", "Heph", "Inan", "Juno", "Kali",
+        "Loki", "Mars", "Neth", "Odin", "Pan", "Quet", "Rhea", "Seth", "Thor", "Uran",
+        "Vulh", "Woda", "Xoch", "Yama", "Zeus", "Anpu", "Bast", "Chen", "Dumu", "Enki",
+        "Frej", "Geb", "Hapy", "Isis", "Jorm", "Khnum", "Lugh", "Mut", "Nut", "Osir",
+        "Ptah", "Quan", "Ra", "Sekh", "Thot", "Usir", "Vohu", "Wadi", "Xipe", "Yima",
+        "Zerv", "Atum", "Bes", "Crom", "Dag", "Epon", "Fors", "Gwyr", "Hwan", "Itza",
+        "Jaka", "Kala", "Llor", "Mait", "Nurg", "Omet", "Papa", "Qali", "Rama", "Shiva",
+        "Tiam", "Utu", "Vayu", "Wara", "Xuan", "Yami", "Zhur", "Arke", "Bell", "Ceth",
+        "Drak", "Ereb", "Fian", "Gorg", "Hypn", "Iris", "Jinx", "Keres", "Leto", "Mors"
+    ],
+    "religions": [
+        "The Order of the Black Flame", "Church of the Silent Martyr", "Faith of the Unseen Eye", "The Hollow Sacrament", "Brotherhood of the Iron Cross", "Daughters of the Pale Moon", "Sect of the Eternal Dusk", "Cult of the Flayed God", "The Ossuary Path", "Covenant of the Void",
+        "The Weeping Saint-Order", "Pilgrims of the Ash", "The Blind Seers", "Shadow-Bound Clergy", "The Crimson Penance", "Followers of the Sunless Star", "The Grave-Root Sect", "Apostles of the Iron Vein", "The Wither-Land Faith", "Order of the Glacial Heart",
+        "The Dark-Mill Monastery", "Silent-Peak Watchers", "Ruin-Watch Zealots", "The Bone-Anchor Ministry", "Iron-Vein Ascetics", "Wither-Gate Heralds", "The Gloom-Port Shriners", "Mist-Forge Druids", "The Storm-Reach Prophets", "Deep-Port Mystic-Order",
+        "The Vile-Hollow Shamans", "Frost-Bitten Penitents", "The Dark-Crest Initiates", "Silent-Grip Oracles", "The Ruin-Wick Disciples", "Ossuary-Hold Priesthood", "Fell-Peak Dervishes", "The Gore-Watch Chaplains", "Hollow-Port Wardens", "Wraith-Grip Inquisitors",
+        "The Shatter-Hold Vestals", "Blood-Forge Exorcists", "Night-Reach Templars", "The Grim-Watch Curates", "Mire-Port Friars", "The Bone-Grip Canons", "Salt-Peak Parish", "Ash-Port Cathedral", "The Cinder-Forge Ritualists", "Tomb-Watch High-Priests",
+        "The Obsidian Sanctum", "Grey-Crypt Devout", "The Iron-Wick Zealots", "Mourn-Grip Mourners", "Wither-Peak Worshippers", "The Gloom-Hold Faithful", "Storm-Port Seekers", "Deep-Crest Anchorites", "Blight-Watch Gnostics", "The Mist-Grip Hermits",
+        "Stone-Hold Ascetics", "Cold-Peak Puritans", "Bleak-Watch Reformers", "Sorrow-Port Orthodox", "Void-Crest Sufis", "Pale-Forge Druid-Order", "The Iron-Hold Clerisy", "Wither-Watch Lamas", "Gloom-Crest Rabbis", "Mist-Peak Gurus",
+        "The Frost-Hold Magians", "Dark-Wick Brahamins", "Silent-Hold Monks", "Ruin-Crest Friars", "The Bone-Forge Canons", "Salt-Watch Wardens", "Ash-Crest Shaman-Order", "Cinder-Wick Cultists", "Tomb-Grip Zealots", "The Black-Crest Faith",
+        "Grey-Wick Penitents", "Iron-Forge Heralds", "Mourn-Watch Shriners", "The Wither-Hold Clergy", "Gloom-Wick Apostles", "Mist-Watch Mystic-Sect", "The Storm-Crest Monastery", "Deep-Forge Cathedral", "Blight-Port Church", "The Mist-Peak Faith",
+        "Stone-Reach Sanctuary", "Cold-Watch Sect", "Bleak-Forge Religion", "Sorrow-Wick Belief", "Void-Watch Faith-Order", "Pale-Crypt Holy-Path", "Iron-Gate Religion", "Wither-Forge Sacred-Way", "Gloom-Hold Faith", "Mist-Reach Sacred-Order"
+    ],
+    "dungeons": [
+        "The Ossuary Pit", "Dread-King's Tomb", "Void-Cleft", "Iron-Labyrinth", "Wraith-Warren", "Blight-Chamber", "Mourn-Keep", "Gloom-Well", "Storm-Crypt", "Deep-Vault",
+        "The Screaming Catacombs", "Infernal Mines", "Shadow-Prison", "Ruin-Dungeon", "Bone-Hall", "Cold-Cells", "Bleak-Bastion", "Sorrow-Sanctum", "Void-Hole", "Pale-Tower",
+        "The Iron-Vein Deep", "Wither-Gate Keep", "Gloom-Forge Hall", "Mist-Peak Cellar", "Borrow-Pit", "Fen-Warren", "Storm-Vault", "Deep-Cairn Hole", "Vile-Hollow Pit", "Frost-Keep Dungeon",
+        "The Dark-Mill Cellar", "Silent-Peak Pit", "Ruin-Watch Vault", "Bone-Anchor Cell", "Iron-Vein Maze", "Wither-Gate Deep", "Gloom-Port Hole", "Mist-Forge Hall", "Storm-Reach Vault", "Deep-Port Dungeon",
+        "The Vile-Hollow Pit", "Frost-Bitten Pit", "Dark-Crest Vault", "Silent-Grip Cell", "Ruin-Wick Dungeon", "Ossuary-Hold Deep", "Fell-Peak Pit", "Gore-Watch Labyrinth", "Hollow-Port Pit", "Wraith-Grip Deep",
+        "The Shatter-Hold Vault", "Blood-Forge Pit", "Night-Reach Deep", "Grim-Watch Pit", "Mire-Port Dungeon", "Bone-Grip Maze", "Salt-Peak Labyrinth", "Ash-Port Hole", "Cinder-Forge Pit", "Tomb-Watch Dungeon",
+        "The Black-Grip Deep", "Grey-Forge Pit", "Iron-Wick Vault", "Mourn-Grip Pit", "Wither-Peak Dungeon", "Gloom-Hold Labyrinth", "Storm-Port Pit", "Deep-Crest Vault", "Blight-Watch Deep", "Mist-Grip Pit",
+        "The Stone-Hold Vault", "Cold-Peak Pit", "Bleak-Watch Dungeon", "Sorrow-Port Labyrinth", "Void-Crest Pit", "Pale-Forge Deep", "Iron-Hold Vault", "Wither-Watch Pit", "Gloom-Crest Dungeon", "Mist-Peak Labyrinth",
+        "The Frost-Hold Pit", "Dark-Wick Deep", "Silent-Hold Vault", "Ruin-Crest Pit", "Bone-Forge Dungeon", "Salt-Watch Labyrinth", "Ash-Crest Vault", "Cinder-Wick Pit", "Tomb-Grip Deep", "The Black-Crest Dungeon",
+        "The Grey-Wick Labyrinth", "Iron-Forge Pit", "Mourn-Watch Vault", "Wither-Hold Deep", "Gloom-Wick Pit", "Mist-Watch Dungeon", "Storm-Crest Labyrinth", "Deep-Forge Pit", "Blight-Port Vault", "Mist-Peak Deep",
+        "The Stone-Reach Labyrinth", "Cold-Watch Pit", "Bleak-Forge Dungeon", "Sorrow-Wick Vault", "Void-Watch Deep", "Pale-Crypt Pit", "Iron-Gate Dungeon", "Wither-Forge Labyrinth", "Gloom-Hold Pit", "Mist-Reach Vault",
+        "The Dark-Forge Deep", "Silent-Peak Labyrinth", "Ruin-Watch Dungeon", "Bone-Anchor Pit", "Iron-Vein Vault", "Wither-Gate Labyrinth", "Gloom-Port Deep", "Mist-Forge Pit", "Storm-Reach Dungeon", "Deep-Port Vault",
+        "The Vile-Hollow Labyrinth", "Frost-Bitten Deep", "Dark-Crest Pit", "Silent-Grip Dungeon", "Ruin-Wick Vault", "Ossuary-Hold Labyrinth", "Fell-Peak Deep", "Gore-Watch Pit", "Hollow-Port Dungeon", "Wraith-Grip Vault",
+        "The Shatter-Hold Labyrinth", "Blood-Forge Deep", "Night-Reach Pit", "Grim-Watch Dungeon", "Mire-Port Vault", "Bone-Grip Labyrinth", "Salt-Peak Deep", "Ash-Port Pit", "Cinder-Forge Dungeon", "Tomb-Watch Vault",
+        "The Black-Grip Labyrinth", "Grey-Forge Deep", "Iron-Wick Pit", "Mourn-Grip Dungeon", "Wither-Peak Vault", "Gloom-Hold Labyrinth", "Storm-Port Deep", "Deep-Crest Pit", "Blight-Watch Dungeon", "Mist-Grip Vault"
+    ],
+    "ruins": [
+        "Aethel Ruin", "The Hanging Garden Vestige", "Sunken Sol Temple", "Forbidden Library Remains", "The Lost Academy", "Imperial Palace Ash", "Shattered Bridge Towers", "Broken Watchpost", "Dust-Bound Monastery", "Fallen Cathedral",
+        "The Iron-Peak Husk", "Wither-Gate Debris", "Gloom-Forge Shell", "Mist-Peak Rubble", "Barrow-Waste", "Fen-Ruins", "Storm-Wight Relics", "Deep-Cairn Ruins", "Vile-Hollow Waste", "Frost-Keep Shell",
+        "The Dark-Mill Waste", "Silent-Peak Ruins", "Ruin-Watch Shell", "Bone-Anchor Rubble", "Iron-Vein Waste", "Wither-Gate Shell", "Gloom-Port Ruins", "Mist-Forge Waste", "Storm-Reach Shell", "Deep-Port Ruins",
+        "The Vile-Hollow Shell", "Frost-Bitten Ruins", "Dark-Crest Waste", "Silent-Grip Shell", "Ruin-Wick Ruins", "Ossuary-Hold Waste", "Fell-Peak Shell", "Gore-Watch Ruins", "Hollow-Port Waste", "Wraith-Grip Shell",
+        "The Shatter-Hold Ruins", "Blood-Forge Waste", "Night-Reach Shell", "Grim-Watch Ruins", "Mire-Port Waste", "Bone-Grip Shell", "Salt-Peak Ruins", "Ash-Port Waste", "Cinder-Forge Shell", "Tomb-Watch Ruins",
+        "The Black-Grip Waste", "Grey-Forge Shell", "Iron-Wick Ruins", "Mourn-Grip Waste", "Wither-Peak Shell", "Gloom-Hold Ruins", "Storm-Port Waste", "Deep-Crest Shell", "Blight-Watch Ruins", "Mist-Grip Waste",
+        "The Stone-Hold Shell", "Cold-Peak Ruins", "Bleak-Watch Waste", "Sorrow-Port Shell", "Void-Crest Ruins", "Pale-Forge Waste", "Iron-Hold Shell", "Wither-Watch Ruins", "Gloom-Crest Waste", "Mist-Peak Shell",
+        "The Frost-Hold Ruins", "Dark-Wick Waste", "Silent-Hold Shell", "Ruin-Crest Ruins", "Bone-Forge Waste", "Salt-Watch Shell", "Ash-Crest Ruins", "Cinder-Wick Waste", "Tomb-Grip Shell", "The Black-Crest Ruins",
+        "The Grey-Wick Waste", "Iron-Forge Shell", "Mourn-Watch Ruins", "Wither-Hold Waste", "Gloom-Wick Shell", "Mist-Watch Ruins", "Storm-Crest Waste", "Deep-Forge Shell", "Blight-Port Ruins", "Mist-Peak Waste",
+        "The Stone-Reach Shell", "Cold-Watch Ruins", "Bleak-Forge Waste", "Sorrow-Wick Shell", "Void-Watch Ruins", "Pale-Crypt Waste", "Iron-Gate Shell", "Wither-Forge Ruins", "Gloom-Hold Waste", "Mist-Reach Shell"
+    ],
+    "forests": [
+        "Shadow Forest", "Whispering Woods", "Hanging Garden Overgrowth", "Dead-Man's Thicket", "The Ironwood Grove", "Blighted Pines", "Wraith-Willow Swamp", "Mournful Oaks", "Silent Birch Stand", "Void-Tangled Jungle",
+        "The Crimson Canopy", "Frost-Bitten Forest", "Dark-Vein Woods", "Silent-Grip Thicket", "Ruin-Wick Overgrowth", "Ossuary-Hold Grove", "Fell-Peak Pines", "Gore-Watch Thicket", "Hollow-Port Woods", "Wraith-Grip Forest",
+        "The Shatter-Hold Thicket", "Blood-Forge Grove", "Night-Reach Forest", "Grim-Watch Overgrowth", "Mire-Port Thicket", "Bone-Grip Woods", "Salt-Peak Forest", "Ash-Port Overgrowth", "Cinder-Forge Thicket", "Tomb-Watch Grove",
+        "The Black-Grip Forest", "Grey-Forge Thicket", "Iron-Wick Overgrowth", "Mourn-Grip Grove", "Wither-Peak Forest", "Gloom-Hold Thicket", "Storm-Port Overgrowth", "Deep-Crest Grove", "Blight-Watch Forest", "Mist-Grip Thicket",
+        "The Stone-Hold Overgrowth", "Cold-Peak Grove", "Bleak-Watch Forest", "Sorrow-Port Thicket", "Void-Crest Overgrowth", "Pale-Forge Grove", "Iron-Hold Forest", "Wither-Watch Thicket", "Gloom-Crest Overgrowth", "Mist-Peak Grove",
+        "The Frost-Hold Forest", "Dark-Wick Thicket", "Silent-Hold Overgrowth", "Ruin-Crest Grove", "Bone-Forge Forest", "Salt-Watch Thicket", "Ash-Crest Overgrowth", "Cinder-Wick Grove", "Tomb-Grip Forest", "The Black-Crest Thicket",
+        "The Grey-Wick Overgrowth", "Iron-Forge Grove", "Mourn-Watch Forest", "Wither-Hold Thicket", "Gloom-Wick Overgrowth", "Mist-Watch Grove", "Storm-Crest Forest", "Deep-Forge Thicket", "Blight-Port Overgrowth", "Mist-Peak Grove",
+        "The Stone-Reach Forest", "Cold-Watch Thicket", "Bleak-Forge Overgrowth", "Sorrow-Wick Grove", "Void-Watch Forest", "Pale-Crypt Thicket", "Iron-Gate Overgrowth", "Wither-Forge Grove", "Gloom-Hold Forest", "Mist-Reach Thicket",
+        "The Dark-Forge Overgrowth", "Silent-Peak Grove", "Ruin-Watch Forest", "Bone-Anchor Thicket", "Iron-Vein Overgrowth", "Wither-Gate Grove", "Gloom-Port Forest", "Mist-Forge Thicket", "Storm-Reach Overgrowth", "Deep-Port Grove"
+    ],
+    "mountains": [
+        "Iron Peaks", "Crystal Caverns", "The Obsidian Spire", "Sky-Reach Heights", "Dread-Anchor Mountains", "Storm-Wight Cliffs", "Deep-Cairn Ranges", "Vile-Hollow Peaks", "Frost-Keep Slopes", "Dark-Vein Ridges",
+        "The Crimson Range", "Frost-Bitten Slopes", "Dark-Crest Heights", "Silent-Grip Ridges", "Ruin-Wick Peaks", "Ossuary-Hold Slopes", "Fell-Peak Heights", "Gore-Watch Ridges", "Hollow-Port Peaks", "Wraith-Grip Slopes",
+        "The Shatter-Hold Heights", "Blood-Forge Ridges", "Night-Reach Peaks", "Grim-Watch Slopes", "Mire-Port Heights", "Bone-Grip Ridges", "Salt-Peak Peaks", "Ash-Port Slopes", "Cinder-Forge Heights", "Tomb-Watch Ridges",
+        "The Black-Grip Peaks", "Grey-Forge Slopes", "Iron-Wick Heights", "Mourn-Grip Ridges", "Wither-Peak Peaks", "Gloom-Hold Slopes", "Storm-Port Heights", "Deep-Crest Ridges", "Blight-Watch Peaks", "Mist-Grip Slopes",
+        "The Stone-Hold Heights", "Cold-Peak Ridges", "Bleak-Watch Peaks", "Sorrow-Port Slopes", "Void-Crest Heights", "Pale-Forge Ridges", "Iron-Hold Peaks", "Wither-Watch Slopes", "Gloom-Crest Heights", "Mist-Peak Ridges",
+        "The Frost-Hold Peaks", "Dark-Wick Slopes", "Silent-Hold Heights", "Ruin-Crest Ridges", "Bone-Forge Peaks", "Salt-Watch Slopes", "Ash-Crest Heights", "Cinder-Wick Ridges", "Tomb-Grip Peaks", "The Black-Crest Slopes",
+        "The Grey-Wick Heights", "Iron-Forge Ridges", "Mourn-Watch Peaks", "Wither-Hold Slopes", "Gloom-Wick Heights", "Mist-Watch Ridges", "Storm-Crest Peaks", "Deep-Forge Slopes", "Blight-Port Heights", "Mist-Peak Ridges",
+        "The Stone-Reach Peaks", "Cold-Watch Slopes", "Bleak-Forge Heights", "Sorrow-Wick Ridges", "Void-Watch Peaks", "Pale-Crypt Slopes", "Iron-Gate Heights", "Wither-Forge Ridges", "Gloom-Hold Peaks", "Mist-Reach Slopes"
+    ]
+};
+
+async function seedNames() {
+    console.log('🚀 Starting Name Seeding...');
+
+    try {
+        const categories = Object.keys(DATA);
+        for (const category of categories) {
+            console.log(`--- Seeding Category: ${category} ---`);
+            // @ts-ignore
+            const names = DATA[category];
+
+            // Batch insert for performance
+            const inserts = names.map((name: string) => ({
+                category: category.replace('npc_names', 'npc').replace('forests', 'forest').replace('mountains', 'mountain').replace('ruins', 'ruin').replace('cities', 'city').replace('kingdoms', 'kingdom').replace('religions', 'religion').replace('dungeons', 'dungeon'),
+                name: name
+            }));
+
+            const { error } = await supabase.from('name_pools').insert(inserts);
+            if (error) {
+                if (error.code === '23505') {
+                    console.log(`Skipping duplicates for ${category}`);
+                } else {
+                    throw error;
+                }
+            }
+            console.log(`${names.length} names processed.`);
+        }
+
+        console.log('\n✅ Name Seeding Complete!');
+    } catch (err) {
+        console.error('\n❌ Seeding Failed:', err);
+    }
+}
+
+seedNames();

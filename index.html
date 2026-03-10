@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Fantasy RPG</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        :root {
+            --bg: #0a0e14;
+            --surface: #12171f;
+            --surface2: #1a2030;
+            --surface3: #222d40;
+            --border: #1e2940;
+            --text: #c8d3e0;
+            --muted: #5a6a82;
+            --accent: #4fc3f7;
+            --accent2: #7c4dff;
+            --gold: #ffd54f;
+            --red: #ef5350;
+            --green: #66bb6a;
+            --orange: #ffa726;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden
+        }
+
+        .header {
+            text-align: center;
+            padding: 30px 20px 16px;
+            background: linear-gradient(180deg, rgba(79, 195, 247, 0.06) 0%, transparent 100%)
+        }
+
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 28px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 16px 40px
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 14px
+        }
+
+        .card h3 {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px
+        }
+
+        .screen {
+            display: none
+        }
+
+        .screen.active {
+            display: block
+        }
+
+        label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 4px
+        }
+
+        input,
+        select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 9px 12px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent)
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all .15s
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #fff
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(79, 195, 247, 0.25)
+        }
+
+        .btn-action {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            font-size: 12px;
+            padding: 8px 14px
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+            font-size: 12px;
+            padding: 8px 14px
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            color: #111;
+            font-size: 12px;
+            padding: 8px 14px;
+            font-weight: 700
+        }
+
+        .login-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px
+        }
+
+        .stat {
+            background: var(--surface);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid var(--border)
+        }
+
+        .stat span {
+            margin-left: 4px
+        }
+
+        .stat .val-accent {
+            color: var(--accent)
+        }
+
+        .stat .val-green {
+            color: var(--green)
+        }
+
+        .stat .val-gold {
+            color: var(--gold)
+        }
+
+        .stat .val-red {
+            color: var(--red)
+        }
+
+        /* Nav */
+        .game-nav {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap
+        }
+
+        /* Region cards */
+        .region-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px
+        }
+
+        .region-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all .15s
+        }
+
+        .region-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px)
+        }
+
+        .region-card .name {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 3px
+        }
+
+        .region-card .danger {
+            font-size: 11px;
+            color: var(--gold)
+        }
+
+        .region-card .enemies {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 4px
+        }
+
+        /* Log box */
+        .log-box {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 14px;
+            max-height: 350px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.7
+        }
+
+        .log-combat {
+            color: var(--red)
+        }
+
+        .log-treasure {
+            color: var(--gold)
+        }
+
+        .log-info {
+            color: var(--muted)
+        }
+
+        .log-victory {
+            color: var(--green);
+            font-weight: 700
+        }
+
+        .log-rare {
+            color: var(--accent2)
+        }
+
+        .log-dialogue {
+            color: var(--accent)
+        }
+
+        .log-exp {
+            color: var(--gold);
+            font-style: italic
+        }
+
+        /* Character stats grid */
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px
+        }
+
+        .char-stat {
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center
+        }
+
+        .char-stat .label {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px
+        }
+
+        .char-stat .value {
+            font-size: 22px;
+            font-weight: 800;
+            margin-top: 4px
+        }
+
+        /* HP/Mana bars */
+        .bar-container {
+            margin-bottom: 10px
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 3px
+        }
+
+        .bar {
+            height: 8px;
+            background: var(--surface3);
+            border-radius: 4px;
+            overflow: hidden
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .3s ease
+        }
+
+        .bar-hp {
+            background: linear-gradient(90deg, var(--red), var(--green))
+        }
+
+        .bar-mana {
+            background: linear-gradient(90deg, #1565c0, var(--accent))
+        }
+
+        .bar-exp {
+            background: linear-gradient(90deg, var(--accent2), var(--gold))
+        }
+
+        /* Inventory */
+        .inv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px
+        }
+
+        .inv-item {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .inv-item .name {
+            font-size: 13px;
+            font-weight: 600
+        }
+
+        .inv-item .qty {
+            color: var(--gold);
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .equip-slots {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px
+        }
+
+        .equip-slot {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center
+        }
+
+        .equip-slot .slot-name {
+            font-size: 10px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px
+        }
+
+        .equip-slot .slot-item {
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 6px;
+            color: var(--accent)
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all .25s;
+            z-index: 99;
+            pointer-events: none
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0)
+        }
+
+        .toast.success {
+            background: var(--green)
+        }
+
+        .toast.error {
+            background: var(--red)
+        }
+
+        .toast.info {
+            background: var(--accent)
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn .25s ease
+        }
+    </style>
+</head>
+
+<body>
+    <div id="screen-auth" class="screen active">
+        <div class="header" style="margin-bottom: 0">
+            <h1>⚔ RPG Authentication</h1>
+            <p>Enter the realm safely</p>
+        </div>
+        <div class="container">
+            <div class="card fade-in" style="max-width: 400px; margin: 40px auto">
+                <h3 id="auth-title">🔐 Character Login</h3>
+                <form id="form-auth" onsubmit="handleAuth(event)">
+                    <div style="display:flex; flex-direction:column; gap:12px">
+                        <div>
+                            <label>Email Address</label>
+                            <input type="email" id="auth-email" placeholder="hero@example.com" autocomplete="email"
+                                required>
+                        </div>
+                        <div>
+                            <label>Password</label>
+                            <input type="password" id="auth-password" placeholder="••••••••"
+                                autocomplete="current-password" required>
+                        </div>
+                        <div id="auth-error"
+                            style="display:none; color:var(--red); font-size:12px; padding:8px 12px; background:rgba(239,83,80,0.1); border-radius:6px; border:1px solid rgba(239,83,80,0.3)">
+                        </div>
+                        <button type="submit" id="btn-auth" class="btn btn-primary" style="width:100%">Enter
+                            Realm</button>
+                        <div style="text-align:center; font-size:12px; margin-top:8px">
+                            <a href="#" id="auth-toggle" onclick="toggleAuthMode(); return false;"
+                                style="color:var(--accent); text-decoration:none">Need an account? Sign Up</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container" style="display:none">
+        <div class="header">
+            <div style="position: absolute; top: 10px; right: 10px">
+                <button class="btn btn-action" style="font-size:10px" onclick="logout()">Logout</button>
+            </div>
+            <h1>⚔ Procedural Fantasy RPG</h1>
+            <p id="user-display">A world that remembers</p>
+        </div>
+
+        <div class="container">
+            <!-- LOGIN / START -->
+            <div id="screen-login" class="screen">
+                <div class="card fade-in">
+                    <h3>🏰 Begin Your Journey</h3>
+                    <form id="form-start">
+                        <div class="login-grid">
+                            <div><label>Player Name</label><input type="text" id="input-player" required
+                                    placeholder="Your name"></div>
+                            <div><label>Character Name</label><input type="text" id="input-character" required
+                                    placeholder="Hero name"></div>
+                            <div><label>World Seed</label><input type="number" id="input-seed" placeholder="Random">
+                            </div>
+                            <div style="display:flex;align-items:flex-end"><button type="submit" class="btn btn-primary"
+                                    style="width:100%">⚔ Enter World</button></div>
+                        </div>
+                    </form>
+                    <div
+                        style="margin-top:20px; text-align:center; padding-top:16px; border-top: 1px solid var(--border)">
+                        <label style="margin-bottom:8px">Or Resume Adventure</label>
+                        <div id="save-list" style="display:flex; flex-direction:column; gap:8px">
+                            <button class="btn btn-action" onclick="fetchSaveList()" style="width:100%">📂 List All
+                                Saves</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORLD MAP -->
+            <div id="screen-world" class="screen">
+                <div id="status-bar" class="status-bar"></div>
+                <div class="game-nav" id="game-nav"></div>
+                <div class="card fade-in">
+                    <h3>🗺️ Select a Region</h3>
+                    <div id="region-list" class="region-grid"></div>
+                </div>
+            </div>
+
+            <!-- CHARACTER -->
+            <div id="screen-character" class="screen">
+                <div id="status-bar-char" class="status-bar"></div>
+                <div class="game-nav" id="nav-char"></div>
+                <div class="card fade-in">
+                    <h3>👤 Character</h3>
+                    <div id="char-bars"></div>
+                    <div id="char-stats" class="char-grid" style="margin-top:12px"></div>
+                </div>
+            </div>
+
+            <!-- EXPLORE -->
+            <div id="screen-explore" class="screen">
+                <div id="status-bar-explore" class="status-bar"></div>
+                <div class="game-nav" id="nav-explore"></div>
+                <div class="card fade-in">
+                    <h3 id="explore-title">🧭 Exploring...</h3>
+                    <div id="event-log" class="log-box"></div>
+                    <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+                        <button class="btn btn-action" onclick="exploreRegion()">🔄 Explore Again</button>
+                        <button class="btn btn-action" onclick="showScreen('world')">← Back to Map</button>
+                        <button class="btn btn-gold" onclick="saveGame()">💾 Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INVENTORY -->
+            <div id="screen-inventory" class="screen">
+                <div id="status-bar-inv" class="status-bar"></div>
+                <div class="game-nav" id="nav-inv"></div>
+                <div class="card fade-in">
+                    <h3>⚔️ Equipment</h3>
+                    <div id="equip-display" class="equip-slots"></div>
+                </div>
+                <div class="card fade-in">
+                    <h3>🎒 Inventory</h3>
+                    <div id="inv-display" class="inv-grid">
+                        <p style="color:var(--muted);font-size:12px">No items yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMBAT -->
+            <div id="screen-combat" class="screen">
+                <div class="card fade-in">
+                    <h3 id="combat-title">⚔️ Combat</h3>
+                    <div id="combat-log" class="log-box"></div>
+                    <div id="combat-result" style="margin-top:12px"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script type="module" src="/src/client/main.ts"></script>
+</body>
+
+</html>
