@@ -515,17 +515,61 @@ async function deleteSave(cid: string, name: string) {
     }
 }
 
-async function loadGame(cid: string) {
+async function loadGame(cid: string, charName?: string) {
+    // --- Enter game screen IMMEDIATELY ---
+    G.characterId = cid;
+    G.gs = G.gs || {
+        characterName: charName || 'Hero',
+        level: 1, exp: 0, gold: 0,
+        hp: 100, maxHP: 100, mana: 50, maxMana: 50,
+        equipment: { weapon: null, armor: null, accessory: null },
+        inventory: [],
+        effectiveStats: { attack: 10, defense: 5, speed: 8 },
+        worldSeed: 0,
+    };
+
+    const regionListEl = document.getElementById('region-list');
+    if (regionListEl) regionListEl.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">
+            <div style="font-size:36px;margin-bottom:12px">📂</div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:6px">Loading save...</div>
+        </div>
+    `;
+
+    updateAllStatusBars();
+    showScreen('world');
+    showToast('Loading save...', 'info');
+
+    // --- Sync in background ---
     try {
         const res = await fetch(API + '/load/' + cid);
         const j = await res.json();
         if (j.success) {
-            G.characterId = cid; G.gs = j.data.gameState;
-            G.worldSeed = j.data.gameState.worldSeed; G.regions = j.data.regions;
-            renderRegions(); updateAllStatusBars(); showScreen('world');
-            showToast('Game loaded!', 'info');
-        } else { showToast(j.error, 'error') }
-    } catch { showToast('Load failed', 'error') }
+            G.gs = j.data.gameState;
+            G.worldSeed = j.data.gameState.worldSeed;
+            G.regions = j.data.regions;
+            renderRegions();
+            updateAllStatusBars();
+            showToast('Game loaded! ✅', 'success');
+        } else {
+            // Server error — show offline regions so the UI isn't stuck
+            G.regions = [
+                { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
+                { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
+                { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
+            ];
+            renderRegions();
+            showToast(j.error || 'Offline mode', 'info');
+        }
+    } catch {
+        G.regions = [
+            { name: 'Starting Plains', dangerLevel: 1, enemyTypes: ['Slime', 'Goblin'] },
+            { name: 'Dark Forest', dangerLevel: 3, enemyTypes: ['Wolf', 'Bandit'] },
+            { name: 'Ancient Ruins', dangerLevel: 5, enemyTypes: ['Skeleton', 'Ghost'] },
+        ];
+        renderRegions();
+        showToast('Offline mode – syncing failed', 'info');
+    }
 }
 
 // --- SAVE ---
