@@ -1637,11 +1637,14 @@
                                             <stop offset="100%" style="stop-color:var(--accent2);stop-opacity:1" />
                                         </linearGradient>
                                     </defs>
-                                    <polygon
-                                        points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
+                                    <!-- A perfectly symmetrical 9-pointed star (nonagram) generated using every 3rd point of a 9-gon -->
+                                    <polygon points="50,2 6,67 97,35 3,35 94,67 50,2" fill="none"
+                                        stroke="url(#starGrad)" stroke-opacity="0.2" stroke-width="0.5"
+                                        style="transform-origin:center;" />
+                                    <!-- The actual continuous 9-pointed continuous line -->
+                                    <polygon points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
                                         fill="url(#starGrad)" style="transform-origin:center; opacity:0.15" />
-                                    <polygon
-                                        points="50,2 55,30 83,12 68,36 99,48 70,58 83,85 50,72 17,85 30,58 1,48 32,36 17,12 45,30"
+                                    <polygon points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
                                         fill="none" stroke="url(#starGrad)" stroke-width="1.5"
                                         style="transform-origin:center; transition: all 0.5s" />
                                 </svg>
