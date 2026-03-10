@@ -613,10 +613,253 @@
         .fade-in {
             animation: fadeIn .25s ease
         }
+
+        /* === TRANSLATE WIDGET === */
+        #translate-btn {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            transition: all .15s;
+            font-family: inherit;
+        }
+
+        #translate-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        #translate-panel {
+            position: fixed;
+            top: 50px;
+            right: 12px;
+            z-index: 9999;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            min-width: 220px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        #translate-panel.open {
+            display: block
+        }
+
+        #translate-panel h4 {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .lang-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .lang-btn {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all .12s;
+            font-family: inherit;
+        }
+
+        .lang-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent)
+        }
+
+        .lang-btn.active {
+            border-color: var(--accent);
+            background: rgba(79, 195, 247, 0.1);
+            color: var(--accent)
+        }
+
+        .auto-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-top: 1px solid var(--border);
+            margin-top: 6px;
+            font-size: 11px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: var(--surface3);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            bottom: 3px;
+            left: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: .2s;
+        }
+
+        .toggle-switch input:checked+.toggle-track {
+            background: var(--accent)
+        }
+
+        .toggle-switch input:checked+.toggle-track::after {
+            transform: translateX(16px)
+        }
+
+        /* Hide Google's default widget bar */
+        .goog-te-banner-frame {
+            display: none !important
+        }
+
+        body {
+            top: 0 !important
+        }
+
+        .goog-te-gadget {
+            display: none !important
+        }
     </style>
 </head>
 
 <body>
+    <!-- Google Translate hidden element -->
+    <div id="google_translate_element" style="display:none"></div>
+
+    <!-- Custom Translate Button -->
+    <button id="translate-btn" onclick="toggleTranslatePanel()">🌐 Translate ▾</button>
+    <div id="translate-panel">
+        <h4>🌍 Choose Language</h4>
+        <div class="lang-list">
+            <button class="lang-btn active" data-lang="" onclick="translateTo('')">🇺🇸 English</button>
+            <button class="lang-btn" data-lang="th" onclick="translateTo('th')">🇹🇭 ไทย</button>
+            <button class="lang-btn" data-lang="ja" onclick="translateTo('ja')">🇯🇵 日本語</button>
+            <button class="lang-btn" data-lang="zh-CN" onclick="translateTo('zh-CN')">🇨🇳 中文</button>
+            <button class="lang-btn" data-lang="ko" onclick="translateTo('ko')">🇰🇷 한국어</button>
+            <button class="lang-btn" data-lang="fr" onclick="translateTo('fr')">🇫🇷 Français</button>
+            <button class="lang-btn" data-lang="es" onclick="translateTo('es')">🇪🇸 Español</button>
+            <button class="lang-btn" data-lang="de" onclick="translateTo('de')">🇩🇪 Deutsch</button>
+            <button class="lang-btn" data-lang="ru" onclick="translateTo('ru')">🇷🇺 Русский</button>
+            <button class="lang-btn" data-lang="ar" onclick="translateTo('ar')">🇸🇦 العربية</button>
+        </div>
+        <div class="auto-toggle">
+            <span style="color:var(--muted)">Auto-translate on load</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="auto-translate-toggle" onchange="toggleAutoTranslate(this.checked)">
+                <span class="toggle-track"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Google Translate Script -->
+    <script>
+        // Translate panel toggle
+        function toggleTranslatePanel() {
+            document.getElementById('translate-panel').classList.toggle('open');
+        }
+        // Close panel when clicking outside
+        document.addEventListener('click', function (e) {
+            const btn = document.getElementById('translate-btn');
+            const panel = document.getElementById('translate-panel');
+            if (!btn.contains(e.target) && !panel.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+
+        // Active language state
+        let currentLang = localStorage.getItem('rpg_lang') || '';
+        let autoTranslate = localStorage.getItem('rpg_auto_translate') === 'true';
+
+        function translateTo(lang) {
+            currentLang = lang;
+            localStorage.setItem('rpg_lang', lang);
+            // Update active button
+            document.querySelectorAll('.lang-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.lang === lang);
+            });
+            // Use Google Translate cookie method
+            const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
+            if (lang === '') {
+                // Reset to original
+                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + domain;
+                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+            } else {
+                const val = '/auto/' + lang;
+                document.cookie = 'googtrans=' + val + '; path=/; domain=' + domain;
+                document.cookie = 'googtrans=' + val + '; path=/';
+            }
+            location.reload();
+        }
+
+        function toggleAutoTranslate(enabled) {
+            autoTranslate = enabled;
+            localStorage.setItem('rpg_auto_translate', enabled ? 'true' : 'false');
+        }
+
+        // Google Translate init callback
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                autoDisplay: false,
+            }, 'google_translate_element');
+        }
+
+        // Restore auto-translate state on load
+        window.addEventListener('DOMContentLoaded', function () {
+            const toggle = document.getElementById('auto-translate-toggle');
+            if (toggle) toggle.checked = autoTranslate;
+            // Highlight active lang button
+            if (currentLang) {
+                document.querySelectorAll('.lang-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.lang === currentLang);
+                });
+            }
+        });
+    </script>
+    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <div id="screen-auth" class="screen active">
         <div class="header" style="margin-bottom: 0">
             <h1>⚔ RPG Authentication</h1>
