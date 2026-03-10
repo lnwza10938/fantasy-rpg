@@ -9,12 +9,12 @@ export interface AIGeneratorConfig {
     provider: 'openai' | 'gemini' | 'groq' | 'openrouter';
 }
 
-// Runtime config — set via Dev Panel, never hardcoded
+// Runtime config — initialized from environment variables if available
 let config: AIGeneratorConfig = {
-    apiKey: '',
-    model: 'gpt-4o-mini',
-    baseUrl: 'https://api.openai.com/v1',
-    provider: 'openai'
+    apiKey: process.env.GEMINI_API_KEY || '',
+    model: 'gemini-2.5-flash',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    provider: 'gemini'
 };
 
 export function setAIConfig(newConfig: Partial<AIGeneratorConfig>) {
@@ -52,16 +52,32 @@ Make it immersive and mysterious. Return ONLY the JSON object.`,
 { "title": "string", "text": "string", "region": "string" }
 Make it mysterious and hinting at ancient history. Return ONLY the JSON object.`,
 
-    skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG. 
-Each digit (1-9) represents: Trigger, Role, Target, Effect, Scaling, Delivery, Duration, Modifier, Special.
-Translate the 9-digit code provided in the context into a balanced, thematic skill.
+    skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG.
+Each digit (1st-9th) has a specific meaning (0-9):
+
+1. Trigger (0=AlwaysActive, 1=OnHit, 2=OnDamaged, 3=OnKill, 4=LowHP, 5=LowMana, 6=Timed, 7=EnterCombat, 8=BuffEvent, 9=CHAOTIC)
+2. Role (0=None, 1=Attack, 2=Defense, 3=Buff, 4=Debuff, 5=Curse, 6=Heal, 7=Summon, 8=Utility, 9=CHAOTIC)
+3. Target (0=Self, 1=SingleEnemy, 2=MultiEnemy, 3=AllEnemies, 4=Area, 5=SingleAlly, 6=AllAllies, 7=Random, 8=AllUnitsArea, 9=CHAOTIC)
+4. Effect (0=None, 1=Physical, 2=Magical, 3=Soul, 4=LifeSteal, 5=ManaDrain, 6=MaxHPDamage, 7=ManaBreak, 8=ArmorBreak, 9=CHAOTIC)
+5. Scaling (0=None, 1=AttackPower, 2=DefensePower, 3=MaxHP, 4=MaxMana, 5=Speed, 6=Level, 7=EnemyCount, 8=BuffCount, 9=CHAOTIC)
+6. Delivery (0=Instant, 1=DirectStrike, 2=Explosion, 3=Wave, 4=Chain, 5=Aura, 6=Ring, 7=Beam, 8=SpawnObject, 9=CHAOTIC)
+7. Duration (0=Instant, 1=Short, 2=Medium, 3=Long, 4=Continuous, 5=Periodic, 6=Stackable, 7=Delayed, 8=Conditional, 9=CHAOTIC)
+8. Modifier (0=None, 1=LifeSteal, 2=ArmorUp, 3=AttackUp, 4=Slow, 5=StatusEffect, 6=Bounce, 7=RangeUp, 8=CDReduce, 9=CHAOTIC)
+9. Special (0=None, 1=HPTrade, 2=ManaOverload, 3=Random, 4=Backfire, 5=PermStack, 6=Mutation, 7=LowHPBoost, 8=Hidden, 9=CHAOTIC)
+
+Translate the provided 9-digit code into ONE COHESIVE PASSIVE SKILL.
+Think like a modular skill builder: bridge the Trigger, Role, Target, and Effect into a unified mechanic.
+MANDATORY: 
+- Description must explain HOW these 9 facets work together as a single passive mechanism.
+- All skills are Passive/Auto-Trigger (no active commands).
+- If any digit is 9, describe that specific facet as unstable or chaotic.
 Return ONLY this JSON format:
 {
-  "name": "Creative Spell Name",
-  "description": "Full flavor text explaining the mechanical effects",
-  "mana_cost": 10-50,
-  "cooldown": 0-5,
-  "target_type": "enemy|self|all_enemies|ally",
+  "name": "Unified Skill Name",
+  "description": "Explanatory text weaving all 9 structural components into one passive mechanism.",
+  "mana_cost": 0,
+  "cooldown": 0,
+  "target_type": "all_enemies|single_enemy|self|ally",
   "effect_type": "damage|heal|buff|debuff",
   "scaling_stat": "attack|defense|speed|maxMana|maxHP",
   "power_multiplier": 0.5-2.0
@@ -90,7 +106,11 @@ export class WorldGenerator {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
-                        generationConfig: { temperature: 0.8, maxOutputTokens: 1000 }
+                        generationConfig: {
+                            temperature: 0.8,
+                            maxOutputTokens: 8000,
+                            responseMimeType: "application/json"
+                        }
                     })
                 });
                 if (!response.ok) throw new Error(`Gemini Error: ${response.status} ${await response.text()}`);
@@ -120,13 +140,25 @@ export class WorldGenerator {
             }
 
             // Extract JSON (handle potential markdown wrapping)
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) return null;
+            text = text.trim();
+            if (text.startsWith('```json')) {
+                text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
+            } else if (text.startsWith('```')) {
+                text = text.replace(/^```\n/, '').replace(/\n```$/, '');
+            }
 
-            return JSON.parse(jsonMatch[0]);
-        } catch (err) {
+            // Still fallback to regex if there's other fluff
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            let jsonString = jsonMatch ? jsonMatch[0] : text;
+
+            try {
+                return JSON.parse(jsonString);
+            } catch (e: any) {
+                throw new Error(`Failed to parse AI response as JSON. Received text: ${text.substring(0, 200)}...\nParse Error: ${e.message}`);
+            }
+        } catch (err: any) {
             console.error('AI generation failed:', err);
-            return null;
+            throw new Error(`AI generation failed: ${err.message}`);
         }
     }
 

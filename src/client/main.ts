@@ -8,6 +8,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const API = '/api';
+const DEV_API = '/dev';
 let G: any = {
     playerId: null, characterId: null, worldSeed: null, regions: [],
     selectedRegion: null, selectedRegionIndex: 0,
@@ -628,7 +629,7 @@ async function rollForgeSkill() {
         display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join('-')}</div><div style="font-size:9px;color:var(--accent)">Interpreting...</div>`;
 
         try {
-            const res = await fetch('http://localhost:3000/dev/ai/generate', {
+            const res = await fetch(`${DEV_API}/ai/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'skill', context: code })
@@ -745,7 +746,7 @@ async function rollSkill() {
         display.innerHTML = `<div style="font-family:monospace; font-size:32px; font-weight:900; letter-spacing:4px; color:var(--text); text-shadow:0 0 10px rgba(255,255,255,0.5)">${code.match(/.{1,3}/g)?.join('-')}</div><div style="font-size:10px;color:var(--accent);margin-top:8px">Interpreting with AI...</div>`;
 
         try {
-            const res = await fetch('http://localhost:3000/dev/ai/generate', {
+            const res = await fetch(`${DEV_API}/ai/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ type: 'skill', context: code })

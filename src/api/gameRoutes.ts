@@ -219,7 +219,7 @@ router.get('/', (req, res) => {
 
     <script>
         const presets = {
-            gemini: { provider: 'gemini', model: 'gemini-1.5-flash', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
+            gemini: { provider: 'gemini', model: 'gemini-2.5-flash', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
             groq: { provider: 'groq', model: 'llama3-8b-8192', baseUrl: 'https://api.groq.com/openai/v1' },
             openrouter: { provider: 'openrouter', model: 'google/gemini-pro-1.5-exp:free', baseUrl: 'https://openrouter.ai/api/v1' },
             openai: { provider: 'openai', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1' }

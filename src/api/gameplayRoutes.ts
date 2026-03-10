@@ -152,12 +152,13 @@ router.get('/characters', async (req, res) => {
     try {
         const { userId } = req.query;
         let player;
-        if (userId) {
+
+        if (userId && userId !== 'undefined') {
             player = await getPlayerByUserId(userId as string);
         } else {
-            // Placeholder: for the prototype, just get the first player or use a guest ID
-            // In a real app, this would be derived from the auth session
-            const { data } = await supabase.from('players').select('id').limit(1).single();
+            // Safer guest fallback: don't throw if players is empty
+            const { data, error } = await supabase.from('players').select('id').limit(1).maybeSingle();
+            if (error) console.error('Guest lookup failed:', error);
             player = data;
         }
 
