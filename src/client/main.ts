@@ -650,7 +650,7 @@ async function rollForgeSkill() {
                 display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join('-')}</div>`;
                 confirmBtn.disabled = false;
             } else {
-                display.innerHTML = `<div style="color:var(--red);font-size:10px">Interpretation Failed</div>`;
+                display.innerHTML = `<div style="color:var(--red);font-size:10px">${j.error || 'Interpretation Failed'}</div>`;
             }
         } catch (e) {
             display.innerHTML = `<div style="color:var(--red);font-size:10px">Connection Error</div>`;
