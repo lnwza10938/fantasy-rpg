@@ -820,18 +820,24 @@
             document.querySelectorAll('.lang-btn').forEach(b => {
                 b.classList.toggle('active', b.dataset.lang === lang);
             });
-            // Use Google Translate cookie method
-            const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
+
             if (lang === '') {
-                // Reset to original
-                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + domain;
-                document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+                // === RESET: Clear ALL googtrans cookies across all domain variants ===
+                const domain = location.hostname;
+                const expire = 'expires=Thu, 01 Jan 1970 00:00:00 UTC';
+                document.cookie = `googtrans=; ${expire}; path=/`;
+                document.cookie = `googtrans=; ${expire}; path=/; domain=${domain}`;
+                document.cookie = `googtrans=; ${expire}; path=/; domain=.${domain}`;
+                localStorage.removeItem('rpg_lang');
+                // Reload with special flag so Google Translate won't init
+                location.href = location.pathname + '?notranslate=1';
             } else {
+                const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
                 const val = '/auto/' + lang;
-                document.cookie = 'googtrans=' + val + '; path=/; domain=' + domain;
-                document.cookie = 'googtrans=' + val + '; path=/';
+                document.cookie = `googtrans=${val}; path=/; domain=${domain}`;
+                document.cookie = `googtrans=${val}; path=/`;
+                location.reload();
             }
-            location.reload();
         }
 
         function toggleAutoTranslate(enabled) {
@@ -839,8 +845,17 @@
             localStorage.setItem('rpg_auto_translate', enabled ? 'true' : 'false');
         }
 
-        // Google Translate init callback
+        // Google Translate init callback — skip if reset was requested
         function googleTranslateElementInit() {
+            if (location.search.includes('notranslate=1')) {
+                // Clean URL silently
+                history.replaceState(null, '', location.pathname);
+                // Hide any leftover Google Translate bars
+                const style = document.createElement('style');
+                style.textContent = '.goog-te-banner-frame,.skiptranslate{display:none!important;}body{top:0!important;}';
+                document.head.appendChild(style);
+                return; // Skip Google Translate entirely
+            }
             new google.translate.TranslateElement({
                 pageLanguage: 'en',
                 autoDisplay: false,
