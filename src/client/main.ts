@@ -120,15 +120,17 @@ async function logout() {
 
 // Initialize state check
 window.addEventListener('load', async () => {
-    // TEMP: Skip login — go directly to world creation
-    onLoginSuccess();
-
-    // Normal auth check (re-enable when login is needed)
-    // const { data } = await supabase.auth.getSession();
-    // if (data.session) {
-    //     G.user = data.session.user;
-    //     onLoginSuccess();
-    // }
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+        G.user = data.session.user;
+        onLoginSuccess();
+    } else {
+        // Not logged in: ensure auth screen is visible
+        const authScreen = document.getElementById('screen-auth');
+        const gameContainer = document.getElementById('game-container');
+        if (authScreen) authScreen.style.display = 'block';
+        if (gameContainer) gameContainer.style.display = 'none';
+    }
 });
 
 // --- SCREEN ---
