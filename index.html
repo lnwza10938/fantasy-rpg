@@ -872,33 +872,37 @@
         /* === TRANSLATE WIDGET === */
         #translate-btn {
             position: fixed;
-            top: 12px;
-            left: 12px;
+            bottom: 16px;
+            left: 16px;
             z-index: 9999;
             display: flex;
             align-items: center;
             gap: 6px;
             background: var(--surface2);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 7px 12px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 11px;
+            font-weight: 700;
             color: var(--text);
             cursor: pointer;
-            transition: all .15s;
+            transition: all .2s;
             font-family: inherit;
+            opacity: 0.4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         #translate-btn:hover {
+            opacity: 1;
             border-color: var(--accent);
-            color: var(--accent)
+            color: var(--accent);
+            transform: translateY(-2px);
         }
 
         #translate-panel {
             position: fixed;
-            top: 50px;
-            left: 12px;
+            bottom: 60px;
+            left: 16px;
             z-index: 9999;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1005,17 +1009,35 @@
             transform: translateX(16px)
         }
 
-        /* Hide Google's default widget bar */
-        .goog-te-banner-frame {
-            display: none !important
+        /* Suppress Google Translate's white top-bar and body padding */
+        .goog-te-banner-frame,
+        .goog-te-banner,
+        .skiptranslate {
+            display: none !important;
+            visibility: hidden !important;
         }
 
         body {
-            top: 0 !important
+            top: 0 !important;
+            position: static !important;
         }
 
         .goog-te-gadget {
-            display: none !important
+            display: none !important;
+        }
+
+        .goog-tooltip {
+            display: none !important;
+        }
+
+        .goog-tooltip:hover {
+            display: none !important;
+        }
+
+        .goog-text-highlight {
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
     </style>
 </head>
