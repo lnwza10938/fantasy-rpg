@@ -859,7 +859,7 @@
         #translate-btn {
             position: fixed;
             top: 12px;
-            right: 12px;
+            left: 12px;
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -884,7 +884,7 @@
         #translate-panel {
             position: fixed;
             top: 50px;
-            right: 12px;
+            left: 12px;
             z-index: 9999;
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1248,6 +1248,10 @@
                         <div class="card fade-in">
                             <h3>🌍 World Biomes</h3>
                             <div id="biome-list" class="biome-grid"></div>
+
+                            <button class="btn btn-primary" id="btn-step1-next"
+                                style="width:100%; margin-top:16px; padding:13px; font-size:15px"
+                                onclick="wizardGoStep(2)">Next: Choose a Legend →</button>
                         </div>
                         <div class="card fade-in">
                             <h3>👾 Monsters in this World</h3>
@@ -1264,10 +1268,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <button class="btn btn-primary" id="btn-step1-next"
-                        style="width:100%; margin-top:8px; padding:13px; font-size:15px" onclick="wizardGoStep(2)">Next:
-                        Name Character →</button>
                 </div>
 
                 <!-- STEP 2: Choose Legend (from Vault) -->
