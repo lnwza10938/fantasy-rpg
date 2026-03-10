@@ -101,6 +101,7 @@ function onLoginSuccess() {
     if (userDisplay && G.user) userDisplay.textContent = `Logged in as: ${G.user.email}`;
     showScreen('login');
     loadWorldContent(); // Load DB content for the world creation screen
+    fetchSaveList();   // Fetch existing saves so user can see their data
 }
 
 async function logout() {
