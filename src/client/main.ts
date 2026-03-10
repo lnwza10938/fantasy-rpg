@@ -109,11 +109,15 @@ async function logout() {
 
 // Initialize state check
 window.addEventListener('load', async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) {
-        G.user = data.session.user;
-        onLoginSuccess();
-    }
+    // TEMP: Skip login — go directly to world creation
+    onLoginSuccess();
+
+    // Normal auth check (re-enable when login is needed)
+    // const { data } = await supabase.auth.getSession();
+    // if (data.session) {
+    //     G.user = data.session.user;
+    //     onLoginSuccess();
+    // }
 });
 
 // --- SCREEN ---
