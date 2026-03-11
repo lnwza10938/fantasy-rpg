@@ -17,4 +17,5 @@ This directory contains the core logic of the application, split between the cli
 4. Data is returned to the client and rendered.
 
 ---
-*Guide for AI: When modifying features, always check both the client UI and the corresponding API route.*
+
+_Guide for AI: When modifying features, always check both the client UI and the corresponding API route._

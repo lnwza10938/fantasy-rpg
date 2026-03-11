@@ -14,10 +14,10 @@ The game is a Procedural Fantasy RPG running on a web platform.
 
 Key design principles:
 
-* Skills are generated from numeric codes.
-* The world is persistent and evolves over time.
-* Player actions create legends stored in world history.
-* Developers can expand game content through a developer panel without modifying engine code.
+- Skills are generated from numeric codes.
+- The world is persistent and evolves over time.
+- Player actions create legends stored in world history.
+- Developers can expand game content through a developer panel without modifying engine code.
 
 The world is not reset after completion.
 
@@ -38,17 +38,17 @@ Example: `863016382`
 
 Structure:
 
-| Digit | Property |
-|-------|----------|
-| 1 | Trigger |
-| 2 | Skill Role |
-| 3 | Target |
-| 4 | Effect Type |
-| 5 | Scaling Source |
-| 6 | Delivery Shape |
-| 7 | Duration |
-| 8 | Secondary Modifier |
-| 9 | Special Property |
+| Digit | Property           |
+| ----- | ------------------ |
+| 1     | Trigger            |
+| 2     | Skill Role         |
+| 3     | Target             |
+| 4     | Effect Type        |
+| 5     | Scaling Source     |
+| 6     | Delivery Shape     |
+| 7     | Duration           |
+| 8     | Secondary Modifier |
+| 9     | Special Property   |
 
 Each digit contains values from 0–9. Total possible skills: **1,000,000,000**
 
@@ -92,9 +92,9 @@ Event Types: exploration, enemy encounter, treasure, dialogue, rare events
 
 The world records the actions of players. Examples:
 
-* Hero defeated the Dragon of Ash Valley
-* Hero destroyed the Kingdom of Ironfall
-* Hero discovered the Forgotten Gate
+- Hero defeated the Dragon of Ash Valley
+- Hero destroyed the Kingdom of Ironfall
+- Hero discovered the Forgotten Gate
 
 Future players may encounter references to these legends through NPC dialogue or world events.
 

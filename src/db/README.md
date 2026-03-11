@@ -15,4 +15,5 @@ This directory manages the connection and interactions with Supabase.
 - **Save Data:** Serialized world state for active adventures.
 
 ---
-*AI Tip: Check `repositories.ts` to understand how data is persisted or retrieved from the database.*
+
+_AI Tip: Check `repositories.ts` to understand how data is persisted or retrieved from the database._

@@ -3,59 +3,59 @@
 // API key is configurable at runtime via the Dev Panel (stored in memory, not .env)
 
 export interface AIGeneratorConfig {
-    apiKey: string;
-    model: string;
-    baseUrl: string;
-    provider: 'openai' | 'gemini' | 'groq' | 'openrouter';
+  apiKey: string;
+  model: string;
+  baseUrl: string;
+  provider: "openai" | "gemini" | "groq" | "openrouter";
 }
 
 // Runtime config — initialized from environment variables if available
 let config: AIGeneratorConfig = {
-    apiKey: process.env.GEMINI_API_KEY || '',
-    model: 'gemini-1.5-flash',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-    provider: 'gemini'
+  apiKey: process.env.GEMINI_API_KEY || "",
+  model: "gemini-1.5-flash",
+  baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+  provider: "gemini",
 };
 
 // Interpretation cache to prevent redundant hits and save quota
 const interpretationCache = new Map<string, any>();
 
 export function setAIConfig(newConfig: Partial<AIGeneratorConfig>) {
-    Object.assign(config, newConfig);
+  Object.assign(config, newConfig);
 }
 
 export function getAIConfig(): Readonly<AIGeneratorConfig> {
-    return config;
+  return config;
 }
 
 export function isAIConfigured(): boolean {
-    return config.apiKey.length > 0;
+  return config.apiKey.length > 0;
 }
 
 // --- Generation Templates ---
 
 const PROMPTS: Record<string, string> = {
-    monster: `Generate a fantasy RPG monster as JSON:
+  monster: `Generate a fantasy RPG monster as JSON:
 { "name": "string", "level": 1-100, "base_hp": number, "base_attack": number, "base_defense": number, "speed": number, "skill_id": 9-digit-number, "description": "string" }
 Make it unique, creative, and fitting for a dark fantasy world. Return ONLY the JSON object, no markdown.`,
 
-    item: `Generate a fantasy RPG item as JSON:
+  item: `Generate a fantasy RPG item as JSON:
 { "name": "string", "type": "consumable|material|quest|key", "stat_bonus": { "hp": number }, "description": "string" }
 Make it unique. Return ONLY the JSON object.`,
 
-    region: `Generate a fantasy RPG region as JSON:
+  region: `Generate a fantasy RPG region as JSON:
 { "name": "string", "danger_level": 1-10, "description": "string", "biome": "volcanic|tundra|forest|desert|swamp|mountain|coast|void" }
 Make it unique and atmospheric. Return ONLY the JSON object.`,
 
-    dialogue: `Generate an NPC dialogue as JSON:
+  dialogue: `Generate an NPC dialogue as JSON:
 { "npc_name": "string", "dialogue_text": "string" }
 Make it immersive and mysterious. Return ONLY the JSON object.`,
 
-    lore: `Generate a piece of world lore as JSON:
+  lore: `Generate a piece of world lore as JSON:
 { "title": "string", "text": "string", "region": "string" }
 Make it mysterious and hinting at ancient history. Return ONLY the JSON object.`,
 
-    skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG.
+  skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG.
 Each digit (1st-9th) has a specific meaning (0-9):
 
 1. Trigger: 0=AlwaysActive, 1=OnHit, 2=OnDamaged, 3=OnKill, 4=LowHP, 5=LowMana, 6=Timed, 7=EnterCombat, 8=BuffEvent, 9=CHAOTIC
@@ -81,148 +81,230 @@ MANDATORY SCHEMA:
 - "scaling_stat": attack|defense|speed|maxMana|maxHP|level
 - "power_multiplier": 0.5 to 3.0 (damage/heal potency)
 
-Return ONLY the JSON object. No narrative.`
+Return ONLY the JSON object. No narrative.`,
 };
 
 export class WorldGenerator {
+  /**
+   * Generate content of a given type using AI.
+   * Returns parsed JSON or null on failure.
+   */
+  public async generate(
+    type: keyof typeof PROMPTS,
+    context?: string,
+  ): Promise<any | null> {
+    if (!isAIConfigured()) return null;
 
-    /**
-     * Generate content of a given type using AI.
-     * Returns parsed JSON or null on failure.
-     */
-    public async generate(type: keyof typeof PROMPTS, context?: string): Promise<any | null> {
-        if (!isAIConfigured()) return null;
-
-        // Check cache first for skill interpretations
-        if (type === 'skill' && context && interpretationCache.has(context)) {
-            return interpretationCache.get(context);
-        }
-
-        const systemMsg = 'You are a fantasy RPG content generator. Return ONLY valid JSON.';
-        const prompt = PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : '');
-
-        try {
-            let text = '';
-            if (config.provider === 'gemini') {
-                const url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
-                        generationConfig: {
-                            temperature: 0.8,
-                            maxOutputTokens: 8000,
-                            responseMimeType: "application/json"
-                        }
-                    })
-                });
-
-                if (response.status === 429) {
-                    console.warn('Gemini Rate Limit Hit (429). Using fallback.');
-                    return this.getFallbackSkillInterpretation(context || '000000000');
-                }
-
-                if (!response.ok) throw new Error(`Gemini Error: ${response.status} ${await response.text()}`);
-                const data = await response.json();
-                text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-            } else {
-                // OpenAI / Groq / OpenRouter format
-                const response = await fetch(`${config.baseUrl}/chat/completions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${config.apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: config.model,
-                        messages: [
-                            { role: 'system', content: systemMsg },
-                            { role: 'user', content: prompt }
-                        ],
-                        temperature: 0.8,
-                        max_tokens: 1000
-                    })
-                });
-                if (!response.ok) throw new Error(`AI API error: ${response.status} ${await response.text()}`);
-                const data = await response.json();
-                text = data.choices?.[0]?.message?.content ?? '';
-            }
-
-            // Extract JSON (handle potential markdown wrapping)
-            text = text.trim();
-            if (text.startsWith('```json')) {
-                text = text.replace(/^```json\n/, '').replace(/\n```$/, '');
-            } else if (text.startsWith('```')) {
-                text = text.replace(/^```\n/, '').replace(/\n```$/, '');
-            }
-
-            // Still fallback to regex if there's other fluff
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            let jsonString = jsonMatch ? jsonMatch[0] : text;
-
-            let result = text;
-            try {
-                result = JSON.parse(jsonString);
-            } catch (e: any) {
-                throw new Error(`Failed to parse AI response as JSON. Received text: ${text.substring(0, 200)}...\nParse Error: ${e.message}`);
-            }
-
-            // Save to cache before returning
-            if (type === 'skill' && context) {
-                interpretationCache.set(context, result);
-            }
-            return result;
-
-        } catch (err: any) {
-            console.error('AI generation failed:', err);
-            // If it's a skill and it failed (other than 429 handled above), use fallback
-            if (type === 'skill') {
-                return this.getFallbackSkillInterpretation(context || '000000000');
-            }
-            throw new Error(`AI generation failed: ${err.message}`);
-        }
+    // Check cache first for skill interpretations
+    if (type === "skill" && context && interpretationCache.has(context)) {
+      return interpretationCache.get(context);
     }
 
-    private getFallbackSkillInterpretation(code: string) {
-        const d = code.split('').map(Number);
-        
-        const triggers = ['Always Active', 'On Hit', 'On Damaged', 'On Kill', 'Low HP', 'Low Mana', 'Timed', 'On Combat Start', 'On Buff', 'Chaotic'];
-        const targets = ['Self', 'Single Enemy', 'Multiple Enemies', 'All Enemies', 'Area', 'Single Ally', 'All Allies', 'Random', 'Area (All)', 'Unstable'];
-        const scalings = ['None', 'Attack', 'Defense', 'Max HP', 'Max Mana', 'Speed', 'Level', 'Enemy Count', 'Buff Count', 'Variable'];
-        const roles = ['Striker', 'Healer', 'Buffer', 'Debuffer', 'Protector', 'Assailant', 'Infuser', 'Warden', 'Executioner', 'Glitch'];
-        const elements = ['Kinetic', 'Spark', 'Flow', 'Spirit', 'Life', 'Mana', 'True', 'Null', 'Armor', 'Void'];
+    const systemMsg =
+      "You are a fantasy RPG content generator. Return ONLY valid JSON.";
+    const prompt =
+      PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : "");
 
-        const prefix = ['Chaotic', 'Infernal', 'Sacred', 'Echoing', 'Void', 'Vibrant', 'Abyssal', 'Golden', 'Shattered', 'Lost'][d[0]] || 'Primal';
-        const role = roles[d[1]] || 'Skill';
-        const element = elements[d[3]] || 'Force';
+    try {
+      let text = "";
+      if (config.provider === "gemini") {
+        const url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
+            generationConfig: {
+              temperature: 0.8,
+              maxOutputTokens: 8000,
+              responseMimeType: "application/json",
+            },
+          }),
+        });
 
-        const name = `${prefix} ${element} ${role}`;
-
-        return {
-            name,
-            description: `A unique passive ability forged from the essence of code ${code.match(/.{1,3}/g)?.join('-')}.`,
-            mechanics: `Triggers ${triggers[d[0]]}. Affects ${targets[d[2]]} using ${element.toLowerCase()} power. Effectiveness scales with ${scalings[d[4]]}.`,
-            mana_cost: 0,
-            cooldown: 0,
-            target_type: 'single_enemy',
-            effect_type: 'damage',
-            scaling_stat: 'attack',
-            power_multiplier: 1.0
-        };
-    }
-
-    /**
-     * Generate multiple content items in batch.
-     */
-    public async generateBatch(type: keyof typeof PROMPTS, count: number, context?: string): Promise<any[]> {
-        const results: any[] = [];
-        for (let i = 0; i < count; i++) {
-            const item = await this.generate(type, context);
-            if (item) results.push(item);
+        if (response.status === 429) {
+          console.warn("Gemini Rate Limit Hit (429). Using fallback.");
+          return this.getFallbackSkillInterpretation(context || "000000000");
         }
-        return results;
+
+        if (!response.ok)
+          throw new Error(
+            `Gemini Error: ${response.status} ${await response.text()}`,
+          );
+        const data = await response.json();
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      } else {
+        // OpenAI / Groq / OpenRouter format
+        const response = await fetch(`${config.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              { role: "system", content: systemMsg },
+              { role: "user", content: prompt },
+            ],
+            temperature: 0.8,
+            max_tokens: 1000,
+          }),
+        });
+        if (!response.ok)
+          throw new Error(
+            `AI API error: ${response.status} ${await response.text()}`,
+          );
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content ?? "";
+      }
+
+      // Extract JSON (handle potential markdown wrapping)
+      text = text.trim();
+      if (text.startsWith("```json")) {
+        text = text.replace(/^```json\n/, "").replace(/\n```$/, "");
+      } else if (text.startsWith("```")) {
+        text = text.replace(/^```\n/, "").replace(/\n```$/, "");
+      }
+
+      // Still fallback to regex if there's other fluff
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      let jsonString = jsonMatch ? jsonMatch[0] : text;
+
+      let result = text;
+      try {
+        result = JSON.parse(jsonString);
+      } catch (e: any) {
+        throw new Error(
+          `Failed to parse AI response as JSON. Received text: ${text.substring(0, 200)}...\nParse Error: ${e.message}`,
+        );
+      }
+
+      // Save to cache before returning
+      if (type === "skill" && context) {
+        interpretationCache.set(context, result);
+      }
+      return result;
+    } catch (err: any) {
+      console.error("AI generation failed:", err);
+      // If it's a skill and it failed (other than 429 handled above), use fallback
+      if (type === "skill") {
+        return this.getFallbackSkillInterpretation(context || "000000000");
+      }
+      throw new Error(`AI generation failed: ${err.message}`);
     }
+  }
+
+  private getFallbackSkillInterpretation(code: string) {
+    const d = code.split("").map(Number);
+
+    const triggers = [
+      "Always Active",
+      "On Hit",
+      "On Damaged",
+      "On Kill",
+      "Low HP",
+      "Low Mana",
+      "Timed",
+      "On Combat Start",
+      "On Buff",
+      "Chaotic",
+    ];
+    const targets = [
+      "Self",
+      "Single Enemy",
+      "Multiple Enemies",
+      "All Enemies",
+      "Area",
+      "Single Ally",
+      "All Allies",
+      "Random",
+      "Area (All)",
+      "Unstable",
+    ];
+    const scalings = [
+      "None",
+      "Attack",
+      "Defense",
+      "Max HP",
+      "Max Mana",
+      "Speed",
+      "Level",
+      "Enemy Count",
+      "Buff Count",
+      "Variable",
+    ];
+    const roles = [
+      "Striker",
+      "Healer",
+      "Buffer",
+      "Debuffer",
+      "Protector",
+      "Assailant",
+      "Infuser",
+      "Warden",
+      "Executioner",
+      "Glitch",
+    ];
+    const elements = [
+      "Kinetic",
+      "Spark",
+      "Flow",
+      "Spirit",
+      "Life",
+      "Mana",
+      "True",
+      "Null",
+      "Armor",
+      "Void",
+    ];
+
+    const prefix =
+      [
+        "Chaotic",
+        "Infernal",
+        "Sacred",
+        "Echoing",
+        "Void",
+        "Vibrant",
+        "Abyssal",
+        "Golden",
+        "Shattered",
+        "Lost",
+      ][d[0]] || "Primal";
+    const role = roles[d[1]] || "Skill";
+    const element = elements[d[3]] || "Force";
+
+    const name = `${prefix} ${element} ${role}`;
+
+    return {
+      name,
+      description: `A unique passive ability forged from the essence of code ${code.match(/.{1,3}/g)?.join("-")}.`,
+      mechanics: `Triggers ${triggers[d[0]]}. Affects ${targets[d[2]]} using ${element.toLowerCase()} power. Effectiveness scales with ${scalings[d[4]]}.`,
+      mana_cost: 0,
+      cooldown: 0,
+      target_type: "single_enemy",
+      effect_type: "damage",
+      scaling_stat: "attack",
+      power_multiplier: 1.0,
+    };
+  }
+
+  /**
+   * Generate multiple content items in batch.
+   */
+  public async generateBatch(
+    type: keyof typeof PROMPTS,
+    count: number,
+    context?: string,
+  ): Promise<any[]> {
+    const results: any[] = [];
+    for (let i = 0; i < count; i++) {
+      const item = await this.generate(type, context);
+      if (item) results.push(item);
+    }
+    return results;
+  }
 }
 
 export const worldGenerator = new WorldGenerator();

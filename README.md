@@ -24,4 +24,5 @@ This is a web-based Procedural Fantasy RPG built with Vite, Express, and Supabas
 - **AI Integration:** OpenAI / DeepSeek (via API).
 
 ---
-*Note: This file serves as a high-level guide for AI agents and developers.*
+
+_Note: This file serves as a high-level guide for AI agents and developers._

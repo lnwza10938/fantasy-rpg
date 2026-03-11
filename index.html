@@ -1,766 +1,1760 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Procedural Fantasy RPG</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="/src/client/style.css">
-</head>
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/client/style.css" />
+  </head>
 
-<body>
+  <body>
     <!-- Google Translate hidden element -->
-    <div id="google_translate_element" style="display:none"></div>
+    <div id="google_translate_element" style="display: none"></div>
 
     <!-- Custom Translate Button -->
-    <button id="translate-btn" onclick="toggleTranslatePanel()">🌐 Translate ▾</button>
+    <button id="translate-btn" onclick="toggleTranslatePanel()">
+      🌐 Translate ▾
+    </button>
     <div id="translate-panel">
-        <h4>🌍 Choose Language</h4>
-        <div class="lang-list">
-            <button class="lang-btn active" data-lang="" onclick="translateTo('')">🇺🇸 English</button>
-            <button class="lang-btn" data-lang="th" onclick="translateTo('th')">🇹🇭 ไทย</button>
-            <button class="lang-btn" data-lang="ja" onclick="translateTo('ja')">🇯🇵 日本語</button>
-            <button class="lang-btn" data-lang="zh-CN" onclick="translateTo('zh-CN')">🇨🇳 中文</button>
-            <button class="lang-btn" data-lang="ko" onclick="translateTo('ko')">🇰🇷 한국어</button>
-            <button class="lang-btn" data-lang="fr" onclick="translateTo('fr')">🇫🇷 Français</button>
-            <button class="lang-btn" data-lang="es" onclick="translateTo('es')">🇪🇸 Español</button>
-            <button class="lang-btn" data-lang="de" onclick="translateTo('de')">🇩🇪 Deutsch</button>
-            <button class="lang-btn" data-lang="ru" onclick="translateTo('ru')">🇷🇺 Русский</button>
-            <button class="lang-btn" data-lang="ar" onclick="translateTo('ar')">🇸🇦 العربية</button>
-        </div>
-        <div class="auto-toggle">
-            <span style="color:var(--muted)">Auto-translate on load</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="auto-translate-toggle" onchange="toggleAutoTranslate(this.checked)">
-                <span class="toggle-track"></span>
-            </label>
-        </div>
-        <div class="auto-toggle" style="border-top:none; margin-top:0">
-            <span style="color:var(--accent)">Mobile Layout (Force)</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="ui-mode-toggle" onchange="toggleUIMode(this.checked)">
-                <span class="toggle-track"></span>
-            </label>
-        </div>
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" onclick="translateTo('')">
+          🇺🇸 English
+        </button>
+        <button class="lang-btn" data-lang="th" onclick="translateTo('th')">
+          🇹🇭 ไทย
+        </button>
+        <button class="lang-btn" data-lang="ja" onclick="translateTo('ja')">
+          🇯🇵 日本語
+        </button>
+        <button
+          class="lang-btn"
+          data-lang="zh-CN"
+          onclick="translateTo('zh-CN')"
+        >
+          🇨🇳 中文
+        </button>
+        <button class="lang-btn" data-lang="ko" onclick="translateTo('ko')">
+          🇰🇷 한국어
+        </button>
+        <button class="lang-btn" data-lang="fr" onclick="translateTo('fr')">
+          🇫🇷 Français
+        </button>
+        <button class="lang-btn" data-lang="es" onclick="translateTo('es')">
+          🇪🇸 Español
+        </button>
+        <button class="lang-btn" data-lang="de" onclick="translateTo('de')">
+          🇩🇪 Deutsch
+        </button>
+        <button class="lang-btn" data-lang="ru" onclick="translateTo('ru')">
+          🇷🇺 Русский
+        </button>
+        <button class="lang-btn" data-lang="ar" onclick="translateTo('ar')">
+          🇸🇦 العربية
+        </button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            id="auto-translate-toggle"
+            onchange="toggleAutoTranslate(this.checked)"
+          />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="auto-toggle" style="border-top: none; margin-top: 0">
+        <span style="color: var(--accent)">Mobile Layout (Force)</span>
+        <label class="toggle-switch">
+          <input
+            type="checkbox"
+            id="ui-mode-toggle"
+            onchange="toggleUIMode(this.checked)"
+          />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
     <!-- Google Translate Script -->
     <script>
-        // Translate panel toggle
-        function toggleTranslatePanel() {
-            document.getElementById('translate-panel').classList.toggle('open');
+      // Translate panel toggle
+      function toggleTranslatePanel() {
+        document.getElementById("translate-panel").classList.toggle("open");
+      }
+      // Close panel when clicking outside
+      document.addEventListener("click", function (e) {
+        const btn = document.getElementById("translate-btn");
+        const panel = document.getElementById("translate-panel");
+        if (!btn.contains(e.target) && !panel.contains(e.target)) {
+          panel.classList.remove("open");
         }
-        // Close panel when clicking outside
-        document.addEventListener('click', function (e) {
-            const btn = document.getElementById('translate-btn');
-            const panel = document.getElementById('translate-panel');
-            if (!btn.contains(e.target) && !panel.contains(e.target)) {
-                panel.classList.remove('open');
-            }
+      });
+
+      // Active language state
+      let currentLang = localStorage.getItem("rpg_lang") || "";
+      let autoTranslate = localStorage.getItem("rpg_auto_translate") === "true";
+
+      function translateTo(lang) {
+        currentLang = lang;
+        localStorage.setItem("rpg_lang", lang);
+
+        // Update UI
+        document.querySelectorAll(".lang-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.lang === lang);
         });
 
-        // Active language state
-        let currentLang = localStorage.getItem('rpg_lang') || '';
-        let autoTranslate = localStorage.getItem('rpg_auto_translate') === 'true';
+        // Set cookies for persistence
+        const domain =
+          location.hostname === "localhost" ? "localhost" : location.hostname;
+        const val = lang ? "/auto/" + lang : "";
+        const expire = lang ? "" : "expires=Thu, 01 Jan 1970 00:00:00 UTC; ";
 
-        function translateTo(lang) {
-            currentLang = lang;
-            localStorage.setItem('rpg_lang', lang);
+        document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
+        document.cookie = `googtrans=${val}; ${expire}path=/`;
 
-            // Update UI
-            document.querySelectorAll('.lang-btn').forEach(b => {
-                b.classList.toggle('active', b.dataset.lang === lang);
-            });
-
-            // Set cookies for persistence
-            const domain = location.hostname === 'localhost' ? 'localhost' : location.hostname;
-            const val = lang ? '/auto/' + lang : '';
-            const expire = lang ? '' : 'expires=Thu, 01 Jan 1970 00:00:00 UTC; ';
-
-            document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
-            document.cookie = `googtrans=${val}; ${expire}path=/`;
-
-            // Trigger translation without reload
-            const select = document.querySelector('.goog-te-combo');
-            if (select) {
-                select.value = lang;
-                select.dispatchEvent(new Event('change'));
-            } else {
-                // Fallback for first time or if widget not ready
-                location.reload();
-            }
+        // Trigger translation without reload
+        const select = document.querySelector(".goog-te-combo");
+        if (select) {
+          select.value = lang;
+          select.dispatchEvent(new Event("change"));
+        } else {
+          // Fallback for first time or if widget not ready
+          location.reload();
         }
+      }
 
-        function toggleAutoTranslate(enabled) {
-            autoTranslate = enabled;
-            localStorage.setItem('rpg_auto_translate', enabled ? 'true' : 'false');
+      function toggleAutoTranslate(enabled) {
+        autoTranslate = enabled;
+        localStorage.setItem("rpg_auto_translate", enabled ? "true" : "false");
+      }
+
+      function toggleUIMode(isMobile) {
+        if (isMobile) {
+          document.body.classList.add("force-mobile");
+        } else {
+          document.body.classList.remove("force-mobile");
         }
+        localStorage.setItem("rpg_ui_mobile", isMobile ? "true" : "false");
+      }
 
-        function toggleUIMode(isMobile) {
-            if (isMobile) {
-                document.body.classList.add('force-mobile');
-            } else {
-                document.body.classList.remove('force-mobile');
-            }
-            localStorage.setItem('rpg_ui_mobile', isMobile ? 'true' : 'false');
+      // Google Translate init callback — skip if reset was requested
+      function googleTranslateElementInit() {
+        if (location.search.includes("notranslate=1")) {
+          // Clean URL silently
+          history.replaceState(null, "", location.pathname);
+          // Hide any leftover Google Translate bars
+          const style = document.createElement("style");
+          style.textContent =
+            ".goog-te-banner-frame,.skiptranslate{display:none!important;}body{top:0!important;}";
+          document.head.appendChild(style);
+          return; // Skip Google Translate entirely
         }
+        new google.translate.TranslateElement(
+          {
+            pageLanguage: "en",
+            autoDisplay: false,
+          },
+          "google_translate_element",
+        );
+      }
 
-        // Google Translate init callback — skip if reset was requested
-        function googleTranslateElementInit() {
-            if (location.search.includes('notranslate=1')) {
-                // Clean URL silently
-                history.replaceState(null, '', location.pathname);
-                // Hide any leftover Google Translate bars
-                const style = document.createElement('style');
-                style.textContent = '.goog-te-banner-frame,.skiptranslate{display:none!important;}body{top:0!important;}';
-                document.head.appendChild(style);
-                return; // Skip Google Translate entirely
-            }
-            new google.translate.TranslateElement({
-                pageLanguage: 'en',
-                autoDisplay: false,
-            }, 'google_translate_element');
+      // Restore auto-translate state on load
+      window.addEventListener("DOMContentLoaded", function () {
+        const toggle = document.getElementById("auto-translate-toggle");
+        if (toggle) toggle.checked = autoTranslate;
+
+        const uiToggle = document.getElementById("ui-mode-toggle");
+        const forceMobile = localStorage.getItem("rpg_ui_mobile") === "true";
+        if (uiToggle) uiToggle.checked = forceMobile;
+        if (forceMobile) document.body.classList.add("force-mobile");
+
+        // Highlight active lang button
+        if (currentLang) {
+          document.querySelectorAll(".lang-btn").forEach((b) => {
+            b.classList.toggle("active", b.dataset.lang === currentLang);
+          });
         }
-
-        // Restore auto-translate state on load
-        window.addEventListener('DOMContentLoaded', function () {
-            const toggle = document.getElementById('auto-translate-toggle');
-            if (toggle) toggle.checked = autoTranslate;
-
-            const uiToggle = document.getElementById('ui-mode-toggle');
-            const forceMobile = localStorage.getItem('rpg_ui_mobile') === 'true';
-            if (uiToggle) uiToggle.checked = forceMobile;
-            if (forceMobile) document.body.classList.add('force-mobile');
-
-            // Highlight active lang button
-            if (currentLang) {
-                document.querySelectorAll('.lang-btn').forEach(b => {
-                    b.classList.toggle('active', b.dataset.lang === currentLang);
-                });
-            }
-        });
+      });
     </script>
     <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <div id="screen-auth" class="screen active">
-        <div class="header" style="margin-bottom: 0">
-            <h1>⚔ RPG Authentication</h1>
-            <p>Enter the realm safely</p>
-        </div>
-        <div class="container">
-            <div class="card fade-in" style="max-width: 400px; margin: 40px auto">
-                <h3 id="auth-title">🔐 Character Login</h3>
-                <form id="form-auth" onsubmit="handleAuth(event)">
-                    <div style="display:flex; flex-direction:column; gap:12px">
-                        <div>
-                            <label>Email Address</label>
-                            <input type="email" id="auth-email" placeholder="hero@example.com" autocomplete="email"
-                                required>
-                        </div>
-                        <div>
-                            <label>Password</label>
-                            <input type="password" id="auth-password" placeholder="••••••••"
-                                autocomplete="current-password" required>
-                        </div>
-                        <div id="auth-error"
-                            style="display:none; color:var(--red); font-size:12px; padding:8px 12px; background:rgba(239,83,80,0.1); border-radius:6px; border:1px solid rgba(239,83,80,0.3)">
-                        </div>
-                        <button type="submit" id="btn-auth" class="btn btn-primary" style="width:100%">Enter
-                            Realm</button>
-                        <div style="text-align:center; font-size:12px; margin-top:8px">
-                            <a href="#" id="auth-toggle" onclick="toggleAuthMode(); return false;"
-                                style="color:var(--accent); text-decoration:none">Need an account? Sign Up</a>
-                        </div>
-                    </div>
-                </form>
+      <div class="header" style="margin-bottom: 0">
+        <h1>⚔ RPG Authentication</h1>
+        <p>Enter the realm safely</p>
+      </div>
+      <div class="container">
+        <div class="card fade-in" style="max-width: 400px; margin: 40px auto">
+          <h3 id="auth-title">🔐 Character Login</h3>
+          <form id="form-auth" onsubmit="handleAuth(event)">
+            <div style="display: flex; flex-direction: column; gap: 12px">
+              <div>
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  id="auth-email"
+                  placeholder="hero@example.com"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+              <div>
+                <label>Password</label>
+                <input
+                  type="password"
+                  id="auth-password"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  required
+                />
+              </div>
+              <div
+                id="auth-error"
+                style="
+                  display: none;
+                  color: var(--red);
+                  font-size: 12px;
+                  padding: 8px 12px;
+                  background: rgba(239, 83, 80, 0.1);
+                  border-radius: 6px;
+                  border: 1px solid rgba(239, 83, 80, 0.3);
+                "
+              ></div>
+              <button
+                type="submit"
+                id="btn-auth"
+                class="btn btn-primary"
+                style="width: 100%"
+              >
+                Enter Realm
+              </button>
+              <div style="text-align: center; font-size: 12px; margin-top: 8px">
+                <a
+                  href="#"
+                  id="auth-toggle"
+                  onclick="
+                    toggleAuthMode();
+                    return false;
+                  "
+                  style="color: var(--accent); text-decoration: none"
+                  >Need an account? Sign Up</a
+                >
+              </div>
             </div>
+          </form>
         </div>
+      </div>
     </div>
 
-    <div id="game-container" style="display:none">
-        <div class="header">
-            <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px">
-                <button class="btn btn-action" style="font-size:10px" onclick="showVault()">📚 The Vault</button>
-                <button class="btn btn-action" style="font-size:10px" onclick="logout()">Logout</button>
+    <div id="game-container" style="display: none">
+      <div class="header">
+        <div
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+          "
+        >
+          <button
+            class="btn btn-action"
+            style="font-size: 10px"
+            onclick="showVault()"
+          >
+            📚 The Vault
+          </button>
+          <button
+            class="btn btn-action"
+            style="font-size: 10px"
+            onclick="logout()"
+          >
+            Logout
+          </button>
+        </div>
+        <h1>⚔ Procedural Fantasy RPG</h1>
+        <p id="user-display">A world that remembers</p>
+      </div>
+
+      <div class="container">
+        <!-- MAIN MENU -->
+        <div id="screen-menu" class="screen fade-in">
+          <div class="card" style="text-align: center; padding: 40px 20px">
+            <div style="font-size: 48px; margin-bottom: 10px">🏰</div>
+            <h2>Welcome to the Realm</h2>
+            <p
+              style="
+                color: var(--muted);
+                font-size: 12px;
+                margin-top: 5px;
+                margin-bottom: 30px;
+              "
+            >
+              What is your destiny today?
+            </p>
+
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+                max-width: 300px;
+                margin: 0 auto;
+              "
+            >
+              <button
+                class="btn btn-primary"
+                style="padding: 14px; font-size: 16px"
+                onclick="startWizard()"
+              >
+                ⚔️ New Adventure
+              </button>
+              <button
+                class="btn btn-action"
+                style="padding: 12px; font-size: 14px"
+                onclick="showForge('menu')"
+              >
+                ⚒️ Forge Your Legend
+              </button>
+              <button
+                class="btn btn-action"
+                style="padding: 12px; font-size: 14px"
+                onclick="showVault()"
+              >
+                📚 The Legend Vault
+              </button>
             </div>
-            <h1>⚔ Procedural Fantasy RPG</h1>
-            <p id="user-display">A world that remembers</p>
+          </div>
+
+          <!-- Load Existing Save -->
+          <div class="card fade-in" style="margin-top: 16px">
+            <h3>📂 Resume Adventure</h3>
+            <div
+              id="save-list"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                margin-top: 10px;
+              "
+            >
+              <button
+                class="btn btn-action"
+                onclick="fetchSaveList()"
+                style="width: 100%"
+              >
+                🔄 Refresh Saves
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="container">
-            <!-- MAIN MENU -->
-            <div id="screen-menu" class="screen fade-in">
-                <div class="card" style="text-align:center; padding: 40px 20px">
-                    <div style="font-size:48px; margin-bottom:10px">🏰</div>
-                    <h2>Welcome to the Realm</h2>
-                    <p style="color:var(--muted); font-size:12px; margin-top:5px; margin-bottom:30px">What is your destiny today?</p>
-                    
-                    <div style="display:flex; flex-direction:column; gap:14px; max-width:300px; margin:0 auto">
-                        <button class="btn btn-primary" style="padding:14px; font-size:16px" onclick="startWizard()">⚔️ New Adventure</button>
-                        <button class="btn btn-action" style="padding:12px; font-size:14px" onclick="showForge('menu')">⚒️ Forge Your Legend</button>
-                        <button class="btn btn-action" style="padding:12px; font-size:14px" onclick="showVault()">📚 The Legend Vault</button>
-                    </div>
-                </div>
+        <!-- CREATE / START WIZARD -->
+        <div id="screen-wizard" class="screen" style="display: none">
+          <!-- Step Progress Indicator -->
+          <div
+            id="wizard-steps"
+            style="
+              display: flex;
+              gap: 0;
+              margin-bottom: 20px;
+              border-radius: 10px;
+              overflow: hidden;
+            "
+          >
+            <div
+              id="step-indicator-1"
+              style="
+                flex: 1;
+                padding: 8px 0;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                background: linear-gradient(
+                  135deg,
+                  var(--accent),
+                  var(--accent2)
+                );
+                color: #fff;
+                transition: all 0.3s;
+              "
+            >
+              1️⃣ World
+            </div>
+            <div
+              id="step-indicator-2"
+              style="
+                flex: 1;
+                padding: 8px 0;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                background: var(--surface2);
+                color: var(--muted);
+                transition: all 0.3s;
+              "
+            >
+              2️⃣ Legend
+            </div>
+            <div id="step-indicator-3" style="display: none"></div>
+            <div
+              id="step-indicator-4"
+              style="
+                flex: 1;
+                padding: 8px 0;
+                text-align: center;
+                font-size: 11px;
+                font-weight: 700;
+                background: var(--surface2);
+                color: var(--muted);
+                transition: all 0.3s;
+              "
+            >
+              3️⃣ Start
+            </div>
+          </div>
 
-                <!-- Load Existing Save -->
-                <div class="card fade-in" style="margin-top:16px">
-                    <h3>📂 Resume Adventure</h3>
-                    <div id="save-list" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
-                        <button class="btn btn-action" onclick="fetchSaveList()" style="width:100%">🔄 Refresh Saves</button>
-                    </div>
+          <!-- STEP 1: Choose World -->
+          <div id="wizard-step-1" class="fade-in">
+            <div class="card">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 12px;
+                "
+              >
+                <h3>✨ Step 1: Choose a World</h3>
+                <button
+                  class="btn btn-action"
+                  style="font-size: 10px"
+                  onclick="showScreen('menu')"
+                >
+                  ✖ Cancel
+                </button>
+              </div>
+              <div id="preset-grid" class="preset-grid">
+                <div
+                  class="preset-card selected"
+                  data-preset="balanced"
+                  onclick="
+                    selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)
+                  "
+                >
+                  <div class="preset-icon">⚖️</div>
+                  <div class="preset-name">Balanced Realm</div>
+                  <div class="preset-desc">
+                    Classic adventure with diverse biomes
+                  </div>
+                  <div class="preset-tags">
+                    <span class="tag">Medium</span
+                    ><span class="tag">Mixed</span>
+                  </div>
                 </div>
+                <div
+                  class="preset-card"
+                  data-preset="inferno"
+                  onclick="
+                    selectPreset(
+                      this,
+                      'The Scorched World',
+                      'Ashborn',
+                      696969420,
+                    )
+                  "
+                >
+                  <div class="preset-icon">🔥</div>
+                  <div class="preset-name">Inferno World</div>
+                  <div class="preset-desc">
+                    Volcanic wastelands and fire-born horrors
+                  </div>
+                  <div class="preset-tags">
+                    <span class="tag tag-hard">Hard</span
+                    ><span class="tag">Volcanic</span>
+                  </div>
+                </div>
+                <div
+                  class="preset-card"
+                  data-preset="cursed"
+                  onclick="
+                    selectPreset(
+                      this,
+                      'The Cursed Lands',
+                      'Darkwalker',
+                      111222333,
+                    )
+                  "
+                >
+                  <div class="preset-icon">💀</div>
+                  <div class="preset-name">Cursed Lands</div>
+                  <div class="preset-desc">
+                    Ancient evil permeates every shadow
+                  </div>
+                  <div class="preset-tags">
+                    <span class="tag tag-hard">Hard</span
+                    ><span class="tag">Dark</span>
+                  </div>
+                </div>
+                <div
+                  class="preset-card"
+                  data-preset="ancient"
+                  onclick="
+                    selectPreset(
+                      this,
+                      'The Ancient World',
+                      'Lorekeeper',
+                      987654321,
+                    )
+                  "
+                >
+                  <div class="preset-icon">🏛️</div>
+                  <div class="preset-name">Ancient Ruins</div>
+                  <div class="preset-desc">
+                    Lost empires and hidden knowledge
+                  </div>
+                  <div class="preset-tags">
+                    <span class="tag tag-easy">Easy</span
+                    ><span class="tag">Lore</span>
+                  </div>
+                </div>
+                <div
+                  class="preset-card"
+                  data-preset="custom"
+                  onclick="selectPreset(this, '', '', null)"
+                >
+                  <div class="preset-icon">🎲</div>
+                  <div class="preset-name">Custom World</div>
+                  <div class="preset-desc">
+                    Build your own adventure from scratch
+                  </div>
+                  <div class="preset-tags">
+                    <span class="tag">Custom</span><span class="tag">Any</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Seed & Name Row (shown only for custom) -->
+              <div
+                id="seed-row"
+                style="
+                  display: none;
+                  flex-direction: column;
+                  gap: 12px;
+                  margin-top: 12px;
+                  padding-top: 12px;
+                  border-top: 1px solid var(--border);
+                "
+              >
+                <div style="display: flex; gap: 10px; align-items: flex-end">
+                  <div style="flex: 2">
+                    <label>Custom World Name</label>
+                    <input
+                      type="text"
+                      id="input-world-name"
+                      placeholder="E.g. The Unknown Realm"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div style="flex: 1">
+                    <label
+                      >Seed
+                      <span style="color: var(--muted); font-size: 9px"
+                        >(optional)</span
+                      ></label
+                    >
+                    <input
+                      type="number"
+                      id="input-seed"
+                      placeholder="e.g. 123456789"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-action"
+                    onclick="rollRandomSeed()"
+                  >
+                    🎲 Roll
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- CREATE / START WIZARD -->
-            <div id="screen-wizard" class="screen" style="display:none">
+            <!-- DB Content Preview (Monsters/Biomes) -->
+            <div id="content-preview" style="display: none">
+              <div class="card fade-in">
+                <h3>🌍 World Biomes</h3>
+                <div id="biome-list" class="biome-grid"></div>
 
-                <!-- Step Progress Indicator -->
-                <div id="wizard-steps"
-                    style="display:flex; gap:0; margin-bottom:20px; border-radius:10px; overflow:hidden">
-                    <div id="step-indicator-1"
-                        style="flex:1; padding:8px 0; text-align:center; font-size:11px; font-weight:700; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; transition:all .3s">
-                        1️⃣ World
-                    </div>
-                    <div id="step-indicator-2"
-                        style="flex:1; padding:8px 0; text-align:center; font-size:11px; font-weight:700; background:var(--surface2); color:var(--muted); transition:all .3s">
-                        2️⃣ Legend
-                    </div>
-                    <div id="step-indicator-3" style="display:none"></div>
-                    <div id="step-indicator-4"
-                        style="flex:1; padding:8px 0; text-align:center; font-size:11px; font-weight:700; background:var(--surface2); color:var(--muted); transition:all .3s">
-                        3️⃣ Start
-                    </div>
+                <button
+                  class="btn btn-primary"
+                  id="btn-step1-next"
+                  style="
+                    width: 100%;
+                    margin-top: 16px;
+                    padding: 13px;
+                    font-size: 15px;
+                  "
+                  onclick="wizardGoStep(2)"
+                >
+                  Next: Choose a Legend →
+                </button>
+              </div>
+              <div class="card fade-in">
+                <h3>👾 Monsters in this World</h3>
+                <div id="monster-list" class="monster-grid"></div>
+              </div>
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px"
+              >
+                <div class="card fade-in">
+                  <h3>⚔️ Factions</h3>
+                  <div
+                    id="faction-list"
+                    style="display: flex; flex-direction: column; gap: 6px"
+                  ></div>
                 </div>
-
-                <!-- STEP 1: Choose World -->
-                <div id="wizard-step-1" class="fade-in">
-                    <div class="card">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
-                            <h3>✨ Step 1: Choose a World</h3>
-                            <button class="btn btn-action" style="font-size:10px" onclick="showScreen('menu')">✖ Cancel</button>
-                        </div>
-                        <div id="preset-grid" class="preset-grid">
-                            <div class="preset-card selected" data-preset="balanced"
-                                onclick="selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)">
-                                <div class="preset-icon">⚖️</div>
-                                <div class="preset-name">Balanced Realm</div>
-                                <div class="preset-desc">Classic adventure with diverse biomes</div>
-                                <div class="preset-tags"><span class="tag">Medium</span><span class="tag">Mixed</span>
-                                </div>
-                            </div>
-                            <div class="preset-card" data-preset="inferno"
-                                onclick="selectPreset(this, 'The Scorched World', 'Ashborn', 696969420)">
-                                <div class="preset-icon">🔥</div>
-                                <div class="preset-name">Inferno World</div>
-                                <div class="preset-desc">Volcanic wastelands and fire-born horrors</div>
-                                <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
-                                        class="tag">Volcanic</span></div>
-                            </div>
-                            <div class="preset-card" data-preset="cursed"
-                                onclick="selectPreset(this, 'The Cursed Lands', 'Darkwalker', 111222333)">
-                                <div class="preset-icon">💀</div>
-                                <div class="preset-name">Cursed Lands</div>
-                                <div class="preset-desc">Ancient evil permeates every shadow</div>
-                                <div class="preset-tags"><span class="tag tag-hard">Hard</span><span
-                                        class="tag">Dark</span></div>
-                            </div>
-                            <div class="preset-card" data-preset="ancient"
-                                onclick="selectPreset(this, 'The Ancient World', 'Lorekeeper', 987654321)">
-                                <div class="preset-icon">🏛️</div>
-                                <div class="preset-name">Ancient Ruins</div>
-                                <div class="preset-desc">Lost empires and hidden knowledge</div>
-                                <div class="preset-tags"><span class="tag tag-easy">Easy</span><span
-                                        class="tag">Lore</span></div>
-                            </div>
-                            <div class="preset-card" data-preset="custom" onclick="selectPreset(this, '', '', null)">
-                                <div class="preset-icon">🎲</div>
-                                <div class="preset-name">Custom World</div>
-                                <div class="preset-desc">Build your own adventure from scratch</div>
-                                <div class="preset-tags"><span class="tag">Custom</span><span class="tag">Any</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Seed & Name Row (shown only for custom) -->
-                        <div id="seed-row"
-                            style="display:none; flex-direction:column; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
-                            <div style="display:flex; gap:10px; align-items:flex-end">
-                                <div style="flex:2">
-                                    <label>Custom World Name</label>
-                                    <input type="text" id="input-world-name" placeholder="E.g. The Unknown Realm"
-                                        autocomplete="off">
-                                </div>
-                                <div style="flex:1">
-                                    <label>Seed <span style="color:var(--muted);font-size:9px">(optional)</span></label>
-                                    <input type="number" id="input-seed" placeholder="e.g. 123456789"
-                                        autocomplete="off">
-                                </div>
-                                <button type="button" class="btn btn-action" onclick="rollRandomSeed()">🎲 Roll</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DB Content Preview (Monsters/Biomes) -->
-                    <div id="content-preview" style="display:none">
-                        <div class="card fade-in">
-                            <h3>🌍 World Biomes</h3>
-                            <div id="biome-list" class="biome-grid"></div>
-
-                            <button class="btn btn-primary" id="btn-step1-next"
-                                style="width:100%; margin-top:16px; padding:13px; font-size:15px"
-                                onclick="wizardGoStep(2)">Next: Choose a Legend →</button>
-                        </div>
-                        <div class="card fade-in">
-                            <h3>👾 Monsters in this World</h3>
-                            <div id="monster-list" class="monster-grid"></div>
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-                            <div class="card fade-in">
-                                <h3>⚔️ Factions</h3>
-                                <div id="faction-list" style="display:flex;flex-direction:column;gap:6px"></div>
-                            </div>
-                            <div class="card fade-in">
-                                <h3>🗺️ Known Maps</h3>
-                                <div id="map-list" style="display:flex;flex-direction:column;gap:6px"></div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="card fade-in">
+                  <h3>🗺️ Known Maps</h3>
+                  <div
+                    id="map-list"
+                    style="display: flex; flex-direction: column; gap: 6px"
+                  ></div>
                 </div>
-
-                <!-- STEP 2: Choose Legend (from Vault) -->
-                <div id="wizard-step-2" class="fade-in" style="display:none">
-                    <div class="card">
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
-                            <h3>📜 Step 2: Choose a Legend</h3>
-                            <button class="btn btn-action" onclick="showForge('wizard')">⚡ Forge New Legend</button>
-                        </div>
-                        <p style="font-size:12px; color:var(--muted); margin-bottom:15px">Select a character from your
-                            vault to begin this adventure.</p>
-
-                        <div id="vault-selection-grid" class="preset-grid" style="grid-template-columns: 1fr 1fr;">
-                            <!-- Vault characters will be loaded here -->
-                            <div
-                                style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted); background: var(--surface2); border-radius: 8px;">
-                                Loading vault...
-                            </div>
-                        </div>
-
-                        <div style="margin-top:20px; display:flex; gap:10px">
-                            <button class="btn btn-action" onclick="wizardGoStep(1)" style="flex:1">Back</button>
-                            <button id="btn-vault-next" class="btn btn-primary" onclick="wizardGoStep(4)" style="flex:2"
-                                disabled>Proceed with Legend</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="wizard-step-3" style="display:none"></div>
-
-                <!-- STEP 4: Confirm & Start -->
-                <div id="wizard-step-4" class="fade-in" style="display:none">
-                    <div class="card">
-                        <h3>⚔️ Step 4: Begin Your Legend</h3>
-                        <div id="confirm-summary" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-                            <!-- Filled in by JS -->
-                        </div>
-                        <div id="start-error"
-                            style="display:none;color:var(--red);font-size:12px;padding:8px 12px;background:rgba(239,83,80,0.1);border-radius:6px;border:1px solid rgba(239,83,80,0.3);margin-top:10px">
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:10px; margin-top:8px">
-                        <button class="btn btn-action" style="flex:1; padding:12px" onclick="wizardGoStep(2)">←
-                            Back</button>
-                        <button class="btn btn-primary" id="btn-start"
-                            style="flex:2; padding:13px; font-size:16px; letter-spacing:1px"
-                            onclick="submitNewGame()">⚔️ Enter the World</button>
-                    </div>
-                </div>
+              </div>
             </div>
+          </div>
 
+          <!-- STEP 2: Choose Legend (from Vault) -->
+          <div id="wizard-step-2" class="fade-in" style="display: none">
+            <div class="card">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 12px;
+                "
+              >
+                <h3>📜 Step 2: Choose a Legend</h3>
+                <button class="btn btn-action" onclick="showForge('wizard')">
+                  ⚡ Forge New Legend
+                </button>
+              </div>
+              <p
+                style="
+                  font-size: 12px;
+                  color: var(--muted);
+                  margin-bottom: 15px;
+                "
+              >
+                Select a character from your vault to begin this adventure.
+              </p>
 
-            <!-- ===== 4-PANEL GAME UI ===== -->
-            <div id="game-ui-screen">
-
-                <!-- ═══ LEFT: Character ═══ -->
-                <div id="gp-left" class="gp">
-                    <h3>⚔️ Character</h3>
-                    <!-- Avatar + Name -->
-                    <div style="text-align:center;margin-bottom:10px">
-                        <div style="font-size:40px;line-height:1">🧙</div>
-                        <div id="gp-char-name" style="font-weight:700;font-size:13px;margin-top:4px">Hero</div>
-                        <div id="gp-char-class" style="font-size:10px;color:var(--muted)">Level 1 Adventurer</div>
-                    </div>
-
-                    <!-- HP / MP / EXP Bars -->
-                    <div style="margin-bottom:10px">
-                        <div class="bar-label"><span>❤️ HP</span><span id="gp-hp-txt"
-                                style="color:var(--green);font-size:10px">100/100</span></div>
-                        <div class="bar" style="margin-bottom:5px">
-                            <div id="gp-hp-bar" class="bar-fill bar-hp" style="width:100%"></div>
-                        </div>
-
-                        <div class="bar-label"><span>💧 MP</span><span id="gp-mp-txt"
-                                style="color:var(--accent);font-size:10px">50/50</span></div>
-                        <div class="bar" style="margin-bottom:5px">
-                            <div id="gp-mp-bar" class="bar-fill bar-mana" style="width:100%"></div>
-                        </div>
-
-                        <div class="bar-label"><span>⭐ EXP</span><span id="gp-exp-txt"
-                                style="color:var(--gold);font-size:10px">0/100</span></div>
-                        <div class="bar">
-                            <div id="gp-exp-bar" class="bar-fill bar-exp" style="width:0%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Stats -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px" id="gp-stats">
-                        <div style="background:var(--surface2);border-radius:6px;padding:6px;text-align:center">
-                            <div style="font-size:9px;color:var(--muted)">ATK</div>
-                            <div id="gp-atk" style="font-weight:700;color:var(--red);font-size:14px">10</div>
-                        </div>
-                        <div style="background:var(--surface2);border-radius:6px;padding:6px;text-align:center">
-                            <div style="font-size:9px;color:var(--muted)">DEF</div>
-                            <div id="gp-def" style="font-weight:700;color:var(--green);font-size:14px">5</div>
-                        </div>
-                        <div style="background:var(--surface2);border-radius:6px;padding:6px;text-align:center">
-                            <div style="font-size:9px;color:var(--muted)">SPD</div>
-                            <div id="gp-spd" style="font-weight:700;color:var(--accent);font-size:14px">8</div>
-                        </div>
-                        <div style="background:var(--surface2);border-radius:6px;padding:6px;text-align:center">
-                            <div style="font-size:9px;color:var(--muted)">GOLD</div>
-                            <div id="gp-gold" style="font-weight:700;color:var(--gold);font-size:14px">0</div>
-                        </div>
-                    </div>
-
-                    <!-- Signature Skill Preview -->
-                    <div id="gp-skill-preview" style="background:var(--surface2); border: 1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:12px">
-                        <div style="font-size:9px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Signature Skill</div>
-                        <div id="gp-skill-name" style="font-size:11px; font-weight:700; color:var(--accent)">— None —</div>
-                        <div id="gp-skill-brief" style="font-size:10px; color:var(--text); line-height:1.3; margin-top:2px; opacity:0.8; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;">No skill selected</div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div style="display:flex;flex-direction:column;gap:5px">
-                        <button class="btn btn-gold" style="font-size:11px;width:100%" onclick="saveGame()">💾 Save
-                            Game</button>
-                        <button class="btn btn-action" style="font-size:11px;width:100%"
-                            onclick="showScreen('login')">🏠 Main Menu</button>
-                    </div>
+              <div
+                id="vault-selection-grid"
+                class="preset-grid"
+                style="grid-template-columns: 1fr 1fr"
+              >
+                <!-- Vault characters will be loaded here -->
+                <div
+                  style="
+                    grid-column: 1/-1;
+                    padding: 20px;
+                    text-align: center;
+                    color: var(--muted);
+                    background: var(--surface2);
+                    border-radius: 8px;
+                  "
+                >
+                  Loading vault...
                 </div>
+              </div>
 
-                <!-- ═══ CENTER TOP: Map / Explore / Combat ═══ -->
-                <div id="gp-center-top" class="gp" style="display:flex;flex-direction:column">
-                    <!-- Tabs -->
-                    <div class="gp-tabs">
-                        <button class="gp-tab active" id="tab-map" onclick="gpTab('map')">🗺️ Map</button>
-                        <button class="gp-tab" id="tab-explore" onclick="gpTab('explore')">🧭 Explore</button>
-                        <button class="gp-tab" id="tab-combat" onclick="gpTab('combat')">⚔️ Combat</button>
-                    </div>
-
-                    <!-- Sub: Map -->
-                    <div class="gp-sub active" id="sub-map" style="flex:1;overflow-y:auto">
-                        <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Pick a region to explore</div>
-                        <div id="region-list" class="region-grid" style="grid-template-columns:1fr;gap:6px"></div>
-                    </div>
-
-                    <!-- Sub: Explore -->
-                    <div class="gp-sub" id="sub-explore">
-                        <div id="explore-title" style="font-size:12px;font-weight:700;margin-bottom:6px">🧭 Select a
-                            region first</div>
-                        <button class="btn btn-primary" style="width:100%;margin-bottom:8px;font-size:12px"
-                            onclick="exploreRegion()">⚔️ Explore!</button>
-                        <button class="btn btn-action" style="width:100%;font-size:11px" onclick="gpTab('map')">← Back
-                            to Map</button>
-                    </div>
-
-                    <!-- Sub: Combat -->
-                    <div class="gp-sub" id="sub-combat">
-                        <h3 id="combat-title" style="color:var(--red);font-size:11px;margin-bottom:8px">⚔️ Combat</h3>
-                        <div class="combat-vs-panel">
-                            <div class="combatant-box">
-                                <div style="font-size:24px">🧙</div>
-                                <div id="combat-player-name" style="font-size:11px;font-weight:700;margin:3px 0">Hero
-                                </div>
-                                <span id="combat-player-hp" style="font-size:10px;color:var(--green)">100/100</span>
-                                <div class="bar" style="margin-top:3px">
-                                    <div id="combat-player-bar" class="bar-fill bar-hp" style="width:100%"></div>
-                                </div>
-                            </div>
-                            <div style="font-size:16px;font-weight:900;color:var(--red)">VS</div>
-                            <div class="combatant-box enemy-box">
-                                <div style="font-size:24px">👹</div>
-                                <div id="combat-enemy-name"
-                                    style="font-size:11px;font-weight:700;margin:3px 0;color:var(--red)">Enemy</div>
-                                <span id="combat-enemy-hp" style="font-size:10px;color:var(--red)">100/100</span>
-                                <div class="bar" style="margin-top:3px">
-                                    <div id="combat-enemy-bar" class="bar-fill"
-                                        style="width:100%;background:var(--red)"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="combat-result" style="margin-top:6px"></div>
-                    </div>
-                </div>
-
-                <!-- ═══ CENTER BOTTOM: Action Log ═══ -->
-                <div id="gp-center-bot" class="gp" style="display:flex;flex-direction:column;gap:8px">
-                    <div style="display:flex;justify-content:space-between;align-items:center">
-                        <h3 style="margin-bottom:0">📜 Action Log</h3>
-                        <button onclick="document.getElementById('gp-log').innerHTML=''"
-                            style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px">Clear</button>
-                    </div>
-                    <!-- Shared log that both explore and combat write to -->
-                    <div id="gp-log"
-                        style="flex:1;overflow-y:auto;font-size:11px;line-height:1.9;background:var(--surface2);border-radius:6px;padding:8px;min-height:0">
-                        <div style="color:var(--muted);font-style:italic">Choose a region and explore to begin your
-                            adventure...</div>
-                    </div>
-                    <!-- Also keep the old event-log and combat-log as hidden aliases for JS compatibility -->
-                    <div id="event-log" style="display:none"></div>
-                    <div id="combat-log" style="display:none"></div>
-                    <div id="combat-rewards" style="display:none"></div>
-                </div>
-
-                <!-- ═══ RIGHT: Equipment + Inventory ═══ -->
-                <div id="gp-right" class="gp">
-                    <h3>🎒 Equipment</h3>
-                    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">
-                        <div style="background:var(--surface2);border-radius:6px;padding:7px">
-                            <div style="font-size:9px;color:var(--muted);margin-bottom:2px">⚔️ WEAPON</div>
-                            <div id="inv-weapon" style="font-size:11px;font-weight:600">— None —</div>
-                        </div>
-                        <div style="background:var(--surface2);border-radius:6px;padding:7px">
-                            <div style="font-size:9px;color:var(--muted);margin-bottom:2px">🛡️ ARMOR</div>
-                            <div id="inv-armor" style="font-size:11px;font-weight:600">— None —</div>
-                        </div>
-                        <div style="background:var(--surface2);border-radius:6px;padding:7px">
-                            <div style="font-size:9px;color:var(--muted);margin-bottom:2px">💍 ACCESSORY</div>
-                            <div id="inv-access" style="font-size:11px;font-weight:600">— None —</div>
-                        </div>
-                    </div>
-
-                    <h3>🧪 Items</h3>
-                    <div id="inv-display" style="font-size:11px;color:var(--muted)">
-                        <p>No items yet.</p>
-                    </div>
-                </div>
-
+              <div style="margin-top: 20px; display: flex; gap: 10px">
+                <button
+                  class="btn btn-action"
+                  onclick="wizardGoStep(1)"
+                  style="flex: 1"
+                >
+                  Back
+                </button>
+                <button
+                  id="btn-vault-next"
+                  class="btn btn-primary"
+                  onclick="wizardGoStep(4)"
+                  style="flex: 2"
+                  disabled
+                >
+                  Proceed with Legend
+                </button>
+              </div>
             </div>
+          </div>
 
-            <!-- THE VAULT SCREEN (Collection) -->
-            <div id="screen-vault" class="screen" style="display:none">
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
-                        <h2>📚 The Legend Vault</h2>
-                        <button class="btn btn-primary" onclick="showForge('vault')">+ Forge Legend</button>
-                    </div>
-                    <div id="vault-full-list" class="vault-grid">
-                        <!-- Comprehensive character list -->
-                    </div>
-                    <button class="btn btn-action" onclick="showScreen('menu')"
-                        style="margin-top:20px; width: 100%">Back to Main Menu</button>
-                </div>
+          <div id="wizard-step-3" style="display: none"></div>
+
+          <!-- STEP 4: Confirm & Start -->
+          <div id="wizard-step-4" class="fade-in" style="display: none">
+            <div class="card">
+              <h3>⚔️ Step 4: Begin Your Legend</h3>
+              <div
+                id="confirm-summary"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 10px;
+                  margin-top: 4px;
+                "
+              >
+                <!-- Filled in by JS -->
+              </div>
+              <div
+                id="start-error"
+                style="
+                  display: none;
+                  color: var(--red);
+                  font-size: 12px;
+                  padding: 8px 12px;
+                  background: rgba(239, 83, 80, 0.1);
+                  border-radius: 6px;
+                  border: 1px solid rgba(239, 83, 80, 0.3);
+                  margin-top: 10px;
+                "
+              ></div>
             </div>
-
-            <!-- FORGE LEGEND SCREEN (Standalone Creation) -->
-            <div id="screen-forge" class="screen" style="display:none">
-                <div class="card" style="max-width: 600px; margin: 0 auto">
-                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:20px">
-                        <div style="font-size:24px">⚒️</div>
-                        <h2 style="margin:0">Forge Your Legend</h2>
-                    </div>
-
-                    <div id="forge-step-1">
-                        <!-- Character Portrait Placeholder -->
-                        <div
-                            style="background:var(--surface2); border:2px dashed var(--border); border-radius:12px; height:200px; display:flex; align-items:center; justify-content:center; margin-bottom:20px; text-align:center; padding:20px">
-                            <span style="color:var(--muted); font-size:12px">
-                                <b>Dev Note:</b><br><br>Character portrait will be dynamically generated here based on
-                                the selected appearance settings later.
-                            </span>
-                        </div>
-
-                        <!-- Basic Identity -->
-                        <div style="margin-bottom:20px">
-                            <label>Legend Name</label>
-                            <input type="text" id="forge-name" placeholder="Enter name..."
-                                style="font-size:18px; padding:12px">
-                        </div>
-
-                        <!-- Appearance Selectors -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px">
-                            <div>
-                                <label>Gender <span style="font-size:10px">(เพศ)</span></label>
-                                <select class="form-select" id="forge-gender"
-                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="androgynous">Androgynous</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Skin Tone <span style="font-size:10px">(สีผิว)</span></label>
-                                <select class="form-select" id="forge-skin"
-                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
-                                    <option value="fair">Fair</option>
-                                    <option value="tanned">Tanned</option>
-                                    <option value="dark">Dark</option>
-                                    <option value="pale">Pale</option>
-                                    <option value="obsidian">Obsidian (Fantasy)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Face Shape <span style="font-size:10px">(ใบหน้า)</span></label>
-                                <select class="form-select" id="forge-face"
-                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
-                                    <option value="round">Round</option>
-                                    <option value="sharp">Sharp & Angular</option>
-                                    <option value="soft">Soft</option>
-                                    <option value="rugged">Rugged</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Hair Style & Color <span style="font-size:10px">(สีผม)</span></label>
-                                <select class="form-select" id="forge-hair"
-                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
-                                    <option value="black">Raven Black</option>
-                                    <option value="blonde">Golden Blonde</option>
-                                    <option value="brown">Chestnut Brown</option>
-                                    <option value="white">Ghost White</option>
-                                    <option value="red">Crimson Red</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label>Eye Color <span style="font-size:10px">(สีตา)</span></label>
-                                <select class="form-select" id="forge-eyes"
-                                    style="width:100%; padding:10px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px">
-                                    <option value="brown">Earth Brown</option>
-                                    <option value="blue">Ocean Blue</option>
-                                    <option value="green">Emerald Green</option>
-                                    <option value="red">Ruby Red (Fantasy)</option>
-                                    <option value="purple">Amethyst (Fantasy)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div style="display:flex; gap:10px; margin-top:30px">
-                            <button class="btn btn-action" onclick="backFromForge()" style="flex:1">Cancel</button>
-                            <button class="btn btn-primary" onclick="forgeGoStep(2)" style="flex:2">Next: Manifest
-                                Destiny ✨</button>
-                        </div>
-                    </div>
-
-                    <!-- STEP 2: SKILL ROLL -->
-                    <div id="forge-step-2" style="display:none">
-                        <div class="card" style="background:var(--surface2); padding:20px">
-                            <div
-                                style="display:flex; align-items:center; justify-content:space-between; margin-bottom:15px">
-                                <h4
-                                    style="margin:0; text-transform:uppercase; font-size:12px; letter-spacing:1px; color:var(--accent)">
-                                    Signature Skill</h4>
-                                <button id="btn-roll-forge" class="btn btn-action" onclick="rollForgeSkill()">🎲 Roll
-                                    New
-                                    Skill</button>
-                            </div>
-
-                            <!-- 9-Pointed Star Area -->
-                            <div id="forge-skill-display" class="star-container"
-                                style="position:relative; width:180px; height:180px; margin:20px auto; display:none">
-                                <svg viewBox="0 0 100 100" style="width:100%; height:100%">
-                                    <defs>
-                                        <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:var(--accent);stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:var(--accent2);stop-opacity:1" />
-                                        </linearGradient>
-                                    </defs>
-                                    <!-- A perfectly symmetrical 9-pointed star (nonagram) generated using every 3rd point of a 9-gon -->
-                                    <polygon points="50,2 6,67 97,35 3,35 94,67 50,2" fill="none"
-                                        stroke="url(#starGrad)" stroke-opacity="0.2" stroke-width="0.5"
-                                        style="transform-origin:center;" />
-                                    <!-- The actual continuous 9-pointed continuous line -->
-                                    <polygon points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
-                                        fill="url(#starGrad)" style="transform-origin:center; opacity:0.15" />
-                                    <polygon points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
-                                        fill="none" stroke="url(#starGrad)" stroke-width="1.5"
-                                        style="transform-origin:center; transition: all 0.5s" />
-                                </svg>
-                                <div id="skill-code-forge"
-                                    style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; text-align:center">
-                                    <div
-                                        style="font-family:monospace; font-size:18px; font-weight:900; color:#fff; text-shadow:0 0 10px rgba(255,255,255,0.5)">
-                                        000-000-000</div>
-                                </div>
-                            </div>
-
-                            <div id="forge-skill-placeholder"
-                                style="text-align:center; padding: 40px 0; color:var(--muted); font-size:13px">
-                                Roll to discover your legend's unique power.
-                            </div>
-
-                            <div id="forge-skill-box" class="card"
-                                style="display:none; background:rgba(255,255,255,0.03); margin-top:15px; text-align:left">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start">
-                                    <h3 id="forge-skill-name" style="color:var(--accent); margin:0"></h3>
-                                    <div id="forge-skill-cost" class="tag"></div>
-                                </div>
-                                <p id="forge-skill-desc" style="font-size:12px; line-height:1.5; margin:10px 0; font-style: italic; color: var(--muted)"></p>
-                                <div style="background: rgba(0,0,0,0.2); border-radius: 6px; padding: 8px; margin-bottom: 15px;">
-                                    <div style="font-size: 10px; font-weight: 800; color: var(--accent2); margin-bottom: 4px; text-transform: uppercase;">Technical Mechanics</div>
-                                    <p id="forge-skill-mechanics" style="font-size:11px; line-height:1.4; margin:0; color: var(--text)"></p>
-                                </div>
-                                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; font-size:10px">
-                                    <div><label>CD</label>
-                                        <div id="forge-skill-cd" style="font-weight: 700; color: var(--gold)"></div>
-                                    </div>
-                                    <div><label>Target</label>
-                                        <div id="forge-skill-target" style="font-weight: 700; color: var(--text)"></div>
-                                    </div>
-                                    <div><label>Scaling</label>
-                                        <div id="forge-skill-scaling" style="font-weight: 700; color: var(--accent)"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="forge-error"
-                            style="display:none; color:var(--red); font-size:12px; margin-top:15px; text-align:center">
-                        </div>
-
-                        <div style="display:flex; gap:10px; margin-top:30px">
-                            <button class="btn btn-action" onclick="forgeGoStep(1)" style="flex:1">← Back</button>
-                            <button id="btn-forge-confirm" class="btn btn-primary" onclick="confirmForge()"
-                                style="flex:2" disabled>Bake into Legend ⚔️</button>
-                        </div>
-                    </div>
-
-                </div>
+            <div style="display: flex; gap: 10px; margin-top: 8px">
+              <button
+                class="btn btn-action"
+                style="flex: 1; padding: 12px"
+                onclick="wizardGoStep(2)"
+              >
+                ← Back
+              </button>
+              <button
+                class="btn btn-primary"
+                id="btn-start"
+                style="
+                  flex: 2;
+                  padding: 13px;
+                  font-size: 16px;
+                  letter-spacing: 1px;
+                "
+                onclick="submitNewGame()"
+              >
+                ⚔️ Enter the World
+              </button>
             </div>
-
-            <!-- old screens retained as hidden compat shims (JS reads their IDs) -->
-            <div id="screen-world" class="screen" style="display:none!important"></div>
-            <div id="screen-explore" class="screen" style="display:none!important"></div>
-            <div id="screen-character" class="screen" style="display:none!important">
-                <!-- compat IDs for JS -->
-                <div id="char-stats"></div>
-                <div id="char-hp-bar"></div>
-                <div id="char-mp-bar"></div>
-                <div id="char-exp-bar"></div>
-                <span id="char-hp-text"></span><span id="char-mp-text"></span><span id="char-exp-text"></span>
-                <div id="equip-quick"></div>
-                <span id="eq-weapon"></span><span id="eq-armor"></span><span id="eq-access"></span>
-            </div>
-            <div id="screen-inventory" class="screen" style="display:none!important">
-                <div id="equip-display"></div>
-            </div>
-            <div id="screen-combat" class="screen" style="display:none!important"></div>
+          </div>
         </div>
 
-        <div id="toast" class="toast"></div>
+        <!-- ===== 4-PANEL GAME UI ===== -->
+        <div id="game-ui-screen">
+          <!-- ═══ LEFT: Character ═══ -->
+          <div id="gp-left" class="gp">
+            <h3>⚔️ Character</h3>
+            <!-- Avatar + Name -->
+            <div style="text-align: center; margin-bottom: 10px">
+              <div style="font-size: 40px; line-height: 1">🧙</div>
+              <div
+                id="gp-char-name"
+                style="font-weight: 700; font-size: 13px; margin-top: 4px"
+              >
+                Hero
+              </div>
+              <div
+                id="gp-char-class"
+                style="font-size: 10px; color: var(--muted)"
+              >
+                Level 1 Adventurer
+              </div>
+            </div>
+
+            <!-- HP / MP / EXP Bars -->
+            <div style="margin-bottom: 10px">
+              <div class="bar-label">
+                <span>❤️ HP</span
+                ><span
+                  id="gp-hp-txt"
+                  style="color: var(--green); font-size: 10px"
+                  >100/100</span
+                >
+              </div>
+              <div class="bar" style="margin-bottom: 5px">
+                <div
+                  id="gp-hp-bar"
+                  class="bar-fill bar-hp"
+                  style="width: 100%"
+                ></div>
+              </div>
+
+              <div class="bar-label">
+                <span>💧 MP</span
+                ><span
+                  id="gp-mp-txt"
+                  style="color: var(--accent); font-size: 10px"
+                  >50/50</span
+                >
+              </div>
+              <div class="bar" style="margin-bottom: 5px">
+                <div
+                  id="gp-mp-bar"
+                  class="bar-fill bar-mana"
+                  style="width: 100%"
+                ></div>
+              </div>
+
+              <div class="bar-label">
+                <span>⭐ EXP</span
+                ><span
+                  id="gp-exp-txt"
+                  style="color: var(--gold); font-size: 10px"
+                  >0/100</span
+                >
+              </div>
+              <div class="bar">
+                <div
+                  id="gp-exp-bar"
+                  class="bar-fill bar-exp"
+                  style="width: 0%"
+                ></div>
+              </div>
+            </div>
+
+            <!-- Stats -->
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 4px;
+                margin-bottom: 10px;
+              "
+              id="gp-stats"
+            >
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 6px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 9px; color: var(--muted)">ATK</div>
+                <div
+                  id="gp-atk"
+                  style="font-weight: 700; color: var(--red); font-size: 14px"
+                >
+                  10
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 6px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 9px; color: var(--muted)">DEF</div>
+                <div
+                  id="gp-def"
+                  style="font-weight: 700; color: var(--green); font-size: 14px"
+                >
+                  5
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 6px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 9px; color: var(--muted)">SPD</div>
+                <div
+                  id="gp-spd"
+                  style="
+                    font-weight: 700;
+                    color: var(--accent);
+                    font-size: 14px;
+                  "
+                >
+                  8
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 6px;
+                  text-align: center;
+                "
+              >
+                <div style="font-size: 9px; color: var(--muted)">GOLD</div>
+                <div
+                  id="gp-gold"
+                  style="font-weight: 700; color: var(--gold); font-size: 14px"
+                >
+                  0
+                </div>
+              </div>
+            </div>
+
+            <!-- Signature Skill Preview -->
+            <div
+              id="gp-skill-preview"
+              style="
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="
+                  font-size: 9px;
+                  color: var(--muted);
+                  text-transform: uppercase;
+                  margin-bottom: 4px;
+                "
+              >
+                Signature Skill
+              </div>
+              <div
+                id="gp-skill-name"
+                style="font-size: 11px; font-weight: 700; color: var(--accent)"
+              >
+                — None —
+              </div>
+              <div
+                id="gp-skill-brief"
+                style="
+                  font-size: 10px;
+                  color: var(--text);
+                  line-height: 1.3;
+                  margin-top: 2px;
+                  opacity: 0.8;
+                  height: 26px;
+                  overflow: hidden;
+                  display: -webkit-box;
+                  -webkit-line-clamp: 2;
+                  line-clamp: 2;
+                  -webkit-box-orient: vertical;
+                "
+              >
+                No skill selected
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div style="display: flex; flex-direction: column; gap: 5px">
+              <button
+                class="btn btn-gold"
+                style="font-size: 11px; width: 100%"
+                onclick="saveGame()"
+              >
+                💾 Save Game
+              </button>
+              <button
+                class="btn btn-action"
+                style="font-size: 11px; width: 100%"
+                onclick="showScreen('login')"
+              >
+                🏠 Main Menu
+              </button>
+            </div>
+          </div>
+
+          <!-- ═══ CENTER TOP: Map / Explore / Combat ═══ -->
+          <div
+            id="gp-center-top"
+            class="gp"
+            style="display: flex; flex-direction: column"
+          >
+            <!-- Tabs -->
+            <div class="gp-tabs">
+              <button class="gp-tab active" id="tab-map" onclick="gpTab('map')">
+                🗺️ Map
+              </button>
+              <button
+                class="gp-tab"
+                id="tab-explore"
+                onclick="gpTab('explore')"
+              >
+                🧭 Explore
+              </button>
+              <button class="gp-tab" id="tab-combat" onclick="gpTab('combat')">
+                ⚔️ Combat
+              </button>
+            </div>
+
+            <!-- Sub: Map -->
+            <div
+              class="gp-sub active"
+              id="sub-map"
+              style="flex: 1; overflow-y: auto"
+            >
+              <div
+                style="font-size: 10px; color: var(--muted); margin-bottom: 8px"
+              >
+                Pick a region to explore
+              </div>
+              <div
+                id="region-list"
+                class="region-grid"
+                style="grid-template-columns: 1fr; gap: 6px"
+              ></div>
+            </div>
+
+            <!-- Sub: Explore -->
+            <div class="gp-sub" id="sub-explore">
+              <div
+                id="explore-title"
+                style="font-size: 12px; font-weight: 700; margin-bottom: 6px"
+              >
+                🧭 Select a region first
+              </div>
+              <button
+                class="btn btn-primary"
+                style="width: 100%; margin-bottom: 8px; font-size: 12px"
+                onclick="exploreRegion()"
+              >
+                ⚔️ Explore!
+              </button>
+              <button
+                class="btn btn-action"
+                style="width: 100%; font-size: 11px"
+                onclick="gpTab('map')"
+              >
+                ← Back to Map
+              </button>
+            </div>
+
+            <!-- Sub: Combat -->
+            <div class="gp-sub" id="sub-combat">
+              <h3
+                id="combat-title"
+                style="color: var(--red); font-size: 11px; margin-bottom: 8px"
+              >
+                ⚔️ Combat
+              </h3>
+              <div class="combat-vs-panel">
+                <div class="combatant-box">
+                  <div style="font-size: 24px">🧙</div>
+                  <div
+                    id="combat-player-name"
+                    style="font-size: 11px; font-weight: 700; margin: 3px 0"
+                  >
+                    Hero
+                  </div>
+                  <span
+                    id="combat-player-hp"
+                    style="font-size: 10px; color: var(--green)"
+                    >100/100</span
+                  >
+                  <div class="bar" style="margin-top: 3px">
+                    <div
+                      id="combat-player-bar"
+                      class="bar-fill bar-hp"
+                      style="width: 100%"
+                    ></div>
+                  </div>
+                </div>
+                <div
+                  style="font-size: 16px; font-weight: 900; color: var(--red)"
+                >
+                  VS
+                </div>
+                <div class="combatant-box enemy-box">
+                  <div style="font-size: 24px">👹</div>
+                  <div
+                    id="combat-enemy-name"
+                    style="
+                      font-size: 11px;
+                      font-weight: 700;
+                      margin: 3px 0;
+                      color: var(--red);
+                    "
+                  >
+                    Enemy
+                  </div>
+                  <span
+                    id="combat-enemy-hp"
+                    style="font-size: 10px; color: var(--red)"
+                    >100/100</span
+                  >
+                  <div class="bar" style="margin-top: 3px">
+                    <div
+                      id="combat-enemy-bar"
+                      class="bar-fill"
+                      style="width: 100%; background: var(--red)"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              <div id="combat-result" style="margin-top: 6px"></div>
+            </div>
+          </div>
+
+          <!-- ═══ CENTER BOTTOM: Action Log ═══ -->
+          <div
+            id="gp-center-bot"
+            class="gp"
+            style="display: flex; flex-direction: column; gap: 8px"
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <h3 style="margin-bottom: 0">📜 Action Log</h3>
+              <button
+                onclick="document.getElementById('gp-log').innerHTML = ''"
+                style="
+                  background: none;
+                  border: none;
+                  color: var(--muted);
+                  cursor: pointer;
+                  font-size: 10px;
+                "
+              >
+                Clear
+              </button>
+            </div>
+            <!-- Shared log that both explore and combat write to -->
+            <div
+              id="gp-log"
+              style="
+                flex: 1;
+                overflow-y: auto;
+                font-size: 11px;
+                line-height: 1.9;
+                background: var(--surface2);
+                border-radius: 6px;
+                padding: 8px;
+                min-height: 0;
+              "
+            >
+              <div style="color: var(--muted); font-style: italic">
+                Choose a region and explore to begin your adventure...
+              </div>
+            </div>
+            <!-- Also keep the old event-log and combat-log as hidden aliases for JS compatibility -->
+            <div id="event-log" style="display: none"></div>
+            <div id="combat-log" style="display: none"></div>
+            <div id="combat-rewards" style="display: none"></div>
+          </div>
+
+          <!-- ═══ RIGHT: Equipment + Inventory ═══ -->
+          <div id="gp-right" class="gp">
+            <h3>🎒 Equipment</h3>
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+                margin-bottom: 12px;
+              "
+            >
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 7px;
+                "
+              >
+                <div
+                  style="
+                    font-size: 9px;
+                    color: var(--muted);
+                    margin-bottom: 2px;
+                  "
+                >
+                  ⚔️ WEAPON
+                </div>
+                <div id="inv-weapon" style="font-size: 11px; font-weight: 600">
+                  — None —
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 7px;
+                "
+              >
+                <div
+                  style="
+                    font-size: 9px;
+                    color: var(--muted);
+                    margin-bottom: 2px;
+                  "
+                >
+                  🛡️ ARMOR
+                </div>
+                <div id="inv-armor" style="font-size: 11px; font-weight: 600">
+                  — None —
+                </div>
+              </div>
+              <div
+                style="
+                  background: var(--surface2);
+                  border-radius: 6px;
+                  padding: 7px;
+                "
+              >
+                <div
+                  style="
+                    font-size: 9px;
+                    color: var(--muted);
+                    margin-bottom: 2px;
+                  "
+                >
+                  💍 ACCESSORY
+                </div>
+                <div id="inv-access" style="font-size: 11px; font-weight: 600">
+                  — None —
+                </div>
+              </div>
+            </div>
+
+            <h3>🧪 Items</h3>
+            <div id="inv-display" style="font-size: 11px; color: var(--muted)">
+              <p>No items yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- THE VAULT SCREEN (Collection) -->
+        <div id="screen-vault" class="screen" style="display: none">
+          <div class="card">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+              "
+            >
+              <h2>📚 The Legend Vault</h2>
+              <button class="btn btn-primary" onclick="showForge('vault')">
+                + Forge Legend
+              </button>
+            </div>
+            <div id="vault-full-list" class="vault-grid">
+              <!-- Comprehensive character list -->
+            </div>
+            <button
+              class="btn btn-action"
+              onclick="showScreen('menu')"
+              style="margin-top: 20px; width: 100%"
+            >
+              Back to Main Menu
+            </button>
+          </div>
+        </div>
+
+        <!-- FORGE LEGEND SCREEN (Standalone Creation) -->
+        <div id="screen-forge" class="screen" style="display: none">
+          <div class="card" style="max-width: 600px; margin: 0 auto">
+            <div
+              style="
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                margin-bottom: 20px;
+              "
+            >
+              <div style="font-size: 24px">⚒️</div>
+              <h2 style="margin: 0">Forge Your Legend</h2>
+            </div>
+
+            <div id="forge-step-1">
+              <!-- Character Portrait Placeholder -->
+              <div
+                style="
+                  background: var(--surface2);
+                  border: 2px dashed var(--border);
+                  border-radius: 12px;
+                  height: 200px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  margin-bottom: 20px;
+                  text-align: center;
+                  padding: 20px;
+                "
+              >
+                <span style="color: var(--muted); font-size: 12px">
+                  <b>Dev Note:</b><br /><br />Character portrait will be
+                  dynamically generated here based on the selected appearance
+                  settings later.
+                </span>
+              </div>
+
+              <!-- Basic Identity -->
+              <div style="margin-bottom: 20px">
+                <label>Legend Name</label>
+                <input
+                  type="text"
+                  id="forge-name"
+                  placeholder="Enter name..."
+                  style="font-size: 18px; padding: 12px"
+                />
+              </div>
+
+              <!-- Appearance Selectors -->
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 15px;
+                  margin-bottom: 20px;
+                "
+              >
+                <div>
+                  <label
+                    >Gender <span style="font-size: 10px">(เพศ)</span></label
+                  >
+                  <select
+                    class="form-select"
+                    id="forge-gender"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      border-radius: 6px;
+                    "
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="androgynous">Androgynous</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    >Skin Tone
+                    <span style="font-size: 10px">(สีผิว)</span></label
+                  >
+                  <select
+                    class="form-select"
+                    id="forge-skin"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      border-radius: 6px;
+                    "
+                  >
+                    <option value="fair">Fair</option>
+                    <option value="tanned">Tanned</option>
+                    <option value="dark">Dark</option>
+                    <option value="pale">Pale</option>
+                    <option value="obsidian">Obsidian (Fantasy)</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    >Face Shape
+                    <span style="font-size: 10px">(ใบหน้า)</span></label
+                  >
+                  <select
+                    class="form-select"
+                    id="forge-face"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      border-radius: 6px;
+                    "
+                  >
+                    <option value="round">Round</option>
+                    <option value="sharp">Sharp & Angular</option>
+                    <option value="soft">Soft</option>
+                    <option value="rugged">Rugged</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    >Hair Style & Color
+                    <span style="font-size: 10px">(สีผม)</span></label
+                  >
+                  <select
+                    class="form-select"
+                    id="forge-hair"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      border-radius: 6px;
+                    "
+                  >
+                    <option value="black">Raven Black</option>
+                    <option value="blonde">Golden Blonde</option>
+                    <option value="brown">Chestnut Brown</option>
+                    <option value="white">Ghost White</option>
+                    <option value="red">Crimson Red</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    >Eye Color
+                    <span style="font-size: 10px">(สีตา)</span></label
+                  >
+                  <select
+                    class="form-select"
+                    id="forge-eyes"
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      background: var(--surface2);
+                      border: 1px solid var(--border);
+                      color: var(--text);
+                      border-radius: 6px;
+                    "
+                  >
+                    <option value="brown">Earth Brown</option>
+                    <option value="blue">Ocean Blue</option>
+                    <option value="green">Emerald Green</option>
+                    <option value="red">Ruby Red (Fantasy)</option>
+                    <option value="purple">Amethyst (Fantasy)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 30px">
+                <button
+                  class="btn btn-action"
+                  onclick="backFromForge()"
+                  style="flex: 1"
+                >
+                  Cancel
+                </button>
+                <button
+                  class="btn btn-primary"
+                  onclick="forgeGoStep(2)"
+                  style="flex: 2"
+                >
+                  Next: Manifest Destiny ✨
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP 2: SKILL ROLL -->
+            <div id="forge-step-2" style="display: none">
+              <div
+                class="card"
+                style="background: var(--surface2); padding: 20px"
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 15px;
+                  "
+                >
+                  <h4
+                    style="
+                      margin: 0;
+                      text-transform: uppercase;
+                      font-size: 12px;
+                      letter-spacing: 1px;
+                      color: var(--accent);
+                    "
+                  >
+                    Signature Skill
+                  </h4>
+                  <button
+                    id="btn-roll-forge"
+                    class="btn btn-action"
+                    onclick="rollForgeSkill()"
+                  >
+                    🎲 Roll New Skill
+                  </button>
+                </div>
+
+                <!-- 9-Pointed Star Area -->
+                <div
+                  id="forge-skill-display"
+                  class="star-container"
+                  style="
+                    position: relative;
+                    width: 180px;
+                    height: 180px;
+                    margin: 20px auto;
+                    display: none;
+                  "
+                >
+                  <svg viewBox="0 0 100 100" style="width: 100%; height: 100%">
+                    <defs>
+                      <linearGradient
+                        id="starGrad"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          style="stop-color: var(--accent); stop-opacity: 1"
+                        />
+                        <stop
+                          offset="100%"
+                          style="stop-color: var(--accent2); stop-opacity: 1"
+                        />
+                      </linearGradient>
+                    </defs>
+                    <!-- A perfectly symmetrical 9-pointed star (nonagram) generated using every 3rd point of a 9-gon -->
+                    <polygon
+                      points="50,2 6,67 97,35 3,35 94,67 50,2"
+                      fill="none"
+                      stroke="url(#starGrad)"
+                      stroke-opacity="0.2"
+                      stroke-width="0.5"
+                      style="transform-origin: center"
+                    />
+                    <!-- The actual continuous 9-pointed continuous line -->
+                    <polygon
+                      points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
+                      fill="url(#starGrad)"
+                      style="transform-origin: center; opacity: 0.15"
+                    />
+                    <polygon
+                      points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
+                      fill="none"
+                      stroke="url(#starGrad)"
+                      stroke-width="1.5"
+                      style="transform-origin: center; transition: all 0.5s"
+                    />
+                  </svg>
+                  <div
+                    id="skill-code-forge"
+                    style="
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                      width: 100%;
+                      text-align: center;
+                    "
+                  >
+                    <div
+                      style="
+                        font-family: monospace;
+                        font-size: 18px;
+                        font-weight: 900;
+                        color: #fff;
+                        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+                      "
+                    >
+                      000-000-000
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="forge-skill-placeholder"
+                  style="
+                    text-align: center;
+                    padding: 40px 0;
+                    color: var(--muted);
+                    font-size: 13px;
+                  "
+                >
+                  Roll to discover your legend's unique power.
+                </div>
+
+                <div
+                  id="forge-skill-box"
+                  class="card"
+                  style="
+                    display: none;
+                    background: rgba(255, 255, 255, 0.03);
+                    margin-top: 15px;
+                    text-align: left;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: flex-start;
+                    "
+                  >
+                    <h3
+                      id="forge-skill-name"
+                      style="color: var(--accent); margin: 0"
+                    ></h3>
+                    <div id="forge-skill-cost" class="tag"></div>
+                  </div>
+                  <p
+                    id="forge-skill-desc"
+                    style="
+                      font-size: 12px;
+                      line-height: 1.5;
+                      margin: 10px 0;
+                      font-style: italic;
+                      color: var(--muted);
+                    "
+                  ></p>
+                  <div
+                    style="
+                      background: rgba(0, 0, 0, 0.2);
+                      border-radius: 6px;
+                      padding: 8px;
+                      margin-bottom: 15px;
+                    "
+                  >
+                    <div
+                      style="
+                        font-size: 10px;
+                        font-weight: 800;
+                        color: var(--accent2);
+                        margin-bottom: 4px;
+                        text-transform: uppercase;
+                      "
+                    >
+                      Technical Mechanics
+                    </div>
+                    <p
+                      id="forge-skill-mechanics"
+                      style="
+                        font-size: 11px;
+                        line-height: 1.4;
+                        margin: 0;
+                        color: var(--text);
+                      "
+                    ></p>
+                  </div>
+                  <div
+                    style="
+                      display: grid;
+                      grid-template-columns: 1fr 1fr 1fr;
+                      gap: 8px;
+                      font-size: 10px;
+                    "
+                  >
+                    <div>
+                      <label>CD</label>
+                      <div
+                        id="forge-skill-cd"
+                        style="font-weight: 700; color: var(--gold)"
+                      ></div>
+                    </div>
+                    <div>
+                      <label>Target</label>
+                      <div
+                        id="forge-skill-target"
+                        style="font-weight: 700; color: var(--text)"
+                      ></div>
+                    </div>
+                    <div>
+                      <label>Scaling</label>
+                      <div
+                        id="forge-skill-scaling"
+                        style="font-weight: 700; color: var(--accent)"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="forge-error"
+                style="
+                  display: none;
+                  color: var(--red);
+                  font-size: 12px;
+                  margin-top: 15px;
+                  text-align: center;
+                "
+              ></div>
+
+              <div style="display: flex; gap: 10px; margin-top: 30px">
+                <button
+                  class="btn btn-action"
+                  onclick="forgeGoStep(1)"
+                  style="flex: 1"
+                >
+                  ← Back
+                </button>
+                <button
+                  id="btn-forge-confirm"
+                  class="btn btn-primary"
+                  onclick="confirmForge()"
+                  style="flex: 2"
+                  disabled
+                >
+                  Bake into Legend ⚔️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- old screens retained as hidden compat shims (JS reads their IDs) -->
+        <div
+          id="screen-world"
+          class="screen"
+          style="display: none !important"
+        ></div>
+        <div
+          id="screen-explore"
+          class="screen"
+          style="display: none !important"
+        ></div>
+        <div
+          id="screen-character"
+          class="screen"
+          style="display: none !important"
+        >
+          <!-- compat IDs for JS -->
+          <div id="char-stats"></div>
+          <div id="char-hp-bar"></div>
+          <div id="char-mp-bar"></div>
+          <div id="char-exp-bar"></div>
+          <span id="char-hp-text"></span><span id="char-mp-text"></span
+          ><span id="char-exp-text"></span>
+          <div id="equip-quick"></div>
+          <span id="eq-weapon"></span><span id="eq-armor"></span
+          ><span id="eq-access"></span>
+        </div>
+        <div
+          id="screen-inventory"
+          class="screen"
+          style="display: none !important"
+        >
+          <div id="equip-display"></div>
+        </div>
+        <div
+          id="screen-combat"
+          class="screen"
+          style="display: none !important"
+        ></div>
+      </div>
+
+      <div id="toast" class="toast"></div>
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-</body>
-
+  </body>
 </html>

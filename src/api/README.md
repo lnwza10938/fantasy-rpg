@@ -14,4 +14,5 @@ This folder contains the server-side logic and route definitions.
 - AI-generated content (Skills, Lore) is typically managed via specific endpoints here.
 
 ---
-*AI Tip: Use `gameplayRoutes.ts` to debug gameplay mechanics or add new world interaction events.*
+
+_AI Tip: Use `gameplayRoutes.ts` to debug gameplay mechanics or add new world interaction events._

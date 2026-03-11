@@ -3,14 +3,8 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
-    "types": [
-      "vite/client"
-    ],
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "types": ["vite/client"],
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
@@ -21,12 +15,6 @@
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false
   },
-  "include": [
-    "src/**/*",
-    "index.html"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "include": ["src/**/*", "index.html"],
+  "exclude": ["node_modules", "dist"]
 }

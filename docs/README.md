@@ -9,4 +9,5 @@ This folder contains project-level documentation and planning materials.
 - `AI_DOCS.md` - Specific instructions and context for AI agents working on this project.
 
 ---
-*AI Tip: Read `walkthrough.md` first when entering this codebase for the first time.*
+
+_AI Tip: Read `walkthrough.md` first when entering this codebase for the first time._

@@ -16,4 +16,5 @@ This directory contains the user interface and client-side logic.
 - **Game UI (`#game-ui-screen`)** - The main 4-panel gameplay interface.
 
 ---
-*AI Tip: Modify `main.ts` for UI logic change and `style.css` for visual updates.*
+
+_AI Tip: Modify `main.ts` for UI logic change and `style.css` for visual updates._
