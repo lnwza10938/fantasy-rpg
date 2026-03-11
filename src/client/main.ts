@@ -586,7 +586,11 @@ function startWizardWithLegend(legend: any) {
 }
 
 async function fetchUserCharacters() {
-  const res = await fetch(`${API}/characters?userId=${G.user?.id || ""}`);
+  const params = new URLSearchParams();
+  if (G.user?.id) params.set("userId", G.user.id);
+  if (G.user?.email) params.set("email", G.user.email);
+  const query = params.toString();
+  const res = await fetch(`${API}/characters${query ? `?${query}` : ""}`);
   const j = await res.json();
   return j.success ? j.data || [] : [];
 }

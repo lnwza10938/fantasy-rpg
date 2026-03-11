@@ -7,6 +7,7 @@ import {
   createCharacter,
   getCharacter,
   getPlayerByUserId,
+  getPlayerByEmail,
   deleteCharacter,
   saveCombatLog,
 } from "../db/repositories.js";
@@ -336,11 +337,16 @@ router.post("/start", async (req, res) => {
 // --- /characters (List characters in vault) ---
 router.get("/characters", async (req, res) => {
   try {
-    const { userId } = req.query;
+    const { userId, email } = req.query;
     let player;
 
     if (userId && userId !== "undefined") {
       player = await getPlayerByUserId(userId as string);
+      if (!player && email && email !== "undefined") {
+        player = await getPlayerByEmail(email as string);
+      }
+    } else if (email && email !== "undefined") {
+      player = await getPlayerByEmail(email as string);
     } else {
       // Safer guest fallback: don't throw if players is empty
       const { data, error } = await supabase
@@ -380,8 +386,15 @@ router.post("/character", async (req, res) => {
     let player;
     if (userId && email) {
       player = await getPlayerByUserId(userId);
+      if (!player) {
+        player = await getPlayerByEmail(email);
+      }
       if (!player)
         player = await createPlayer(playerName || "Hero", userId, email);
+    } else if (email) {
+      player = await getPlayerByEmail(email);
+      if (!player)
+        player = await createPlayer(playerName || "Hero", null, email);
     } else {
       // Find any guest player or create one
       const { data } = await supabase

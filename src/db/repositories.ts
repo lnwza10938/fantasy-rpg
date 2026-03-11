@@ -30,6 +30,17 @@ export async function getPlayerByUserId(userId: string) {
   return data;
 }
 
+export async function getPlayerByEmail(email: string) {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error && error.code !== "PGRST116") throw error;
+  return data;
+}
+
 // --- Characters ---
 
 export async function createCharacter(
