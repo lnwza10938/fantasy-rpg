@@ -440,9 +440,7 @@ function showScreen(name: string) {
     if (gameUi) gameUi.classList.add("active");
 
     // Map screen names to center tabs
-    if (name === "world") gpTab("map");
-    else if (name === "explore") gpTab("explore");
-    else if (name === "combat") gpTab("combat");
+    if (["world", "explore", "combat"].includes(name)) gpTab("map");
 
     // Refresh stats
     if (name === "character") renderCharacter();
@@ -452,10 +450,97 @@ function showScreen(name: string) {
 
 // Switch center-top tabs: map | explore | combat
 function gpTab(tab: string) {
+  const activeTab = "map";
   ["map", "explore", "combat"].forEach((t) => {
-    document.getElementById("sub-" + t)?.classList.toggle("active", t === tab);
-    document.getElementById("tab-" + t)?.classList.toggle("active", t === tab);
+    document
+      .getElementById("sub-" + t)
+      ?.classList.toggle("active", t === activeTab);
+    document
+      .getElementById("tab-" + t)
+      ?.classList.toggle("active", t === activeTab);
   });
+}
+
+function clearAdventureLog() {
+  const visibleLog = document.getElementById("gp-log");
+  if (visibleLog) {
+    visibleLog.innerHTML = `
+      <div style="color: var(--muted); font-style: italic">
+        Choose a region and explore to begin your adventure...
+      </div>
+    `;
+    visibleLog.setAttribute("data-pristine", "true");
+  }
+  const eventLog = document.getElementById("event-log");
+  if (eventLog) eventLog.innerHTML = "";
+  const combatLog = document.getElementById("combat-log");
+  if (combatLog) combatLog.innerHTML = "";
+}
+
+function appendSharedLog(html: string, targetIds: string[]) {
+  Array.from(new Set(targetIds)).forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (id === "gp-log" && el.getAttribute("data-pristine") !== "false") {
+      el.innerHTML = "";
+      el.setAttribute("data-pristine", "false");
+    }
+    el.insertAdjacentHTML("beforeend", html);
+    el.scrollTop = el.scrollHeight;
+  });
+}
+
+function setMapEventState(title: string, description: string) {
+  const titleEl = document.getElementById("explore-title");
+  const copyEl = document.getElementById("map-event-copy");
+  if (titleEl) titleEl.textContent = title;
+  if (copyEl) copyEl.textContent = description;
+}
+
+function toggleMapCombatStage(visible: boolean) {
+  const stage = document.getElementById("map-combat-stage");
+  if (stage) stage.style.display = visible ? "block" : "none";
+}
+
+function syncMapSelectionState() {
+  const headingEl = document.getElementById("map-region-heading");
+  const copyEl = document.getElementById("map-region-copy");
+  const chipEl = document.getElementById("map-region-chip");
+  const exploreBtn = document.getElementById(
+    "btn-map-explore",
+  ) as HTMLButtonElement | null;
+
+  if (!G.selectedRegion) {
+    if (headingEl) headingEl.textContent = "Pick a region to explore";
+    if (copyEl)
+      copyEl.textContent =
+        "Choose a region, then explore it directly from this map. If a monster appears, combat will unfold here immediately.";
+    if (chipEl) chipEl.textContent = "No region selected";
+    if (exploreBtn) {
+      exploreBtn.disabled = true;
+      exploreBtn.textContent = "🧭 Explore Selected Region";
+    }
+    return;
+  }
+
+  const enemyList =
+    Array.isArray(G.selectedRegion.enemyTypes) &&
+    G.selectedRegion.enemyTypes.length > 0
+      ? G.selectedRegion.enemyTypes.join(", ")
+      : "Unknown threats";
+  if (headingEl) headingEl.textContent = G.selectedRegion.name;
+  if (copyEl) {
+    copyEl.textContent = `Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Explore this region to trigger events, discoveries, or combat.`;
+  }
+  if (chipEl) {
+    chipEl.textContent = `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel}`;
+  }
+  if (exploreBtn) {
+    exploreBtn.disabled = !!G.activeCombat;
+    exploreBtn.textContent = G.activeCombat
+      ? "⚔️ Resolve Current Encounter"
+      : "🧭 Explore Selected Region";
+  }
 }
 
 function renderNav() {
@@ -556,6 +641,7 @@ function showToast(msg: string, type = "success") {
 (window as any).selectLegend = selectLegend;
 (window as any).applyWorldRecord = applyWorldRecord;
 (window as any).deleteWorldRecord = deleteWorldRecord;
+(window as any).clearAdventureLog = clearAdventureLog;
 (window as any).toggleCustomTag = toggleCustomTag;
 (window as any).forgeGoStep = forgeGoStep;
 
@@ -1607,6 +1693,12 @@ async function submitNewGame() {
   };
 
   updateAllStatusBars();
+  clearAdventureLog();
+  setMapEventState(
+    "🧭 Select a region first",
+    "Your journey begins on the world map. Pick a region and explore it from here.",
+  );
+  toggleMapCombatStage(false);
   showScreen("world");
   showToast(`Welcome back, ${G.selectedLegend.name}! ⚔️`, "success");
 
@@ -1807,6 +1899,12 @@ async function loadGame(cid: string, charName?: string) {
     `;
 
   updateAllStatusBars();
+  clearAdventureLog();
+  setMapEventState(
+    "🧭 Select a region first",
+    "Load complete. Pick a region on the map and continue the adventure from there.",
+  );
+  toggleMapCombatStage(false);
   showScreen("world");
   showToast("Loading save...", "info");
 
@@ -1890,6 +1988,7 @@ function renderRegions() {
         <div style="font-size:11px;line-height:1.5">Create or load an adventure again and the world map will repopulate here.</div>
       </div>
     `;
+    syncMapSelectionState();
     return;
   }
 
@@ -1899,7 +1998,7 @@ function renderRegions() {
         ? r.enemyTypes.join(", ")
         : "Unknown threats";
     const card = document.createElement("div");
-    card.className = "region-card";
+    card.className = `region-card ${G.selectedRegion && G.selectedRegionIndex === i ? "selected" : ""}`;
     card.innerHTML = `
             <div class="name">${r.name}</div>
             <div class="danger">⚠️ Danger: ${r.dangerLevel}</div>
@@ -1908,19 +2007,24 @@ function renderRegions() {
     card.onclick = () => selectRegion(i);
     listEl.appendChild(card);
   });
+  syncMapSelectionState();
 }
 
 function selectRegion(i: number) {
+  if (G.activeCombat) {
+    showToast("Finish the current encounter before switching regions.", "info");
+    return;
+  }
   G.selectedRegion = G.regions[i];
   G.selectedRegionIndex = i;
+  renderRegions();
   updateAllStatusBars();
-  const titleEl = document.getElementById("explore-title");
-  if (titleEl) titleEl.textContent = "🧭 Exploring: " + G.selectedRegion.name;
-  const logEl = document.getElementById("event-log");
-  if (logEl)
-    logEl.innerHTML =
-      '<div class="log-info">Click "Explore Again" to begin...</div>';
-  showScreen("explore");
+  setMapEventState(
+    `🧭 ${G.selectedRegion.name} is ready`,
+    `Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`,
+  );
+  toggleMapCombatStage(false);
+  showScreen("world");
 }
 
 // --- DOM CACHE FOR STATIC HUD ELEMENTS ---
@@ -2103,12 +2207,23 @@ function renderInventory() {
 
 // --- EXPLORE ---
 async function exploreRegion() {
-  if (!G.selectedRegion) return;
-  const logBox = document.getElementById("event-log");
-  if (!logBox) return;
-  logBox.insertAdjacentHTML(
-    "beforeend",
+  if (!G.selectedRegion) {
+    showToast("Pick a region before exploring.", "info");
+    return;
+  }
+  if (G.activeCombat) {
+    showToast("Resolve the current encounter first.", "info");
+    return;
+  }
+
+  showScreen("world");
+  setMapEventState(
+    `🧭 Exploring ${G.selectedRegion.name}`,
+    "The party moves deeper into the region. Any discovery or enemy encounter will appear here immediately.",
+  );
+  appendSharedLog(
     '<div class="log-info">───────────────────</div>',
+    ["gp-log", "event-log"],
   );
   try {
     const res = await fetch(API + "/event", {
@@ -2121,9 +2236,9 @@ async function exploreRegion() {
     });
     const j = await res.json();
     if (!j.success) {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      appendSharedLog(
         `<div class="log-combat">Error: ${j.error}</div>`,
+        ["gp-log", "event-log"],
       );
       return;
     }
@@ -2137,61 +2252,95 @@ async function exploreRegion() {
     if (ev.type === "enemy_encounter" && ev.enemy) {
       showCombat(ev);
     } else if (ev.type === "treasure_found") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("💰 Treasure Found", ev.description);
+      appendSharedLog(
         `<div class="log-treasure">💰 ${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
       if (ev.treasureGold)
-        logBox.insertAdjacentHTML(
-          "beforeend",
+        appendSharedLog(
           `<div class="log-exp">+${ev.treasureGold} Gold!</div>`,
+          ["gp-log", "event-log"],
         );
     } else if (ev.type === "rare_event") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("✨ Rare Event", ev.description);
+      appendSharedLog(
         `<div class="log-rare">✨ ${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
     } else if (ev.type === "npc_encounter") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("💬 Traveler Encounter", ev.description);
+      appendSharedLog(
         `<div class="log-dialogue">💬 ${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
     } else if (ev.type === "lore_event") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState(
+        `📖 ${ev.loreTitle || "Ancient Scroll"}`,
+        ev.loreContent || ev.description,
+      );
+      appendSharedLog(
         `
                 <div class="log-info" style="margin: 8px 0; padding: 10px; background:rgba(79, 195, 247, 0.1); border-left: 3px solid var(--accent); border-radius: 4px">
                     <strong style="color:var(--accent)">📖 ${ev.loreTitle || "Ancient Scroll"}</strong><br/>
                     <p style="margin-top:4px; font-style:italic">${ev.loreContent || ev.description}</p>
                 </div>
             `,
+        ["gp-log", "event-log"],
       );
     } else if (ev.type === "ambient_event") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("☁️ Ambient Event", ev.description);
+      appendSharedLog(
         `<div class="log-info" style="font-style:italic; color:var(--muted)">☁️ ${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
     } else if (ev.type === "rest_event") {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("🧘 Safe Rest", ev.description);
+      appendSharedLog(
         `<div class="log-victory">🧘 ${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
       if (ev.restLog)
-        logBox.insertAdjacentHTML(
-          "beforeend",
+        appendSharedLog(
           `<div class="log-exp">${ev.restLog}</div>`,
+          ["gp-log", "event-log"],
         );
     } else {
-      logBox.insertAdjacentHTML(
-        "beforeend",
+      G.activeCombat = null;
+      toggleMapCombatStage(false);
+      syncMapSelectionState();
+      setMapEventState("🗺️ Exploration Update", ev.description);
+      appendSharedLog(
         `<div class="log-info">${ev.description}</div>`,
+        ["gp-log", "event-log"],
       );
     }
-    logBox.scrollTop = logBox.scrollHeight;
   } catch {
-    logBox.insertAdjacentHTML(
-      "beforeend",
+    appendSharedLog(
       '<div class="log-combat">Network error</div>',
+      ["gp-log", "event-log"],
+    );
+    setMapEventState(
+      "⚠️ Exploration Error",
+      "The world did not respond in time. Try exploring again.",
     );
   }
 }
@@ -2210,12 +2359,18 @@ function showCombat(ev: any) {
     enemy: ev.enemy,
     isFinished: false,
   };
+  setMapEventState(
+    `⚔️ ${ev.enemy?.name || "Enemy"} blocks the path`,
+    "Combat now resolves right on the map. Use the battle controls below to finish the encounter.",
+  );
+  toggleMapCombatStage(true);
+  syncMapSelectionState();
   syncCombatPanels();
   if (ev.combatLogs && logBox) {
     ev.combatLogs.forEach((line: string) => appendCombatLog(line));
   }
   renderCombatActions();
-  showScreen("combat");
+  showScreen("world");
 }
 
 function appendCombatLog(line: string) {
@@ -2228,8 +2383,7 @@ function appendCombatLog(line: string) {
       : line.includes("attacks") || line.includes("damage")
         ? "log-combat"
         : "log-info";
-  logBox.insertAdjacentHTML("beforeend", `<div class="${cls}">${line}</div>`);
-  logBox.scrollTop = logBox.scrollHeight;
+  appendSharedLog(`<div class="${cls}">${line}</div>`, ["combat-log", "gp-log"]);
   if (resultBox) resultBox.textContent = line;
 }
 
@@ -2313,6 +2467,8 @@ function renderCombatActions() {
   if (!G.activeCombat) {
     resultBox.textContent = "";
     actionBox.innerHTML = "";
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
     return;
   }
 
@@ -2339,12 +2495,19 @@ function renderCombatActions() {
       .getElementById("btn-post-combat-explore")
       ?.addEventListener("click", () => {
         G.activeCombat = null;
-        showScreen("explore");
+        toggleMapCombatStage(false);
+        syncMapSelectionState();
+        setMapEventState(
+          G.selectedRegion
+            ? `🧭 ${G.selectedRegion.name} is clear for now`
+            : "🗺️ The path is clear",
+          "The encounter is over. Explore again or pick a different region.",
+        );
+        showScreen("world");
       });
     document
       .getElementById("btn-post-combat-stats")
       ?.addEventListener("click", () => {
-        G.activeCombat = null;
         showScreen("character");
       });
     return;
@@ -2417,6 +2580,7 @@ async function executeCombatTurn() {
           `Rewards: +${j.data.rewards.exp || 0} EXP, +${j.data.rewards.gold || 0} Gold`,
         );
       }
+      syncMapSelectionState();
     }
     renderCombatActions();
   } catch {

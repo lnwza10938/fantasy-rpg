@@ -60,6 +60,12 @@ body {
   padding: 0 16px 40px;
 }
 
+#game-container .container {
+  max-width: 1680px;
+  width: 100%;
+  padding: 0 24px 28px;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -88,12 +94,12 @@ body {
 /* ======= 4-PANEL GAME LAYOUT ======= */
 #game-ui-screen {
   display: none;
-  grid-template-columns: 220px 1fr 200px;
-  grid-template-rows: 1fr 1fr;
-  gap: 10px;
-  height: calc(100vh - 130px);
-  max-height: 800px;
-  padding: 10px 16px 10px;
+  grid-template-columns: 240px minmax(0, 1fr) 230px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
+  height: calc(100vh - 126px);
+  max-height: none;
+  padding: 14px 0 18px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -103,9 +109,13 @@ body {
 
 /* Responsive / Backup Mobile Version (Issue 3 Fix) */
 @media (max-width: 850px) {
+  #game-container .container {
+    padding: 0 16px 22px;
+  }
+
   #game-ui-screen {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
+    grid-template-rows: auto auto auto;
     height: auto;
     max-height: none;
     gap: 16px;
@@ -114,17 +124,37 @@ body {
 
   #gp-left,
   #gp-center-top,
-  #gp-center-bot,
   #gp-right {
     grid-column: 1 !important;
     grid-row: auto !important;
+  }
+
+  .map-panel-toolbar,
+  .map-panel-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .map-explore-btn {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .map-region-heading,
+  .map-event-title {
+    font-size: 18px;
+  }
+
+  .map-log-box {
+    min-height: 150px;
+    max-height: none;
   }
 }
 
 /* Manual Override Mode (Seamless Switching) */
 body.force-mobile #game-ui-screen {
   grid-template-columns: 1fr;
-  grid-template-rows: auto auto auto auto;
+  grid-template-rows: auto auto auto;
   height: auto;
   max-height: none;
   gap: 16px;
@@ -133,10 +163,20 @@ body.force-mobile #game-ui-screen {
 
 body.force-mobile #gp-left,
 body.force-mobile #gp-center-top,
-body.force-mobile #gp-center-bot,
 body.force-mobile #gp-right {
   grid-column: 1 !important;
   grid-row: auto !important;
+}
+
+body.force-mobile .map-panel-toolbar,
+body.force-mobile .map-panel-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+body.force-mobile .map-explore-btn {
+  min-width: 0;
+  width: 100%;
 }
 
 /* Panel base */
@@ -161,57 +201,48 @@ body.force-mobile #gp-right {
 /* Left panel spans both rows */
 #gp-left {
   grid-column: 1;
-  grid-row: 1 / 3;
+  grid-row: 1;
 }
 
 /* Center top */
 #gp-center-top {
   grid-column: 2;
   grid-row: 1;
+  min-height: 0;
 }
 
 /* Center bottom */
 #gp-center-bot {
-  grid-column: 2;
-  grid-row: 2;
+  display: none;
 }
 
 /* Right panel spans both rows */
 #gp-right {
   grid-column: 3;
-  grid-row: 1 / 3;
-}
-
-/* Scrollable log in center bottom */
-#gp-log {
-  flex: 1;
-  overflow-y: auto;
-  font-size: 12px;
-  line-height: 1.8;
-  background: var(--surface2);
-  border-radius: 6px;
-  padding: 8px 10px;
-  min-height: 0;
-  max-height: 100%;
+  grid-row: 1;
 }
 
 /* Region cards in 4-panel stay compact */
 #game-ui-screen .region-card {
-  padding: 8px 10px;
-  margin-bottom: 6px;
+  padding: 14px 16px;
+  margin-bottom: 0;
   cursor: pointer;
 }
 
 #game-ui-screen .region-card .name {
-  font-size: 12px;
+  font-size: 17px;
+  margin-bottom: 8px;
 }
 
 #game-ui-screen .region-card .danger {
-  font-size: 10px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 #game-ui-screen .region-card .enemies {
-  font-size: 10px;
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 1.5;
 }
 
 /* Nav tabs for center-top */
@@ -238,6 +269,128 @@ body.force-mobile #gp-right {
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   border-color: transparent;
+}
+
+.map-panel-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.map-panel-tabs {
+  margin-bottom: 0;
+}
+
+.map-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.map-region-chip {
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(79, 195, 247, 0.08);
+  border: 1px solid rgba(79, 195, 247, 0.18);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.map-explore-btn {
+  min-width: 220px;
+}
+
+.map-region-header {
+  margin-bottom: 14px;
+}
+
+.map-section-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+
+.map-region-heading,
+.map-event-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #f5f8ff;
+  line-height: 1.25;
+}
+
+.map-region-copy,
+.map-event-copy {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+.map-region-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.map-event-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.map-event-card,
+.map-combat-stage,
+.map-log-panel {
+  background: linear-gradient(
+    180deg,
+    rgba(20, 29, 44, 0.98),
+    rgba(12, 18, 29, 0.98)
+  );
+  border: 1px solid rgba(79, 195, 247, 0.14);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.map-combat-stage {
+  padding: 18px;
+}
+
+.map-log-panel {
+  margin-top: auto;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.map-log-box {
+  flex: 1;
+  min-height: 180px;
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.9;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 10px 12px;
 }
 
 /* sub-panels inside center-top */
@@ -1015,6 +1168,17 @@ input:focus {
 .region-card:hover {
   border-color: var(--accent);
   transform: translateY(-1px);
+}
+
+.region-card.selected {
+  border-color: rgba(79, 195, 247, 0.7);
+  box-shadow: 0 0 0 1px rgba(79, 195, 247, 0.2),
+    0 18px 30px rgba(0, 0, 0, 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(32, 42, 66, 0.98),
+    rgba(22, 30, 46, 0.98)
+  );
 }
 
 .region-card .name {
