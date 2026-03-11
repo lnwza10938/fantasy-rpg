@@ -298,6 +298,7 @@ function showToast(msg: string, type = "success") {
 (window as any).rollForgeSkill = rollForgeSkill;
 (window as any).confirmForge = confirmForge;
 (window as any).backFromForge = backFromForge;
+(window as any).startWizardWithLegend = startWizardWithLegend;
 (window as any).selectLegend = selectLegend;
 (window as any).toggleCustomTag = toggleCustomTag;
 (window as any).forgeGoStep = forgeGoStep;
@@ -577,6 +578,19 @@ function startWizard() {
   wizardGoStep(1);
 }
 
+function startWizardWithLegend(legend: any) {
+  G.selectedLegend = legend;
+  showScreen("wizard");
+  wizardGoStep(1);
+  showToast(`Legend selected: ${legend.name}. Choose a world to begin.`, "info");
+}
+
+async function fetchUserCharacters() {
+  const res = await fetch(`${API}/characters?userId=${G.user?.id || ""}`);
+  const j = await res.json();
+  return j.success ? j.data || [] : [];
+}
+
 // --- VAULT & FORGE LOGIC ---
 
 async function fetchVaultSelections() {
@@ -586,10 +600,9 @@ async function fetchVaultSelections() {
     '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Loading vault...</div>';
 
   try {
-    const res = await fetch(`${API}/characters?userId=${G.user?.id || ""}`);
-    const j = await res.json();
-    if (j.success && j.data.length > 0) {
-      grid.innerHTML = j.data
+    const legends = await fetchUserCharacters();
+    if (legends.length > 0) {
+      grid.innerHTML = legends
         .map(
           (c: any) => `
                 <div class="legend-card ${G.selectedLegend?.id === c.id ? "selected" : ""}" onclick="selectLegend('${c.id}', ${JSON.stringify(c).replace(/"/g, "&quot;")})">
@@ -638,10 +651,9 @@ async function renderFullVault() {
     '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Opening the archives...</div>';
 
   try {
-    const res = await fetch(`${API}/characters?userId=${G.user?.id || ""}`);
-    const j = await res.json();
-    if (j.success && j.data.length > 0) {
-      grid.innerHTML = j.data
+    const legends = await fetchUserCharacters();
+    if (legends.length > 0) {
+      grid.innerHTML = legends
         .map(
           (c: any) => `
                 <div class="legend-card">
@@ -719,6 +731,8 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
   document.getElementById("forge-skill-box")!.style.display = "none";
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).disabled =
     true;
+  (document.getElementById("btn-forge-confirm") as HTMLButtonElement).textContent =
+    "Confirm Character Creation ⚔️";
   (document.getElementById("forge-error") as HTMLElement).style.display =
     "none";
 
@@ -884,6 +898,7 @@ async function confirmForge() {
       showToast("Legend forged successfully! ✨", "success");
       // Select this character if we're in the wizard flow
       G.selectedLegend = j.data;
+      await Promise.all([fetchVaultSelections(), renderFullVault(), fetchSaveList()]);
       backFromForge();
     } else {
       errEl.textContent = j.error || "Failed to forge legend.";
@@ -894,7 +909,7 @@ async function confirmForge() {
     errEl.style.display = "block";
   } finally {
     btn.disabled = false;
-    btn.textContent = "Bake into Legend ⚔️";
+    btn.textContent = "Confirm Character Creation ⚔️";
   }
 }
 
@@ -1155,39 +1170,55 @@ async function submitNewGame() {
 // --- LOAD ---
 async function fetchSaveList() {
   try {
-    const res = await fetch(API + "/load/list/all");
-    const j = await res.json();
-    if (j.success) {
-      const listEl = document.getElementById("save-list");
-      if (!listEl) return;
-      if (j.data.length === 0) {
-        listEl.innerHTML =
-          '<p style="font-size:11px; color:var(--muted)">No saves found.</p>';
-        return;
-      }
-      listEl.innerHTML = "";
-      j.data.forEach((s: any) => {
-        const card = document.createElement("div");
-        card.className = "region-card";
-        card.style.cssText =
-          "text-align:left; padding:8px 12px; position:relative;";
-        card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items: center; margin-right: 24px;">
-                        <span class="name" style="cursor:pointer" onclick="loadGame('${s.character_id}')">👤 ${s.character_name}</span>
-                        <span class="danger">Lv.${s.level}</span>
-                    </div>
-                    <div class="enemies" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer" onclick="loadGame('${s.character_id}')">
-                        ${s.last_action_log || "No logs available"}
-                    </div>
-                    <div style="font-size:9px; color:var(--muted); margin-top:4px">${new Date(s.updated_at).toLocaleString()}</div>
-                    <button class="btn-delete" title="Delete Save" onclick="event.stopPropagation(); deleteSave('${s.character_id}', '${s.character_name}')" 
-                        style="position:absolute; top:8px; right:8px; background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
-                        🗑️
-                    </button>
-                `;
-        listEl.appendChild(card);
-      });
+    const [saveRes, legends] = await Promise.all([
+      fetch(API + "/load/list/all"),
+      fetchUserCharacters(),
+    ]);
+    const j = await saveRes.json();
+    const listEl = document.getElementById("save-list");
+    if (!listEl) return;
+
+    const saves = j.success ? j.data || [] : [];
+    const saveMap = new Map(saves.map((s: any) => [s.character_id, s]));
+
+    if (legends.length === 0) {
+      listEl.innerHTML =
+        '<p style="font-size:11px; color:var(--muted)">No legends found yet.</p>';
+      return;
     }
+
+    listEl.innerHTML = "";
+    legends.forEach((legend: any) => {
+      const save = saveMap.get(legend.id);
+      const hasSave = !!save;
+      const card = document.createElement("div");
+      card.className = "region-card";
+      card.style.cssText = "text-align:left; padding:8px 12px; position:relative;";
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-right:24px;">
+          <span class="name" style="cursor:${hasSave ? "pointer" : "default"}" ${hasSave ? `onclick="loadGame('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')"` : ""}>👤 ${legend.name}</span>
+          <span class="danger">Lv.${legend.level}</span>
+        </div>
+        <div class="enemies" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:${hasSave ? "pointer" : "default"}" ${hasSave ? `onclick="loadGame('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')"` : ""}>
+          ${hasSave ? (save.last_action_log || "Resume your journey.") : "Legend forged. Start a new adventure to create the first save."}
+        </div>
+        <div style="font-size:9px; color:var(--muted); margin-top:4px">
+          ${hasSave ? new Date(save.updated_at).toLocaleString() : "Not started yet"}
+        </div>
+        ${
+          hasSave
+            ? `<button class="btn-delete" title="Delete Save" onclick="event.stopPropagation(); deleteSave('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')" 
+              style="position:absolute; top:8px; right:8px; background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
+              🗑️
+            </button>`
+            : `<button class="btn btn-action" onclick="event.stopPropagation(); startWizardWithLegend(${JSON.stringify(legend).replace(/"/g, "&quot;")})"
+              style="position:absolute; top:8px; right:8px; font-size:10px; padding:6px 8px;">
+              Start
+            </button>`
+        }
+      `;
+      listEl.appendChild(card);
+    });
   } catch {
     showToast("Could not fetch saves", "error");
   }
@@ -1767,14 +1798,4 @@ async function executeCombatTurn() {
   }
 }
 
-// Expose to window for onclicks if needed, or better, attach all in TS
-// Let's attach them to window for now to keep HTML roughly same
-(window as any).toggleAuthMode = toggleAuthMode;
-(window as any).handleAuth = handleAuth;
-(window as any).logout = logout;
-(window as any).showScreen = showScreen;
-(window as any).exploreRegion = exploreRegion;
-(window as any).saveGame = saveGame;
-(window as any).fetchSaveList = fetchSaveList;
-(window as any).loadGame = loadGame;
 (window as any).selectRegion = selectRegion;
