@@ -79,7 +79,7 @@ export async function getCharactersByPlayerId(playerId: string) {
     .from("characters")
     .select("*")
     .eq("player_id", playerId)
-    .order("created_at", { ascending: false });
+    .order("name", { ascending: true });
 
   if (error) throw error;
   return data || [];

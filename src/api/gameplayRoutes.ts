@@ -364,7 +364,7 @@ router.get("/characters", async (req, res) => {
       .from("characters")
       .select("*")
       .eq("player_id", player.id)
-      .order("created_at", { ascending: false });
+      .order("name", { ascending: true });
 
     if (error) throw error;
     res.json({ success: true, data });
