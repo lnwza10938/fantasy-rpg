@@ -90,6 +90,15 @@ interface ActiveCombatSession {
   logs: string[];
 }
 
+interface SavedWorldMeta {
+  worldName: string;
+  worldPreset: string;
+  customBiomes: string[];
+  customMonsters: string[];
+}
+
+const WORLD_META_PREFIX = "world_meta:";
+
 function normalizeInviteCode(code: string): string {
   return code.trim();
 }
@@ -178,6 +187,72 @@ async function resolvePlayerFromRequest(params: {
   }
 
   return null;
+}
+
+function inferWorldPresetFromSeed(seed: number): string {
+  if (seed === 500000000) return "balanced";
+  if (seed === 696969420) return "inferno";
+  if (seed === 111222333) return "cursed";
+  if (seed === 987654321) return "ancient";
+  return "custom";
+}
+
+function defaultWorldNameFromPreset(preset: string, seed?: number): string {
+  if (preset === "balanced") return "The Balanced Realm";
+  if (preset === "inferno") return "The Scorched World";
+  if (preset === "cursed") return "The Cursed Lands";
+  if (preset === "ancient") return "The Ancient World";
+  if (preset === "custom") return "Custom World";
+  return seed ? `World ${seed}` : "Unknown World";
+}
+
+function parseWorldMeta(raw: unknown, seed?: number): SavedWorldMeta {
+  const inferredPreset = inferWorldPresetFromSeed(Number(seed || 0));
+  const fallback = {
+    worldName: defaultWorldNameFromPreset(inferredPreset, seed),
+    worldPreset: inferredPreset,
+    customBiomes: [],
+    customMonsters: [],
+  };
+
+  if (typeof raw !== "string" || raw.length === 0) return fallback;
+
+  const payload = raw.startsWith(WORLD_META_PREFIX)
+    ? raw.slice(WORLD_META_PREFIX.length)
+    : raw;
+
+  try {
+    const parsed = JSON.parse(payload);
+    return {
+      worldName:
+        typeof parsed.worldName === "string" && parsed.worldName.trim()
+          ? parsed.worldName.trim()
+          : fallback.worldName,
+      worldPreset:
+        typeof parsed.worldPreset === "string" && parsed.worldPreset.trim()
+          ? parsed.worldPreset.trim()
+          : fallback.worldPreset,
+      customBiomes: Array.isArray(parsed.customBiomes)
+        ? parsed.customBiomes.filter((item: unknown) => typeof item === "string")
+        : [],
+      customMonsters: Array.isArray(parsed.customMonsters)
+        ? parsed.customMonsters.filter(
+            (item: unknown) => typeof item === "string",
+          )
+        : [],
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function serializeWorldMeta(meta: SavedWorldMeta): string {
+  return `${WORLD_META_PREFIX}${JSON.stringify({
+    worldName: meta.worldName,
+    worldPreset: meta.worldPreset,
+    customBiomes: meta.customBiomes,
+    customMonsters: meta.customMonsters,
+  })}`;
 }
 
 function getCombatOutcome(
@@ -301,6 +376,7 @@ async function getSession(
     characterName: save.character_name || "Hero",
   });
   gsm.setLocation(save.current_region, save.current_map ?? undefined);
+  gsm.setWorldMeta(parseWorldMeta(save.last_event, Number(save.world_seed)));
 
   // Refresh with actual DB equipment data
   const allEquipment = await getEquipment();
@@ -318,6 +394,12 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
   if (!gsm) return;
 
   const s = gsm.getState();
+  const worldMeta = serializeWorldMeta({
+    worldName: s.worldName || `World ${s.worldSeed}`,
+    worldPreset: s.worldPreset || inferWorldPresetFromSeed(s.worldSeed),
+    customBiomes: s.customBiomes || [],
+    customMonsters: s.customMonsters || [],
+  });
   const { error } = await supabase.from("player_states").upsert(
     {
       character_id: s.characterId,
@@ -335,6 +417,7 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
       world_seed: s.worldSeed,
       phase: s.phase,
       character_name: s.characterName,
+      last_event: worldMeta,
       last_action_log: lastLog || null,
       updated_at: new Date().toISOString(),
     },
@@ -388,6 +471,8 @@ router.post("/start", async (req, res) => {
       signatureSkill,
       characterId,
       customSelection,
+      worldName,
+      worldPreset,
     } = req.body;
 
     // --- AUTH INTEGRATION ---
@@ -438,6 +523,21 @@ router.post("/start", async (req, res) => {
       gold: 0,
       characterName: character.name,
       signatureSkill: character.skillData || signatureSkill,
+    });
+    gsm.setWorldMeta({
+      worldName:
+        worldName ||
+        defaultWorldNameFromPreset(
+          worldPreset || inferWorldPresetFromSeed(seed),
+          seed,
+        ),
+      worldPreset: worldPreset || inferWorldPresetFromSeed(seed),
+      customBiomes: Array.isArray(customSelection?.biomes)
+        ? customSelection.biomes
+        : [],
+      customMonsters: Array.isArray(customSelection?.monsters)
+        ? customSelection.monsters
+        : [],
     });
     sessions.set(character.id, gsm);
 
@@ -829,6 +929,71 @@ router.get("/load/list/:playerName", async (req, res) => {
   }
 });
 
+router.get("/worlds", async (req, res) => {
+  try {
+    const { userId, email, inviteCode } = req.query;
+    const player = await resolvePlayerFromRequest({
+      userId: userId as string,
+      email: email as string,
+      inviteCode: inviteCode as string,
+      allowGuestFallback: true,
+    });
+
+    if (!player) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const { data: characters, error: characterError } = await supabase
+      .from("characters")
+      .select("id, name")
+      .eq("player_id", player.id);
+
+    if (characterError) throw characterError;
+
+    const characterMap = new Map(
+      (characters || []).map((character: any) => [character.id, character.name]),
+    );
+    const characterIds = Array.from(characterMap.keys());
+    if (characterIds.length === 0) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const { data: saves, error: saveError } = await supabase
+      .from("player_states")
+      .select(
+        "character_id, character_name, world_seed, current_region, updated_at, phase, last_action_log, last_event",
+      )
+      .in("character_id", characterIds)
+      .order("updated_at", { ascending: false });
+
+    if (saveError) throw saveError;
+
+    const worlds = (saves || []).map((save: any) => {
+      const meta = parseWorldMeta(save.last_event, Number(save.world_seed));
+      return {
+        characterId: save.character_id,
+        characterName:
+          save.character_name || characterMap.get(save.character_id) || "Hero",
+        worldSeed: Number(save.world_seed),
+        worldName: meta.worldName,
+        worldPreset: meta.worldPreset,
+        customBiomes: meta.customBiomes,
+        customMonsters: meta.customMonsters,
+        regionIndex: save.current_region ?? 0,
+        phase: save.phase || "IDLE",
+        lastActionLog: save.last_action_log || null,
+        updatedAt: save.updated_at || null,
+      };
+    });
+
+    res.json({ success: true, data: worlds });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // --- /load/:characterId ---
 router.get("/load/:characterId", async (req, res) => {
   try {
@@ -862,6 +1027,7 @@ router.get("/load/:characterId", async (req, res) => {
       characterName: data.character_name || "Hero",
     });
     gsm.setLocation(data.current_region, data.current_map ?? undefined);
+    gsm.setWorldMeta(parseWorldMeta(data.last_event, Number(data.world_seed)));
 
     // Refresh with actual DB equipment data if possible
     const allEquipment = await getEquipment();
@@ -879,6 +1045,55 @@ router.get("/load/:characterId", async (req, res) => {
         regions: world.regions,
       },
     });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+router.delete("/worlds/:characterId", async (req, res) => {
+  try {
+    const { characterId } = req.params;
+    const { userId, email, inviteCode } = req.body || {};
+    if (!characterId) {
+      res.status(400).json({ success: false, error: "characterId required" });
+      return;
+    }
+
+    const player = await resolvePlayerFromRequest({
+      userId,
+      email,
+      inviteCode,
+      allowGuestFallback: true,
+    });
+    if (!player) {
+      res.status(401).json({ success: false, error: "Unauthorized" });
+      return;
+    }
+
+    const { data: ownedCharacter, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("id", characterId)
+      .eq("player_id", player.id)
+      .maybeSingle();
+
+    if (characterError) throw characterError;
+    if (!ownedCharacter) {
+      res.status(403).json({ success: false, error: "World access denied" });
+      return;
+    }
+
+    const { error } = await supabase
+      .from("player_states")
+      .delete()
+      .eq("character_id", characterId);
+
+    if (error) throw error;
+
+    sessions.delete(characterId);
+    combatSessions.delete(characterId);
+
+    res.json({ success: true, message: "World deleted successfully" });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

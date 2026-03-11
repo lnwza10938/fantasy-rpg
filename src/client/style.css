@@ -786,6 +786,97 @@ input:focus {
   color: var(--green);
 }
 
+.world-archive-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.world-record-card {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(22, 31, 49, 0.98),
+    rgba(13, 19, 31, 0.98)
+  );
+  border: 1px solid rgba(79, 195, 247, 0.16);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+}
+
+.world-record-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.world-record-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.world-record-subtitle,
+.world-record-meta {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.world-record-phase {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(79, 195, 247, 0.12);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.world-record-log {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  min-height: 38px;
+}
+
+.world-record-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.world-record-empty {
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.world-delete-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 15px;
+  padding: 4px;
+}
+
 /* Biome Grid */
 .biome-grid {
   display: grid;

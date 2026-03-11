@@ -20,6 +20,10 @@ export interface GameStateData {
   playerId: string;
   characterId: string;
   worldSeed: number;
+  worldName: string;
+  worldPreset: string;
+  customBiomes: string[];
+  customMonsters: string[];
   regionIndex: number;
   mapId: string | null;
   eventId: string | null;
@@ -83,6 +87,10 @@ export class GameStateManager {
       playerId,
       characterId,
       worldSeed,
+      worldName: "Unknown World",
+      worldPreset: "balanced",
+      customBiomes: [],
+      customMonsters: [],
       regionIndex: 0,
       mapId: null,
       eventId: null,
@@ -172,6 +180,17 @@ export class GameStateManager {
   public setLocation(regionIndex: number, mapId?: string) {
     this.state.regionIndex = regionIndex;
     this.state.mapId = mapId ?? null;
+  }
+
+  public setWorldMeta(
+    updates: Partial<
+      Pick<
+        GameStateData,
+        "worldName" | "worldPreset" | "customBiomes" | "customMonsters"
+      >
+    >,
+  ) {
+    Object.assign(this.state, updates);
   }
 
   /** Add item to inventory */

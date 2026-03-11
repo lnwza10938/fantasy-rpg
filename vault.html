@@ -627,6 +627,40 @@
                   </button>
                 </div>
               </div>
+
+              <div
+                style="
+                  margin-top: 14px;
+                  padding-top: 12px;
+                  border-top: 1px solid var(--border);
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 12px;
+                    margin-bottom: 10px;
+                  "
+                >
+                  <h3 style="margin-bottom: 0">🗂️ World Archive</h3>
+                  <button
+                    class="btn btn-action"
+                    type="button"
+                    style="font-size: 10px"
+                    onclick="fetchCreatedWorlds()"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div id="created-world-list" class="world-archive-list">
+                  <div class="world-record-empty">
+                    No worlds recorded yet. Start an adventure and it will appear
+                    here.
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- DB Content Preview (Monsters/Biomes) -->

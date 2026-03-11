@@ -20,6 +20,7 @@ let G: any = {
   gs: null,
   activeCombat: null,
   selectedLegend: null as any,
+  createdWorlds: [] as any[],
   allContent: { biomes: [], monsters: [], factions: [], maps: [] },
   customSelection: { biomes: [] as string[], monsters: [] as string[] },
 };
@@ -29,6 +30,12 @@ const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
 const PENDING_LOAD_KEY = "rpg_pending_load";
 const APP_PAGE = document.documentElement.dataset.appPage || "menu";
+const PRESET_WORLD_BIOMES: Record<string, string[]> = {
+  balanced: ["forest", "coast", "mountain", "desert"],
+  inferno: ["volcanic"],
+  cursed: ["cursed_land", "swamp"],
+  ancient: ["ruins"],
+};
 
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
@@ -104,6 +111,46 @@ function normalizeRegions(regions: any[] | null | undefined) {
         ? region.enemyPool
         : [],
   }));
+}
+
+function getBiomeLabel(biomeId: string) {
+  return (
+    G.allContent.biomes.find((biome: any) => biome.id === biomeId)?.name ||
+    biomeId
+  );
+}
+
+function formatWorldList(type: "biomes" | "monsters", values: string[] = []) {
+  if (!values.length) return "Default";
+  return type === "biomes"
+    ? values.map((value) => getBiomeLabel(value)).join(", ")
+    : values.join(", ");
+}
+
+function worldPresetLabel(preset: string) {
+  if (preset === "balanced") return "Balanced Realm";
+  if (preset === "inferno") return "Inferno World";
+  if (preset === "cursed") return "Cursed Lands";
+  if (preset === "ancient") return "Ancient Ruins";
+  if (preset === "custom") return "Custom World";
+  return preset || "Unknown World";
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeJsSingleQuoted(value: unknown) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, "\\n")
+    .replace(/\r/g, "");
 }
 
 function navigateToPage(page: string, params?: Record<string, string>) {
@@ -271,6 +318,7 @@ function onLoginSuccess() {
         : `Logged in as: ${G.user.email}`;
   loadWorldContent(); // Load DB content for the world creation screen
   fetchSaveList(); // Fetch existing saves so user can see their data
+  fetchCreatedWorlds(); // Fetch saved worlds for world archive / custom reuse
   renderThemeBiomes("balanced"); // Initial biome preview
   renderThemeMonsters("balanced"); // Initial monster preview
   enterCurrentPage();
@@ -500,11 +548,14 @@ function showToast(msg: string, type = "success") {
 (window as any).submitNewGame = submitNewGame;
 (window as any).showVault = showVault;
 (window as any).showForge = showForge;
+(window as any).fetchCreatedWorlds = fetchCreatedWorlds;
 (window as any).rollForgeSkill = rollForgeSkill;
 (window as any).confirmForge = confirmForge;
 (window as any).backFromForge = backFromForge;
 (window as any).startWizardWithLegend = startWizardWithLegend;
 (window as any).selectLegend = selectLegend;
+(window as any).applyWorldRecord = applyWorldRecord;
+(window as any).deleteWorldRecord = deleteWorldRecord;
 (window as any).toggleCustomTag = toggleCustomTag;
 (window as any).forgeGoStep = forgeGoStep;
 
@@ -641,9 +692,9 @@ function renderThemeBiomes(preset: string) {
     }
     biomeEl.innerHTML = G.allContent.biomes
       .map((b: any) => {
-        const isSelected = G.customSelection.biomes.includes(b.name);
+        const isSelected = G.customSelection.biomes.includes(b.id);
         return `
-                <div class="biome-card selectable ${isSelected ? "selected" : ""}" onclick="toggleCustomTag('biomes', '${b.name}')">
+                <div class="biome-card selectable ${isSelected ? "selected" : ""}" onclick="toggleCustomTag('biomes', '${b.id}')">
                     <div class="b-name">${b.name}</div>
                     <div class="b-desc">${b.description}</div>
                 </div>
@@ -692,6 +743,10 @@ function renderThemeBiomes(preset: string) {
 }
 
 function wizardGoStep(step: number) {
+  if (step === 1) {
+    fetchCreatedWorlds();
+  }
+
   // Validate on forward to Step 4 (Confirm)
   if (step === 4) {
     if (!G.selectedLegend) {
@@ -719,11 +774,11 @@ function wizardGoStep(step: number) {
       if (isCustom) {
         const bTags =
           G.customSelection.biomes.length > 0
-            ? G.customSelection.biomes.join(", ")
+            ? formatWorldList("biomes", G.customSelection.biomes)
             : "Default";
         const mTags =
           G.customSelection.monsters.length > 0
-            ? G.customSelection.monsters.join(", ")
+            ? formatWorldList("monsters", G.customSelection.monsters)
             : "Default";
         tagSummary = `
                     <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-size:10px;">
@@ -850,6 +905,176 @@ async function fetchLegendCollection() {
     const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
     return bTime - aTime;
   });
+}
+
+async function fetchCreatedWorlds() {
+  const listEl = document.getElementById("created-world-list");
+  if (listEl) {
+    listEl.innerHTML =
+      '<div class="world-record-empty">Loading created worlds...</div>';
+  }
+
+  try {
+    const query = buildIdentityQuery().toString();
+    const res = await fetch(`${API}/worlds${query ? `?${query}` : ""}`);
+    const j = await res.json();
+    G.createdWorlds = j.success ? j.data || [] : [];
+  } catch {
+    G.createdWorlds = [];
+  }
+
+  renderCreatedWorlds();
+}
+
+function renderCreatedWorlds() {
+  const listEl = document.getElementById("created-world-list");
+  if (!listEl) return;
+
+  if (!G.createdWorlds || G.createdWorlds.length === 0) {
+    listEl.innerHTML = `
+      <div class="world-record-empty">
+        No worlds recorded yet. Start an adventure and it will appear here.
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = G.createdWorlds
+    .map((world: any) => {
+      const worldBiomes =
+        world.customBiomes && world.customBiomes.length > 0
+          ? world.customBiomes
+          : PRESET_WORLD_BIOMES[world.worldPreset || ""] || [];
+      const worldName = escapeHtml(world.worldName || "Unknown World");
+      const presetName = escapeHtml(
+        worldPresetLabel(world.worldPreset || "custom"),
+      );
+      const phase = escapeHtml(world.phase || "IDLE");
+      const characterName = escapeHtml(world.characterName || "Hero");
+      const biomeSummary = escapeHtml(
+        formatWorldList("biomes", worldBiomes),
+      );
+      const monsterSummary = escapeHtml(
+        formatWorldList("monsters", world.customMonsters || []),
+      );
+      const lastActionLog = escapeHtml(
+        world.lastActionLog || "No recent action recorded yet.",
+      );
+      const updatedAt = escapeHtml(
+        world.updatedAt ? new Date(world.updatedAt).toLocaleString() : "No timestamp",
+      );
+      const deleteName = escapeJsSingleQuoted(world.worldName || "Unknown World");
+      return `
+        <div class="world-record-card">
+          <button
+            class="btn-delete world-delete-btn"
+            title="Delete World"
+            onclick="event.stopPropagation(); deleteWorldRecord('${world.characterId}', '${deleteName}')"
+          >
+            🗑️
+          </button>
+          <div class="world-record-header">
+            <div>
+              <div class="world-record-title">${worldName}</div>
+              <div class="world-record-subtitle">${presetName} • Seed ${Number(world.worldSeed) || 0}</div>
+            </div>
+            <div class="world-record-phase">${phase}</div>
+          </div>
+          <div class="world-record-meta">Legend: ${characterName}</div>
+          <div class="world-record-meta">Biomes: ${biomeSummary}</div>
+          <div class="world-record-meta">Monsters: ${monsterSummary}</div>
+          <div class="world-record-meta world-record-log">${lastActionLog}</div>
+          <div class="world-record-footer">
+            <span>${updatedAt}</span>
+            <button class="btn btn-action" onclick="event.stopPropagation(); applyWorldRecord('${world.characterId}')">Use World</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function applyWorldRecord(characterId: string) {
+  const world = G.createdWorlds.find(
+    (entry: any) => entry.characterId === characterId,
+  );
+  if (!world) return;
+
+  G.customSelection.biomes = [
+    ...((world.customBiomes && world.customBiomes.length > 0
+      ? world.customBiomes
+      : PRESET_WORLD_BIOMES[world.worldPreset || ""]) || []),
+  ];
+  G.customSelection.monsters = [...(world.customMonsters || [])];
+
+  const presetId = world.worldPreset || "custom";
+  const presetEl =
+    (document.querySelector(
+      `.preset-card[data-preset="${presetId}"]`,
+    ) as HTMLElement | null) ||
+    (document.querySelector(
+      '.preset-card[data-preset="custom"]',
+    ) as HTMLElement | null);
+
+  if (presetEl) {
+    selectPreset(
+      presetEl,
+      world.worldName || "Custom World",
+      G.selectedLegend?.name || "Hero",
+      Number(world.worldSeed) || null,
+    );
+  }
+
+  const worldNameEl = document.getElementById(
+    "input-world-name",
+  ) as HTMLInputElement | null;
+  if (worldNameEl) worldNameEl.value = world.worldName || "";
+
+  const seedEl = document.getElementById("input-seed") as HTMLInputElement | null;
+  if (seedEl) seedEl.value = String(world.worldSeed || "");
+
+  renderThemeBiomes(presetId);
+  renderThemeMonsters(presetId);
+  showToast(`World selected: ${world.worldName}`, "info");
+}
+
+async function deleteWorldRecord(characterId: string, worldName: string) {
+  if (
+    !confirm(
+      `Delete the saved world "${worldName}"? The legend stays, but this adventure world/save will be erased.`,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/worlds/${characterId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: G.user?.id,
+        email: G.user?.email,
+        inviteCode: G.user?.inviteCode,
+      }),
+    });
+    const j = await res.json();
+    if (!j.success) {
+      throw new Error(j.error || "Could not delete world");
+    }
+
+    if (G.characterId === characterId) {
+      G.characterId = null;
+      G.gs = null;
+      G.regions = [];
+      G.selectedRegion = null;
+      G.selectedRegionIndex = 0;
+    }
+
+    showToast(`Deleted world: ${worldName}`, "info");
+    await Promise.all([fetchCreatedWorlds(), fetchSaveList()]);
+  } catch (err: any) {
+    showToast(err.message || "Could not delete world", "error");
+  }
 }
 
 // --- VAULT & FORGE LOGIC ---
@@ -1314,6 +1539,7 @@ async function loadWorldContent() {
 
     const preview = document.getElementById("content-preview");
     if (preview) preview.style.display = "block";
+    renderCreatedWorlds();
   } catch (e) {
     console.warn("Could not load world content", e);
   }
@@ -1333,18 +1559,23 @@ async function submitNewGame() {
   const selectedPreset = document.querySelector(
     ".preset-card.selected",
   ) as HTMLElement;
+  const presetId = selectedPreset?.dataset.preset || "balanced";
   const presetName =
     selectedPreset?.querySelector(".preset-name")?.textContent ||
     "Unknown World";
-  const isCustom = selectedPreset?.dataset.preset === "custom";
+  const isCustom = presetId === "custom";
 
-  let finalWorldName = presetName;
+  let finalWorldName = wizardState.worldName || presetName;
   if (isCustom) {
     const customName = (
       document.getElementById("input-world-name") as HTMLInputElement
     )?.value.trim();
     if (customName) finalWorldName = customName;
   }
+  const activeCustomBiomes = isCustom
+    ? [...G.customSelection.biomes]
+    : [...(PRESET_WORLD_BIOMES[presetId] || [])];
+  const activeCustomMonsters = isCustom ? [...G.customSelection.monsters] : [];
 
   G.worldSeed = seed;
   G.selectedRegion = null;
@@ -1369,6 +1600,9 @@ async function submitNewGame() {
     },
     worldSeed: seed,
     worldName: finalWorldName,
+    worldPreset: presetId,
+    customBiomes: activeCustomBiomes,
+    customMonsters: activeCustomMonsters,
     signatureSkill: G.selectedLegend.skill_data,
   };
 
@@ -1385,19 +1619,7 @@ async function submitNewGame() {
         autoCustomSelection = G.customSelection;
       } else {
         autoCustomSelection = { biomes: [], monsters: [] };
-        const presetId = selectedPreset?.dataset.preset || "balanced";
-        if (presetId === "balanced")
-          autoCustomSelection.biomes = [
-            "forest",
-            "coast",
-            "mountain",
-            "desert",
-          ];
-        else if (presetId === "inferno")
-          autoCustomSelection.biomes = ["volcanic"];
-        else if (presetId === "cursed")
-          autoCustomSelection.biomes = ["cursed_land", "swamp"];
-        else if (presetId === "ancient") autoCustomSelection.biomes = ["ruins"];
+        autoCustomSelection.biomes = [...(PRESET_WORLD_BIOMES[presetId] || [])];
       }
 
       const res = await fetch(API + "/start", {
@@ -1409,6 +1631,8 @@ async function submitNewGame() {
           userId: G.user?.id,
           email: G.user?.email,
           inviteCode: G.user?.inviteCode,
+          worldName: finalWorldName,
+          worldPreset: presetId,
           customSelection: autoCustomSelection,
         }),
       });
@@ -1420,6 +1644,7 @@ async function submitNewGame() {
         G.regions = normalizeRegions(j.data.regions);
         renderRegions();
         updateAllStatusBars();
+        fetchCreatedWorlds();
         showToast("Adventure synced! 🌍", "success");
       } else {
         showToast("Sync issue: " + (j.error || "Server busy"), "error");
@@ -1473,7 +1698,7 @@ async function fetchSaveList() {
 
     listEl.innerHTML = "";
     legends.forEach((legend: any) => {
-      const save = saveMap.get(legend.id);
+      const save = saveMap.get(legend.id) as any;
       const hasSave = !!save;
       const card = document.createElement("div");
       card.className = "region-card";
@@ -1525,7 +1750,12 @@ async function deleteLegend(cid: string, name: string) {
     if (j.success) {
       if (G.selectedLegend?.id === cid) G.selectedLegend = null;
       showToast(`Legend of ${name} has been erased.`, "info");
-      await Promise.all([fetchSaveList(), renderFullVault(), fetchVaultSelections()]);
+      await Promise.all([
+        fetchSaveList(),
+        fetchCreatedWorlds(),
+        renderFullVault(),
+        fetchVaultSelections(),
+      ]);
     } else {
       showToast(j.error || "Delete failed", "error");
     }
