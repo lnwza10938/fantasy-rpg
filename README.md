@@ -1,6 +1,7 @@
 # Procedural Fantasy RPG - Project Overview
 
 This is a web-based Procedural Fantasy RPG built with Vite, Express, and Supabase.
+The core experience combines deterministic turn-based combat with choice-driven exploration events.
 
 ## 🏗 Project Structure
 
@@ -22,6 +23,11 @@ This is a web-based Procedural Fantasy RPG built with Vite, Express, and Supabas
 - **Backend:** Node.js, Express.
 - **Database:** Supabase (PostgreSQL).
 - **AI Integration:** OpenAI / DeepSeek (via API).
+
+## 🎮 Core Gameplay
+
+- **Turn-Based Combat:** Battles resolve in clear sequential turns using deterministic combat rules.
+- **Choice-Driven Flow:** Outside combat, players progress through event and dialogue choices that affect rewards, recovery, lore, and future world context.
 
 ---
 

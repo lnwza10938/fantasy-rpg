@@ -2,6 +2,11 @@
 
 We have refined the core RPG architecture to support advanced features and database-driven content.
 
+At a gameplay level, the project is structured around two connected pillars:
+
+- **Deterministic Turn-Based Combat** for battles.
+- **Choice-Driven Exploration** for events, dialogue, and progression between battles.
+
 ### Key Refinements
 
 - **WorldInstance Cache**: The world is now loaded from the database once per session, caching regions, monsters, and lore to reduce API latency.

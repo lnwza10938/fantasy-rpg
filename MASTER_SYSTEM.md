@@ -17,6 +17,7 @@ Key design principles:
 - Skills are generated from numeric codes.
 - The world is persistent and evolves over time.
 - Player actions create legends stored in world history.
+- Core gameplay alternates between turn-based combat and player-driven choice events.
 - Developers can expand game content through a developer panel without modifying engine code.
 
 The world is not reset after completion.
@@ -68,6 +69,8 @@ Combat is deterministic and turn based.
 
 Flow: startCombat → determine turn order → execute skill → calculate damage → apply effects → log result → repeat until hp <= 0
 
+Combat should present readable turn logs so players can understand each action and result.
+
 ---
 
 ## 5. CHARACTER SYSTEM
@@ -85,6 +88,17 @@ World is generated from a numeric seed. Functions: generateWorld(seed), getRando
 ## 7. EVENT SYSTEM
 
 Event Types: exploration, enemy encounter, treasure, dialogue, rare events
+
+The game is also choice based outside combat.
+
+Players should regularly be presented with options such as:
+
+- Explore deeper
+- Engage or avoid an encounter
+- Accept or reject dialogue outcomes
+- Rest, loot, trade, or investigate
+
+These choices may affect rewards, danger level, recovery, lore discovery, and future world state.
 
 ---
 
@@ -120,7 +134,7 @@ Route: /dev — Add Monster, Item, Equipment, Map, Spawn Point, Dialogue, Upload
 
 ## 12. GAME LOOP
 
-Player enters world → Select region → Explore → Event generated → Combat → Result logged → World state saved
+Player enters world → Select region → Explore → Event generated → Player makes a choice → Combat or outcome resolves → Result logged → World state saved
 
 ---
 
@@ -134,7 +148,7 @@ Developer: /dev/monster, /dev/item, /dev/equipment, /dev/map, /dev/spawn, /dev/d
 
 ## 14. FRONTEND
 
-HTML + TypeScript + Fetch API. Screens: Login, Character, Exploration, Combat Logs
+HTML + TypeScript + Fetch API. Screens: Login, Character, Exploration, Choice/Event Panel, Combat Logs
 
 ---
 
