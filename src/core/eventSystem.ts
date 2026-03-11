@@ -2,8 +2,8 @@
 // Procedural event generator with combat encounter hooks
 
 import type { CharacterStats } from "../models/combatTypes.js";
+import type { WorldRegion } from "../models/worldTypes.js";
 import { worldSystem } from "./worldSystem.js";
-import type { Region } from "./worldSystem.js";
 
 // --- Event Types ---
 
@@ -47,7 +47,7 @@ export class EventSystem {
    */
   public async generateEvent(
     player: CharacterStats,
-    region: Region,
+    region: WorldRegion,
   ): Promise<GameEvent> {
     const instance = worldSystem.getInstance();
     if (!instance) throw new Error("World instance not ready.");
@@ -75,7 +75,7 @@ export class EventSystem {
 
   // --- Private Event Handlers ---
 
-  private triggerLoreEvent(region: Region, instance: any): GameEvent {
+  private triggerLoreEvent(region: WorldRegion, instance: any): GameEvent {
     const lorePool =
       instance.lore.length > 0
         ? instance.lore
@@ -94,7 +94,7 @@ export class EventSystem {
     };
   }
 
-  private triggerAmbientEvent(region: Region): GameEvent {
+  private triggerAmbientEvent(region: WorldRegion): GameEvent {
     const ambients = [
       `A murder of crows takes flight from the skeletal trees of ${region.name}.`,
       `The air grows freezing, and your breath mists in the gloom.`,
@@ -107,7 +107,7 @@ export class EventSystem {
     };
   }
 
-  private triggerNPCEncounter(region: Region, instance: any): GameEvent {
+  private triggerNPCEncounter(region: WorldRegion, instance: any): GameEvent {
     const allNPCs = instance.factions?.flatMap((f: any) => f.npcs || []) || [];
     // Fallback or use separate NPC list if instance has one
     const fallbackNPCs = [{ name: "A Nameless Wanderer", role: "Survivor" }];
@@ -126,7 +126,7 @@ export class EventSystem {
 
   private async triggerEnemyEncounter(
     player: CharacterStats,
-    region: Region,
+    region: WorldRegion,
     instance: any,
   ): Promise<GameEvent> {
     const poolNames = region.enemyPool;
@@ -164,7 +164,7 @@ export class EventSystem {
     };
   }
 
-  private triggerNothing(region: Region): GameEvent {
+  private triggerNothing(region: WorldRegion): GameEvent {
     const flavors = [
       `Nothing happens. The air is still.`,
       `The path ahead is empty, but you feel eyes upon you.`,
@@ -177,7 +177,7 @@ export class EventSystem {
     };
   }
 
-  private triggerRest(region: Region): GameEvent {
+  private triggerRest(region: WorldRegion): GameEvent {
     return {
       type: EventType.RestEvent,
       description: `You find a relatively safe nook in ${region.name} to catch your breath.`,
@@ -185,7 +185,10 @@ export class EventSystem {
     };
   }
 
-  private triggerTreasure(player: CharacterStats, region: Region): GameEvent {
+  private triggerTreasure(
+    player: CharacterStats,
+    region: WorldRegion,
+  ): GameEvent {
     const gold = 10 + player.level * 5 + Math.floor(Math.random() * 50);
     return {
       type: EventType.TreasureFound,
@@ -194,7 +197,10 @@ export class EventSystem {
     };
   }
 
-  private triggerRareEvent(player: CharacterStats, region: Region): GameEvent {
+  private triggerRareEvent(
+    player: CharacterStats,
+    region: WorldRegion,
+  ): GameEvent {
     return {
       type: EventType.RareEvent,
       description: `A strange shimmer in the air of ${region.name} fills you with dread. (Rare event placeholder)`,

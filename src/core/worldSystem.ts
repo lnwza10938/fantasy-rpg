@@ -2,6 +2,16 @@
 // Procedural world generation using deterministic seed-based RNG and DB content
 
 import type { CharacterStats } from "../models/combatTypes.js";
+import type {
+  WorldDefinition,
+  WorldGenerationSelection,
+  WorldMetadata,
+  WorldRegion,
+} from "../models/worldTypes.js";
+import {
+  defaultWorldNameFromPreset,
+  inferWorldPresetFromSeed,
+} from "../models/worldTypes.js";
 import {
   getMaps,
   getMonsters,
@@ -40,33 +50,28 @@ export class SeededRNG {
   }
 }
 
-// --- Interfaces ---
-
-export interface Region {
-  id: string; // Map ID from DB
-  name: string;
-  biome: string;
-  dangerLevel: number;
-  description: string;
-  enemyPool: string[]; // Monster names
-}
-
-export interface WorldState {
-  worldSeed: number;
-  regions: Region[];
-}
-
 // --- World Instance (Cached Data) ---
 export class WorldInstance {
   constructor(
-    public seed: number,
-    public regions: Region[],
+    public definition: WorldDefinition,
     public monsterPool: any[],
     public factions: any[],
     public lore: any[],
   ) {}
 
-  public getRandomRegion(rng: SeededRNG): Region {
+  public get seed(): number {
+    return this.definition.seed;
+  }
+
+  public get regions(): WorldRegion[] {
+    return this.definition.regions;
+  }
+
+  public get metadata(): WorldMetadata {
+    return this.definition.metadata;
+  }
+
+  public getRandomRegion(rng: SeededRNG): WorldRegion {
     return rng.pick(this.regions);
   }
 }
@@ -83,7 +88,7 @@ export class WorldSystem {
    */
   public async generateWorld(
     seed: number,
-    customSelection?: { biomes: string[]; monsters: string[] },
+    customSelection?: WorldGenerationSelection,
   ): Promise<WorldInstance> {
     console.log(`[WorldSystem] Loading world instance for seed ${seed}...`);
     this.rng = new SeededRNG(seed);
@@ -121,7 +126,7 @@ export class WorldSystem {
       .sort(() => this.rng.next() - 0.5)
       .slice(0, regionCount);
 
-    const regions: Region[] = selectedMaps.map((m) => {
+    const regions: WorldRegion[] = selectedMaps.map((m) => {
       // Pick monsters that match the map's biome
       let biomeMonsters = allMonsters.filter(
         (mon: any) => !m.biome || mon.biome === m.biome,
@@ -151,9 +156,25 @@ export class WorldSystem {
       };
     });
 
-    this.worldInstance = new WorldInstance(
+    const metadata: WorldMetadata = {
+      worldName: defaultWorldNameFromPreset(inferWorldPresetFromSeed(seed), seed),
+      worldPreset: inferWorldPresetFromSeed(seed),
+      customBiomes: Array.isArray(customSelection?.biomes)
+        ? customSelection.biomes
+        : [],
+      customMonsters: Array.isArray(customSelection?.monsters)
+        ? customSelection.monsters
+        : [],
+    };
+
+    const definition: WorldDefinition = {
       seed,
+      metadata,
       regions,
+    };
+
+    this.worldInstance = new WorldInstance(
+      definition,
       allMonsters,
       allFactions,
       allLore,

@@ -21,6 +21,12 @@ import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 import type { CharacterStats } from "../models/combatTypes.js";
 import {
+  defaultWorldNameFromPreset,
+  inferWorldPresetFromSeed,
+  parseWorldMeta,
+  serializeWorldMeta,
+} from "../models/worldTypes.js";
+import {
   getItems,
   getEquipment,
   getMonsters,
@@ -89,15 +95,6 @@ interface ActiveCombatSession {
   regionDangerLevel: number;
   logs: string[];
 }
-
-interface SavedWorldMeta {
-  worldName: string;
-  worldPreset: string;
-  customBiomes: string[];
-  customMonsters: string[];
-}
-
-const WORLD_META_PREFIX = "world_meta:";
 
 function normalizeInviteCode(code: string): string {
   return code.trim();
@@ -187,72 +184,6 @@ async function resolvePlayerFromRequest(params: {
   }
 
   return null;
-}
-
-function inferWorldPresetFromSeed(seed: number): string {
-  if (seed === 500000000) return "balanced";
-  if (seed === 696969420) return "inferno";
-  if (seed === 111222333) return "cursed";
-  if (seed === 987654321) return "ancient";
-  return "custom";
-}
-
-function defaultWorldNameFromPreset(preset: string, seed?: number): string {
-  if (preset === "balanced") return "The Balanced Realm";
-  if (preset === "inferno") return "The Scorched World";
-  if (preset === "cursed") return "The Cursed Lands";
-  if (preset === "ancient") return "The Ancient World";
-  if (preset === "custom") return "Custom World";
-  return seed ? `World ${seed}` : "Unknown World";
-}
-
-function parseWorldMeta(raw: unknown, seed?: number): SavedWorldMeta {
-  const inferredPreset = inferWorldPresetFromSeed(Number(seed || 0));
-  const fallback = {
-    worldName: defaultWorldNameFromPreset(inferredPreset, seed),
-    worldPreset: inferredPreset,
-    customBiomes: [],
-    customMonsters: [],
-  };
-
-  if (typeof raw !== "string" || raw.length === 0) return fallback;
-
-  const payload = raw.startsWith(WORLD_META_PREFIX)
-    ? raw.slice(WORLD_META_PREFIX.length)
-    : raw;
-
-  try {
-    const parsed = JSON.parse(payload);
-    return {
-      worldName:
-        typeof parsed.worldName === "string" && parsed.worldName.trim()
-          ? parsed.worldName.trim()
-          : fallback.worldName,
-      worldPreset:
-        typeof parsed.worldPreset === "string" && parsed.worldPreset.trim()
-          ? parsed.worldPreset.trim()
-          : fallback.worldPreset,
-      customBiomes: Array.isArray(parsed.customBiomes)
-        ? parsed.customBiomes.filter((item: unknown) => typeof item === "string")
-        : [],
-      customMonsters: Array.isArray(parsed.customMonsters)
-        ? parsed.customMonsters.filter(
-            (item: unknown) => typeof item === "string",
-          )
-        : [],
-    };
-  } catch {
-    return fallback;
-  }
-}
-
-function serializeWorldMeta(meta: SavedWorldMeta): string {
-  return `${WORLD_META_PREFIX}${JSON.stringify({
-    worldName: meta.worldName,
-    worldPreset: meta.worldPreset,
-    customBiomes: meta.customBiomes,
-    customMonsters: meta.customMonsters,
-  })}`;
 }
 
 function getCombatOutcome(
@@ -393,30 +324,28 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
   const gsm = await getSession(characterId);
   if (!gsm) return;
 
-  const s = gsm.getState();
-  const worldMeta = serializeWorldMeta({
-    worldName: s.worldName || `World ${s.worldSeed}`,
-    worldPreset: s.worldPreset || inferWorldPresetFromSeed(s.worldSeed),
-    customBiomes: s.customBiomes || [],
-    customMonsters: s.customMonsters || [],
-  });
+  const session = gsm.getStructuredState();
+  const worldMeta = serializeWorldMeta(
+    session.world.metadata,
+    session.world.seed,
+  );
   const { error } = await supabase.from("player_states").upsert(
     {
-      character_id: s.characterId,
-      current_region: s.regionIndex,
-      current_map: s.mapId,
-      hp: s.hp,
-      mana: s.mana,
-      max_hp: s.maxHP,
-      max_mana: s.maxMana,
-      exp: s.exp,
-      level: s.level,
-      gold: s.gold,
-      inventory_json: s.inventory,
-      equipment_json: s.equipment,
-      world_seed: s.worldSeed,
-      phase: s.phase,
-      character_name: s.characterName,
+      character_id: session.characterId,
+      current_region: session.world.location.regionIndex,
+      current_map: session.world.location.mapId,
+      hp: session.runtime.hp,
+      mana: session.runtime.mana,
+      max_hp: session.runtime.maxHP,
+      max_mana: session.runtime.maxMana,
+      exp: session.runtime.exp,
+      level: session.runtime.level,
+      gold: session.runtime.gold,
+      inventory_json: session.runtime.inventory,
+      equipment_json: session.runtime.equipment,
+      world_seed: session.world.seed,
+      phase: session.phase,
+      character_name: session.runtime.characterName,
       last_event: worldMeta,
       last_action_log: lastLog || null,
       updated_at: new Date().toISOString(),
@@ -539,6 +468,7 @@ router.post("/start", async (req, res) => {
         ? customSelection.monsters
         : [],
     });
+    instance.definition.metadata = gsm.getWorldState().metadata;
     sessions.set(character.id, gsm);
 
     // Initial save
@@ -551,7 +481,9 @@ router.post("/start", async (req, res) => {
         characterId: character.id,
         worldSeed: seed,
         regions: instance.regions,
+        worldDefinition: instance.definition,
         state: gsm.getState(),
+        structuredState: gsm.getStructuredState(),
       },
     });
   } catch (err: any) {
@@ -1037,11 +969,14 @@ router.get("/load/:characterId", async (req, res) => {
 
     // Regenerate world from saved seed
     const world = await worldSystem.generateWorld(Number(data.world_seed));
+    world.definition.metadata = gsm.getWorldState().metadata;
 
     res.json({
       success: true,
       data: {
         gameState: gsm.getState(),
+        structuredState: gsm.getStructuredState(),
+        worldDefinition: world.definition,
         regions: world.regions,
       },
     });

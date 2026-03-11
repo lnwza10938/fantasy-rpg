@@ -3,6 +3,11 @@
 
 import { combatSystem } from "./combatSystem.js";
 import type { EffectiveStats } from "../models/combatTypes.js";
+import type {
+  WorldLocationState,
+  WorldMetadata,
+} from "../models/worldTypes.js";
+import { normalizeWorldMetadata } from "../models/worldTypes.js";
 
 export enum GamePhase {
   IDLE = "IDLE",
@@ -61,6 +66,42 @@ export interface EquipmentSlots {
   accessory: string | null;
 }
 
+export interface WorldSessionState {
+  seed: number;
+  metadata: WorldMetadata;
+  location: WorldLocationState;
+}
+
+export interface RuntimeCharacterState {
+  hp: number;
+  maxHP: number;
+  mana: number;
+  maxMana: number;
+  exp: number;
+  level: number;
+  gold: number;
+  characterName: string;
+  effectiveStats: EffectiveStats;
+  signatureSkill?: any;
+}
+
+export interface RuntimeInventoryState {
+  inventory: InventorySlot[];
+  equipment: EquipmentSlots;
+}
+
+export interface RuntimeGameState
+  extends RuntimeCharacterState,
+    RuntimeInventoryState {}
+
+export interface StructuredGameStateData {
+  phase: GamePhase;
+  playerId: string;
+  characterId: string;
+  world: WorldSessionState;
+  runtime: RuntimeGameState;
+}
+
 // Valid state transitions
 const TRANSITIONS: Record<GamePhase, GamePhase[]> = {
   [GamePhase.IDLE]: [GamePhase.EXPLORING],
@@ -79,22 +120,25 @@ const TRANSITIONS: Record<GamePhase, GamePhase[]> = {
 };
 
 export class GameStateManager {
-  private state: GameStateData;
+  private phase: GamePhase;
+  private readonly identity: { playerId: string; characterId: string };
+  private worldState: WorldSessionState;
+  private runtimeState: RuntimeGameState;
 
   constructor(playerId: string, characterId: string, worldSeed: number) {
-    this.state = {
-      phase: GamePhase.IDLE,
-      playerId,
-      characterId,
-      worldSeed,
-      worldName: "Unknown World",
-      worldPreset: "balanced",
-      customBiomes: [],
-      customMonsters: [],
-      regionIndex: 0,
-      mapId: null,
-      eventId: null,
-      combatId: null,
+    this.phase = GamePhase.IDLE;
+    this.identity = { playerId, characterId };
+    this.worldState = {
+      seed: worldSeed,
+      metadata: normalizeWorldMetadata(undefined, worldSeed),
+      location: {
+        regionIndex: 0,
+        mapId: null,
+        eventId: null,
+        combatId: null,
+      },
+    };
+    this.runtimeState = {
       hp: 100,
       maxHP: 100,
       mana: 50,
@@ -141,17 +185,82 @@ export class GameStateManager {
   }
 
   public getState(): Readonly<GameStateData> {
-    return this.state;
+    return {
+      phase: this.phase,
+      playerId: this.identity.playerId,
+      characterId: this.identity.characterId,
+      worldSeed: this.worldState.seed,
+      worldName: this.worldState.metadata.worldName,
+      worldPreset: this.worldState.metadata.worldPreset,
+      customBiomes: [...this.worldState.metadata.customBiomes],
+      customMonsters: [...this.worldState.metadata.customMonsters],
+      regionIndex: this.worldState.location.regionIndex,
+      mapId: this.worldState.location.mapId,
+      eventId: this.worldState.location.eventId,
+      combatId: this.worldState.location.combatId,
+      hp: this.runtimeState.hp,
+      maxHP: this.runtimeState.maxHP,
+      mana: this.runtimeState.mana,
+      maxMana: this.runtimeState.maxMana,
+      exp: this.runtimeState.exp,
+      level: this.runtimeState.level,
+      gold: this.runtimeState.gold,
+      inventory: this.runtimeState.inventory.map((slot) => ({ ...slot })),
+      equipment: { ...this.runtimeState.equipment },
+      characterName: this.runtimeState.characterName,
+      effectiveStats: this.runtimeState.effectiveStats,
+      signatureSkill: this.runtimeState.signatureSkill,
+    };
+  }
+
+  public getWorldState(): Readonly<WorldSessionState> {
+    return {
+      seed: this.worldState.seed,
+      metadata: {
+        worldName: this.worldState.metadata.worldName,
+        worldPreset: this.worldState.metadata.worldPreset,
+        customBiomes: [...this.worldState.metadata.customBiomes],
+        customMonsters: [...this.worldState.metadata.customMonsters],
+      },
+      location: { ...this.worldState.location },
+    };
+  }
+
+  public getRuntimeState(): Readonly<RuntimeGameState> {
+    return {
+      hp: this.runtimeState.hp,
+      maxHP: this.runtimeState.maxHP,
+      mana: this.runtimeState.mana,
+      maxMana: this.runtimeState.maxMana,
+      exp: this.runtimeState.exp,
+      level: this.runtimeState.level,
+      gold: this.runtimeState.gold,
+      inventory: this.runtimeState.inventory.map((slot) => ({ ...slot })),
+      equipment: { ...this.runtimeState.equipment },
+      characterName: this.runtimeState.characterName,
+      effectiveStats: this.runtimeState.effectiveStats,
+      signatureSkill: this.runtimeState.signatureSkill,
+    };
+  }
+
+  public getStructuredState(): Readonly<StructuredGameStateData> {
+    return {
+      phase: this.phase,
+      playerId: this.identity.playerId,
+      characterId: this.identity.characterId,
+      world: this.getWorldState(),
+      runtime: this.getRuntimeState(),
+    };
   }
   public getPhase(): GamePhase {
-    return this.state.phase;
+    return this.phase;
   }
 
   /** Transition to a new phase with validation */
   public transition(to: GamePhase): boolean {
-    const allowed = TRANSITIONS[this.state.phase];
+    const allowed = TRANSITIONS[this.phase];
     if (!allowed.includes(to)) return false;
-    this.state.phase = to;
+    this.phase = to;
     return true;
   }
 
@@ -172,14 +281,14 @@ export class GameStateManager {
       >
     >,
   ) {
-    Object.assign(this.state, updates);
+    Object.assign(this.runtimeState, updates);
     this.refreshEffectiveStats();
   }
 
   /** Set region and map */
   public setLocation(regionIndex: number, mapId?: string) {
-    this.state.regionIndex = regionIndex;
-    this.state.mapId = mapId ?? null;
+    this.worldState.location.regionIndex = regionIndex;
+    this.worldState.location.mapId = mapId ?? null;
   }
 
   public setWorldMeta(
@@ -190,26 +299,43 @@ export class GameStateManager {
       >
     >,
   ) {
-    Object.assign(this.state, updates);
+    const nextMeta: Partial<WorldMetadata> = { ...this.worldState.metadata };
+    if (typeof updates.worldName !== "undefined") {
+      nextMeta.worldName = updates.worldName;
+    }
+    if (typeof updates.worldPreset !== "undefined") {
+      nextMeta.worldPreset = updates.worldPreset;
+    }
+    if (typeof updates.customBiomes !== "undefined") {
+      nextMeta.customBiomes = updates.customBiomes;
+    }
+    if (typeof updates.customMonsters !== "undefined") {
+      nextMeta.customMonsters = updates.customMonsters;
+    }
+
+    this.worldState.metadata = normalizeWorldMetadata(
+      nextMeta,
+      this.worldState.seed,
+    );
   }
 
   /** Add item to inventory */
   public addItem(itemId: string, qty: number = 1) {
-    const existing = this.state.inventory.find((s) => s.itemId === itemId);
+    const existing = this.runtimeState.inventory.find((s) => s.itemId === itemId);
     if (existing) {
       existing.qty += qty;
     } else {
-      this.state.inventory.push({ itemId, qty });
+      this.runtimeState.inventory.push({ itemId, qty });
     }
   }
 
   /** Remove item from inventory */
   public removeItem(itemId: string, qty: number = 1): boolean {
-    const slot = this.state.inventory.find((s) => s.itemId === itemId);
+    const slot = this.runtimeState.inventory.find((s) => s.itemId === itemId);
     if (!slot || slot.qty < qty) return false;
     slot.qty -= qty;
     if (slot.qty <= 0) {
-      this.state.inventory = this.state.inventory.filter(
+      this.runtimeState.inventory = this.runtimeState.inventory.filter(
         (s) => s.itemId !== itemId,
       );
     }
@@ -218,12 +344,12 @@ export class GameStateManager {
 
   /** Equip item to slot */
   public equip(slot: keyof EquipmentSlots, itemId: string) {
-    this.state.equipment[slot] = itemId;
+    this.runtimeState.equipment[slot] = itemId;
     this.refreshEffectiveStats();
   }
 
   public getCharacterStats(equipmentMetadata: any[]): EffectiveStats {
-    const equippedIds = Object.values(this.state.equipment).filter(
+    const equippedIds = Object.values(this.runtimeState.equipment).filter(
       (id) => !!id,
     );
     const equippedData = equipmentMetadata.filter(
@@ -231,15 +357,15 @@ export class GameStateManager {
     ); // handles both id and name
 
     const baseStats = {
-      id: this.state.characterId,
-      name: this.state.characterName,
-      level: this.state.level,
-      hp: this.state.hp,
-      maxHP: this.state.maxHP,
-      mana: this.state.mana,
-      maxMana: this.state.maxMana,
-      attack: 10 + this.state.level * 2,
-      defense: 5 + this.state.level,
+      id: this.identity.characterId,
+      name: this.runtimeState.characterName,
+      level: this.runtimeState.level,
+      hp: this.runtimeState.hp,
+      maxHP: this.runtimeState.maxHP,
+      mana: this.runtimeState.mana,
+      maxMana: this.runtimeState.maxMana,
+      attack: 10 + this.runtimeState.level * 2,
+      defense: 5 + this.runtimeState.level,
       speed: 10,
       skillMain: 111111111,
     };
@@ -251,7 +377,7 @@ export class GameStateManager {
   public refreshEffectiveStats(equipmentMetadata: any[] = []) {
     // In a real app, we'd fetch or pass the full metadata.
     // For now, we update base values so UI isn't empty.
-    this.state.effectiveStats = this.getCharacterStats(equipmentMetadata);
+    this.runtimeState.effectiveStats = this.getCharacterStats(equipmentMetadata);
   }
 
   /**
@@ -259,16 +385,22 @@ export class GameStateManager {
    * @param percent Percentage of max HP/Mana to recover (0.0 to 1.0)
    */
   public rest(percent: number = 0.3): string {
-    const hpHeal = Math.floor(this.state.maxHP * percent);
-    const manaHeal = Math.floor(this.state.maxMana * percent);
+    const hpHeal = Math.floor(this.runtimeState.maxHP * percent);
+    const manaHeal = Math.floor(this.runtimeState.maxMana * percent);
 
-    const oldHP = this.state.hp;
-    const oldMana = this.state.mana;
+    const oldHP = this.runtimeState.hp;
+    const oldMana = this.runtimeState.mana;
 
-    this.state.hp = Math.min(this.state.maxHP, this.state.hp + hpHeal);
-    this.state.mana = Math.min(this.state.maxMana, this.state.mana + manaHeal);
+    this.runtimeState.hp = Math.min(
+      this.runtimeState.maxHP,
+      this.runtimeState.hp + hpHeal,
+    );
+    this.runtimeState.mana = Math.min(
+      this.runtimeState.maxMana,
+      this.runtimeState.mana + manaHeal,
+    );
 
-    return `Restored ${this.state.hp - oldHP} HP and ${this.state.mana - oldMana} Mana.`;
+    return `Restored ${this.runtimeState.hp - oldHP} HP and ${this.runtimeState.mana - oldMana} Mana.`;
   }
 
   /**
@@ -283,14 +415,17 @@ export class GameStateManager {
 
     if (statBonus.hp) {
       const heal = statBonus.hp;
-      this.state.hp = Math.min(this.state.maxHP, this.state.hp + heal);
+      this.runtimeState.hp = Math.min(
+        this.runtimeState.maxHP,
+        this.runtimeState.hp + heal,
+      );
       log += ` Restored ${heal} HP.`;
     }
     if (statBonus.mana) {
       const restored = statBonus.mana;
-      this.state.mana = Math.min(
-        this.state.maxMana,
-        this.state.mana + restored,
+      this.runtimeState.mana = Math.min(
+        this.runtimeState.maxMana,
+        this.runtimeState.mana + restored,
       );
       log += ` Restored ${restored} Mana.`;
     }
@@ -300,7 +435,7 @@ export class GameStateManager {
 
   /** Serialize for save */
   public serialize(): string {
-    return JSON.stringify(this.state);
+    return JSON.stringify(this.getState());
   }
 
   /** Restore from saved data */
@@ -311,7 +446,37 @@ export class GameStateManager {
       data.characterId,
       data.worldSeed,
     );
-    Object.assign(mgr.state, data);
+    mgr.phase = data.phase;
+    mgr.setWorldMeta({
+      worldName: data.worldName,
+      worldPreset: data.worldPreset,
+      customBiomes: data.customBiomes,
+      customMonsters: data.customMonsters,
+    });
+    mgr.worldState.location = {
+      regionIndex: data.regionIndex,
+      mapId: data.mapId,
+      eventId: data.eventId,
+      combatId: data.combatId,
+    };
+    mgr.runtimeState = {
+      hp: data.hp,
+      maxHP: data.maxHP,
+      mana: data.mana,
+      maxMana: data.maxMana,
+      exp: data.exp,
+      level: data.level,
+      gold: data.gold,
+      inventory: Array.isArray(data.inventory) ? data.inventory : [],
+      equipment: data.equipment || {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      },
+      characterName: data.characterName,
+      effectiveStats: data.effectiveStats,
+      signatureSkill: data.signatureSkill,
+    };
     return mgr;
   }
 }

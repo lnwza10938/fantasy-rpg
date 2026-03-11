@@ -3,9 +3,8 @@
 
 import { spawnSystem } from "./spawnSystem.js";
 import { worldConsistency } from "./worldConsistency.js";
-import { worldSystem } from "./worldSystem.js";
 import type { CharacterStats } from "../models/combatTypes.js";
-import type { Region } from "./worldSystem.js";
+import type { WorldRegion } from "../models/worldTypes.js";
 
 export interface SpawnedEncounter {
   enemy: CharacterStats;
@@ -20,7 +19,7 @@ export class ContentSpawner {
    * Applies world consistency rules.
    */
   public async generateEncounter(
-    region: Region,
+    region: WorldRegion,
     playerLevel: number,
     mapId?: string,
   ): Promise<SpawnedEncounter> {
