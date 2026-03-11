@@ -99,11 +99,51 @@
             grid-template-rows: 1fr 1fr;
             gap: 10px;
             height: calc(100vh - 130px);
+            max-height: 800px;
             padding: 10px 16px 10px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         #game-ui-screen.active {
             display: grid;
+        }
+
+        /* Responsive / Backup Mobile Version (Issue 3 Fix) */
+        @media (max-width: 850px) {
+            #game-ui-screen {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+                height: auto;
+                max-height: none;
+                gap: 16px;
+                padding-bottom: 80px;
+            }
+
+            #gp-left,
+            #gp-center-top,
+            #gp-center-bot,
+            #gp-right {
+                grid-column: 1 !important;
+                grid-row: auto !important;
+            }
+        }
+
+        /* Manual Override Mode (Seamless Switching) */
+        body.force-mobile #game-ui-screen {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto auto auto auto;
+            height: auto;
+            max-height: none;
+            gap: 16px;
+            padding-bottom: 80px;
+        }
+
+        body.force-mobile #gp-left,
+        body.force-mobile #gp-center-top,
+        body.force-mobile #gp-center-bot,
+        body.force-mobile #gp-right {
+            grid-column: 1 !important;
+            grid-row: auto !important;
         }
 
         /* Panel base */
@@ -113,6 +153,7 @@
             border-radius: 10px;
             overflow-y: auto;
             padding: 12px;
+            transition: transform 0.2s;
         }
 
         .gp h3 {
@@ -1069,6 +1110,13 @@
                 <span class="toggle-track"></span>
             </label>
         </div>
+        <div class="auto-toggle" style="border-top:none; margin-top:0">
+            <span style="color:var(--accent)">Mobile Layout (Force)</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="ui-mode-toggle" onchange="toggleUIMode(this.checked)">
+                <span class="toggle-track"></span>
+            </label>
+        </div>
     </div>
 
     <!-- Google Translate Script -->
@@ -1123,6 +1171,15 @@
             localStorage.setItem('rpg_auto_translate', enabled ? 'true' : 'false');
         }
 
+        function toggleUIMode(isMobile) {
+            if (isMobile) {
+                document.body.classList.add('force-mobile');
+            } else {
+                document.body.classList.remove('force-mobile');
+            }
+            localStorage.setItem('rpg_ui_mobile', isMobile ? 'true' : 'false');
+        }
+
         // Google Translate init callback — skip if reset was requested
         function googleTranslateElementInit() {
             if (location.search.includes('notranslate=1')) {
@@ -1144,6 +1201,12 @@
         window.addEventListener('DOMContentLoaded', function () {
             const toggle = document.getElementById('auto-translate-toggle');
             if (toggle) toggle.checked = autoTranslate;
+
+            const uiToggle = document.getElementById('ui-mode-toggle');
+            const forceMobile = localStorage.getItem('rpg_ui_mobile') === 'true';
+            if (uiToggle) uiToggle.checked = forceMobile;
+            if (forceMobile) document.body.classList.add('force-mobile');
+
             // Highlight active lang button
             if (currentLang) {
                 document.querySelectorAll('.lang-btn').forEach(b => {
