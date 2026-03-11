@@ -191,21 +191,17 @@ router.get("/ai/config", (_req, res) => {
 router.post("/ai/generate", async (req, res) => {
   const { type, context } = req.body;
   if (!type) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        error: "type required (monster, item, region, dialogue, lore, skill)",
-      });
+    res.status(400).json({
+      success: false,
+      error: "type required (monster, item, region, dialogue, lore, skill)",
+    });
     return;
   }
   if (!isAIConfigured()) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        error: "AI not configured. Set API key first via /dev/ai/config",
-      });
+    res.status(400).json({
+      success: false,
+      error: "AI not configured. Set API key first via /dev/ai/config",
+    });
     return;
   }
   try {
@@ -224,12 +220,10 @@ router.post("/ai/generate", async (req, res) => {
 router.post("/ai/generate-and-save", async (req, res) => {
   const { type, context } = req.body;
   if (!type || !isAIConfigured()) {
-    res
-      .status(400)
-      .json({
-        success: false,
-        error: "type required and AI must be configured",
-      });
+    res.status(400).json({
+      success: false,
+      error: "type required and AI must be configured",
+    });
     return;
   }
   try {
