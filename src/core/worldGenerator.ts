@@ -72,7 +72,8 @@ Translate the provided 9-digit code into ONE COHESIVE PASSIVE/TRIGGERED SKILL.
 MANDATORY SCHEMA:
 - "name": Atmospheric name.
 - "description": High-quality flavorful description in English.
-- "mechanics": A clear, detailed technical breakdown explaining EXACTLY how the Trigger, Role, Target, and Effect interact based on the code.
+- "mechanics": A clear technical breakdown (e.g., "Triggers on low HP, granting a physical shield to all allies").
+- CRITICAL: DO NOT mention digit numbers (e.g., "digit 1", "index 0") in the description or mechanics. Use game terminology only.
 - "mana_cost": 0-100 (if triggered)
 - "cooldown": 0-10 (turns)
 - "target_type": single_enemy|all_enemies|self|all_allies
@@ -185,17 +186,23 @@ export class WorldGenerator {
 
     private getFallbackSkillInterpretation(code: string) {
         const d = code.split('').map(Number);
-        // Basic fallback logic based on 9_digit_skill_system.md
-        const prefix = ['Chaotic', 'Infernal', 'Sacred', 'Echoing', 'Void', 'Vibrant', 'Abyssal', 'Golden', 'Shattered'][d[0]] || 'Primal';
-        const role = ['Striker', 'Healer', 'Buffer', 'Debuffer', 'Protector', 'Assailant', 'Infuser', 'Warden', 'Executioner'][d[1]] || 'Skill';
-        const elements = ['Kinetic', 'Spark', 'Flow', 'Spirit', 'Life', 'Mana', 'True', 'Null', 'Armor'][d[3]] || 'Force';
+        
+        const triggers = ['Always Active', 'On Hit', 'On Damaged', 'On Kill', 'Low HP', 'Low Mana', 'Timed', 'On Combat Start', 'On Buff', 'Chaotic'];
+        const targets = ['Self', 'Single Enemy', 'Multiple Enemies', 'All Enemies', 'Area', 'Single Ally', 'All Allies', 'Random', 'Area (All)', 'Unstable'];
+        const scalings = ['None', 'Attack', 'Defense', 'Max HP', 'Max Mana', 'Speed', 'Level', 'Enemy Count', 'Buff Count', 'Variable'];
+        const roles = ['Striker', 'Healer', 'Buffer', 'Debuffer', 'Protector', 'Assailant', 'Infuser', 'Warden', 'Executioner', 'Glitch'];
+        const elements = ['Kinetic', 'Spark', 'Flow', 'Spirit', 'Life', 'Mana', 'True', 'Null', 'Armor', 'Void'];
 
-        const name = `${prefix} ${elements} ${role}`;
+        const prefix = ['Chaotic', 'Infernal', 'Sacred', 'Echoing', 'Void', 'Vibrant', 'Abyssal', 'Golden', 'Shattered', 'Lost'][d[0]] || 'Primal';
+        const role = roles[d[1]] || 'Skill';
+        const element = elements[d[3]] || 'Force';
+
+        const name = `${prefix} ${element} ${role}`;
 
         return {
             name,
             description: `A unique passive ability forged from the essence of code ${code.match(/.{1,3}/g)?.join('-')}.`,
-            mechanics: `This skill triggers based on digit ${d[0]} and performs a ${role.toLowerCase()} effect using ${elements.toLowerCase()} energy. Target: ${d[2]}, Scaling: ${d[4]}.`,
+            mechanics: `Triggers ${triggers[d[0]]}. Affects ${targets[d[2]]} using ${element.toLowerCase()} power. Effectiveness scales with ${scalings[d[4]]}.`,
             mana_cost: 0,
             cooldown: 0,
             target_type: 'single_enemy',
