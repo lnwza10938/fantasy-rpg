@@ -24,6 +24,9 @@ let G: any = {
   customSelection: { biomes: [] as string[], monsters: [] as string[] },
 };
 
+const GUEST_EMAIL = "guest@local";
+const GUEST_STORAGE_KEY = "rpg_guest_mode";
+
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
 
@@ -60,9 +63,21 @@ function clearAuthError() {
   if (errEl) errEl.style.display = "none";
 }
 
+function enterGuestMode() {
+  clearAuthError();
+  localStorage.setItem(GUEST_STORAGE_KEY, "true");
+  G.user = {
+    id: null,
+    email: GUEST_EMAIL,
+    isGuest: true,
+  };
+  onLoginSuccess();
+}
+
 async function handleAuth(event?: Event) {
   if (event) event.preventDefault();
   clearAuthError();
+  localStorage.removeItem(GUEST_STORAGE_KEY);
   const emailEl = document.getElementById("auth-email") as HTMLInputElement;
   const passwordEl = document.getElementById(
     "auth-password",
@@ -129,7 +144,9 @@ function onLoginSuccess() {
   if (authScreen) authScreen.style.display = "none";
   if (gameContainer) gameContainer.style.display = "block";
   if (userDisplay && G.user)
-    userDisplay.textContent = `Logged in as: ${G.user.email}`;
+    userDisplay.textContent = G.user.isGuest
+      ? "Playing as Guest"
+      : `Logged in as: ${G.user.email}`;
   showScreen("menu");
   loadWorldContent(); // Load DB content for the world creation screen
   fetchSaveList(); // Fetch existing saves so user can see their data
@@ -138,12 +155,20 @@ function onLoginSuccess() {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  localStorage.removeItem(GUEST_STORAGE_KEY);
+  if (!G.user?.isGuest) {
+    await supabase.auth.signOut();
+  }
   location.reload();
 }
 
 // Initialize state check
 window.addEventListener("load", async () => {
+  if (localStorage.getItem(GUEST_STORAGE_KEY) === "true") {
+    G.user = { id: null, email: GUEST_EMAIL, isGuest: true };
+    onLoginSuccess();
+    return;
+  }
   const { data } = await supabase.auth.getSession();
   if (data.session) {
     G.user = data.session.user;
@@ -285,6 +310,7 @@ function showToast(msg: string, type = "success") {
 (window as any).logout = logout;
 (window as any).toggleAuthMode = toggleAuthMode;
 (window as any).handleAuth = handleAuth;
+(window as any).enterGuestMode = enterGuestMode;
 (window as any).deleteLegend = deleteLegend;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;

@@ -269,10 +269,21 @@ router.post("/start", async (req, res) => {
     if (userId && email) {
       player = await getPlayerByUserId(userId);
       if (!player) {
+        player = await getPlayerByEmail(email);
+      }
+      if (!player) {
         player = await createPlayer(playerName || "Hero", userId, email);
       }
+    } else if (email) {
+      player = await getPlayerByEmail(email);
+      if (!player) {
+        player = await createPlayer(playerName || "Hero", null, email);
+      }
     } else {
-      player = await createPlayer(playerName || "Hero", null, "guest@local");
+      player = await getPlayerByEmail("guest@local");
+      if (!player) {
+        player = await createPlayer(playerName || "Hero", null, "guest@local");
+      }
     }
 
     let character;
