@@ -1,12 +1,9 @@
 // src/core/eventSystem.ts
-// Procedural event generator with combat integration
+// Procedural event generator with combat encounter hooks
 
 import type { CharacterStats } from "../models/combatTypes.js";
 import { worldSystem } from "./worldSystem.js";
 import type { Region } from "./worldSystem.js";
-import { combatSystem } from "./combatSystem.js";
-import { getNPCs, getDialogues } from "../db/contentRepositories.js";
-import { v4 as uuidv4 } from "uuid";
 
 // --- Event Types ---
 
@@ -25,7 +22,6 @@ export interface GameEvent {
   type: EventType;
   description: string;
   enemy?: CharacterStats;
-  combatLogs?: string[];
   treasureGold?: number;
   npcName?: string;
   dialogue?: string;
@@ -161,27 +157,10 @@ export class EventSystem {
       Math.max(1, player.level + (Math.random() > 0.8 ? 1 : 0)),
     );
 
-    const logs: string[] = [];
-    logs.push(`You explore ${region.name}...`);
-    logs.push(`A ${enemy.name} (Lv.${enemy.level}) appears!`);
-    logs.push(`Combat begins.`);
-
-    // Prepare EffectiveStats
-    const effPlayer = combatSystem.calculateEffectiveStats(player, []); // No extra equipment for mock-up session logic here
-    const effEnemy = combatSystem.calculateEffectiveStats(enemy, []);
-
-    // Auto-resolve combat
-    const result = await combatSystem.executeFullCombat(
-      effPlayer,
-      effEnemy,
-      uuidv4(),
-    );
-
     return {
       type: EventType.EnemyEncounter,
       description: `Enemy Encounter: ${enemy.name} in ${region.name}`,
       enemy,
-      combatLogs: [...logs, ...result.logs],
     };
   }
 

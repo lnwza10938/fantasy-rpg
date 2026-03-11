@@ -8,12 +8,12 @@ import {
   getCharacter,
   getPlayerByUserId,
   deleteCharacter,
+  saveCombatLog,
 } from "../db/repositories.js";
 import { worldSystem, SeededRNG } from "../core/worldSystem.js";
 import { eventSystem } from "../core/eventSystem.js";
 import { combatSystem } from "../core/combatSystem.js";
 import { legendSystem } from "../core/legendSystem.js";
-import { contentSpawner } from "../core/contentSpawner.js";
 import { GameStateManager, GamePhase } from "../core/gameState.js";
 import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
@@ -74,6 +74,102 @@ const router = Router();
 
 // In-memory session cache (still useful for local or warm-starts, but not relied upon)
 const sessions = new Map<string, GameStateManager>();
+const combatSessions = new Map<string, ActiveCombatSession>();
+
+interface ActiveCombatSession {
+  battleId: string;
+  enemy: CharacterStats;
+  turnCount: number;
+  regionName: string;
+  regionDangerLevel: number;
+  logs: string[];
+}
+
+function getCombatOutcome(
+  player: CharacterStats,
+  enemy: CharacterStats,
+): { isFinished: boolean; winnerId: string | null } {
+  if (player.hp <= 0) return { isFinished: true, winnerId: enemy.id };
+  if (enemy.hp <= 0) return { isFinished: true, winnerId: player.id };
+  return { isFinished: false, winnerId: null };
+}
+
+async function finalizeCombat(
+  gsm: GameStateManager,
+  playerStats: CharacterStats,
+  combat: ActiveCombatSession,
+): Promise<{
+  winnerId: string | null;
+  rewards: { exp: number; gold: number };
+}> {
+  const outcome = getCombatOutcome(playerStats, combat.enemy);
+  let expGain = 0;
+  let goldGain = 0;
+
+  if (!outcome.isFinished) {
+    return { winnerId: null, rewards: { exp: 0, gold: 0 } };
+  }
+
+  if (outcome.winnerId === playerStats.id) {
+    expGain = combat.enemy.level * 10;
+    goldGain = combat.enemy.level * 5 + Math.floor(Math.random() * 20);
+    const totalExp = gsm.getState().exp + expGain;
+    const totalGold = gsm.getState().gold + goldGain;
+
+    let newLevel = gsm.getState().level;
+    let remainingExp = totalExp;
+    while (remainingExp >= newLevel * 100) {
+      remainingExp -= newLevel * 100;
+      newLevel++;
+    }
+
+    if (newLevel > gsm.getState().level) {
+      gsm.updateCharacter({
+        level: newLevel,
+        exp: remainingExp,
+        gold: totalGold,
+        maxHP: 100 + (newLevel - 1) * 15,
+        maxMana: 50 + (newLevel - 1) * 8,
+        hp: 100 + (newLevel - 1) * 15,
+        mana: 50 + (newLevel - 1) * 8,
+      });
+    } else {
+      gsm.updateCharacter({
+        exp: totalExp,
+        gold: totalGold,
+        hp: Math.max(0, playerStats.hp),
+        mana: playerStats.mana,
+      });
+    }
+
+    gsm.transition(GamePhase.EXPLORING);
+
+    if (combat.regionDangerLevel >= 7) {
+      const legendText = legendSystem.formatLegend(
+        playerStats.name,
+        "defeated",
+        combat.enemy.name,
+        combat.regionName,
+      );
+      try {
+        await legendSystem.recordLegend({
+          world_id: combat.battleId,
+          player_name: playerStats.name,
+          event_text: legendText,
+          turn_number: combat.turnCount,
+          region_name: combat.regionName,
+        });
+      } catch {
+        /* non-critical */
+      }
+    }
+  } else {
+    gsm.updateCharacter({ hp: 0, mana: playerStats.mana });
+    gsm.transition(GamePhase.DEAD);
+  }
+
+  return { winnerId: outcome.winnerId, rewards: { exp: expGain, gold: goldGain } };
+}
 
 /**
  * Retrieves the GameStateManager. If not in memory, reconstructs it from the database.
@@ -392,6 +488,21 @@ router.post("/event", async (req, res) => {
     gsm.transition(GamePhase.EVENT);
     if (event.type === "enemy_encounter") {
       gsm.transition(GamePhase.COMBAT);
+      if (event.enemy) {
+        const battleId = uuidv4();
+        combatSessions.set(characterId, {
+          battleId,
+          enemy: { ...event.enemy },
+          turnCount: 0,
+          regionName: region.name,
+          regionDangerLevel: region.dangerLevel,
+          logs: [
+            `You explore ${region.name}...`,
+            `A ${event.enemy.name} (Lv.${event.enemy.level}) appears!`,
+            `Choose your action.`,
+          ],
+        });
+      }
     } else if (event.type === "npc_encounter") {
       gsm.transition(GamePhase.DIALOGUE);
     } else if (event.type === "rest_event") {
@@ -413,17 +524,25 @@ router.post("/event", async (req, res) => {
 
     // Auto-save after event
     await autoSave(characterId, event.description);
-
-    res.json({ success: true, data: { ...event, gameState: gsm.getState() } });
+    const activeCombat = combatSessions.get(characterId);
+    res.json({
+      success: true,
+      data: {
+        ...event,
+        battleId: activeCombat?.battleId || null,
+        combatLogs: activeCombat?.logs || [],
+        gameState: gsm.getState(),
+      },
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// --- /combat ---
-router.post("/combat", async (req, res) => {
+// --- /combat/turn ---
+router.post("/combat/turn", async (req, res) => {
   try {
-    const { characterId, enemyName, enemyLevel, regionIndex } = req.body;
+    const { characterId } = req.body;
     if (!characterId) {
       res.status(400).json({ success: false, error: "characterId required" });
       return;
@@ -435,111 +554,87 @@ router.post("/combat", async (req, res) => {
       return;
     }
 
-    let instance = worldSystem.getInstance();
-    if (!instance) {
-      instance = await worldSystem.generateWorld(gsm.getState().worldSeed);
+    const combat = combatSessions.get(characterId);
+    if (!combat) {
+      res.status(404).json({ success: false, error: "No active combat" });
+      return;
     }
-    const region = instance?.regions[regionIndex ?? 0];
 
-    // Fetch equipment metadata to calculate bonuses
     const allEquipment = await getEquipment();
-    const effectiveStats = gsm.getCharacterStats(allEquipment);
+    const player = gsm.getCharacterStats(allEquipment);
+    player.hp = gsm.getState().hp;
+    player.mana = gsm.getState().mana;
+    player.maxHP = gsm.getState().maxHP;
+    player.maxMana = gsm.getState().maxMana;
 
-    // Use Content Spawner for DB-aware enemy creation
-    let enemy: CharacterStats;
-    if (region) {
-      const encounter = await contentSpawner.generateEncounter(
-        region,
-        effectiveStats.level,
-      );
-      enemy = encounter.enemy;
-    } else {
-      enemy = worldSystem.spawnEnemy(
-        enemyName ?? "Goblin",
-        enemyLevel ?? effectiveStats.level,
+    const enemy = combatSystem.calculateEffectiveStats(combat.enemy, []);
+    enemy.hp = combat.enemy.hp;
+    enemy.mana = combat.enemy.mana;
+
+    const actors =
+      player.speed >= enemy.speed
+        ? [
+            { kind: "player" as const, attacker: player, defender: enemy },
+            { kind: "enemy" as const, attacker: enemy, defender: player },
+          ]
+        : [
+            { kind: "enemy" as const, attacker: enemy, defender: player },
+            { kind: "player" as const, attacker: player, defender: enemy },
+          ];
+
+    combat.turnCount += 1;
+    const turnLogs: string[] = [`Turn ${combat.turnCount} begins.`];
+
+    for (const actor of actors) {
+      const currentOutcome = getCombatOutcome(player, enemy);
+      if (currentOutcome.isFinished) break;
+
+      const result = combatSystem.executeTurn(actor.attacker, actor.defender);
+      actor.defender.hp = Math.max(0, actor.defender.hp - result.damage);
+      turnLogs.push(
+        `[Turn ${combat.turnCount}] ${actor.kind === "player" ? "You" : actor.attacker.name} attacks ${actor.kind === "player" ? actor.defender.name : "you"} for ${result.damage} damage!`,
       );
     }
 
-    // Map effectiveStats name if missing (CharacterStats has name, EffectiveStats adds baseStats)
-    // gsm.getCharacterStats already handles this in the latest refactor
+    combat.enemy.hp = enemy.hp;
+    combat.enemy.mana = enemy.mana;
+    gsm.updateCharacter({ hp: player.hp, mana: player.mana });
 
-    const battleId = uuidv4();
-    // Pack enemy into EffectiveStats for the new system
-    const effEnemy = combatSystem.calculateEffectiveStats(enemy, []);
+    const outcome = await finalizeCombat(gsm, player, combat);
+    combat.logs.push(...turnLogs);
 
-    const result = await combatSystem.executeFullCombat(
-      effectiveStats,
-      effEnemy,
-      battleId,
-    );
-
-    // EXP + Gold rewards on victory
-    let expGain = 0;
-    let goldGain = 0;
-    if (result.winnerId === effectiveStats.id && gsm) {
-      expGain = enemy.level * 10;
-      goldGain = enemy.level * 5 + Math.floor(Math.random() * 20);
-      const newExp = gsm.getState().exp + expGain;
-      const newGold = gsm.getState().gold + goldGain;
-
-      // Level up check
-      let newLevel = gsm.getState().level;
-      let remainingExp = newExp;
-      while (remainingExp >= newLevel * 100) {
-        remainingExp -= newLevel * 100;
-        newLevel++;
+    if (outcome.winnerId) {
+      combat.logs.push(
+        outcome.winnerId === player.id
+          ? `Victory! ${combat.enemy.name} is defeated.`
+          : `${combat.enemy.name} defeats you.`,
+      );
+      try {
+        await saveCombatLog(combat.battleId, combat.logs.join("\n"));
+      } catch (err) {
+        console.error("Failed to save turn-based combat log:", err);
       }
-
-      if (newLevel > gsm.getState().level) {
-        gsm.updateCharacter({
-          level: newLevel,
-          exp: remainingExp,
-          gold: newGold,
-          maxHP: 100 + (newLevel - 1) * 15,
-          maxMana: 50 + (newLevel - 1) * 8,
-          hp: 100 + (newLevel - 1) * 15, // Full heal on level up
-          mana: 50 + (newLevel - 1) * 8,
-        });
-      } else {
-        gsm.updateCharacter({ exp: newExp, gold: newGold });
-      }
-
-      // Record legend for boss kills (high danger)
-      if (region && region.dangerLevel >= 7) {
-        const legendText = legendSystem.formatLegend(
-          effectiveStats.name,
-          "defeated",
-          enemy.name,
-          region.name,
-        );
-        try {
-          await legendSystem.recordLegend({
-            world_id: battleId,
-            player_name: effectiveStats.name,
-            event_text: legendText,
-            turn_number: result.turnCount,
-            region_name: region.name,
-          });
-        } catch {
-          /* non-critical */
-        }
-      }
-      // Player died
-      gsm.transition(GamePhase.DEAD);
+      combatSessions.delete(characterId);
     }
 
-    // Auto-save after combat
-    await autoSave(characterId, result.logs[result.logs.length - 1]);
+    await autoSave(characterId, turnLogs[turnLogs.length - 1]);
 
     res.json({
       success: true,
       data: {
-        battleId,
-        winner: result.winnerId,
-        turns: result.turnCount,
-        logs: result.logs,
-        rewards: { exp: expGain, gold: goldGain },
-        gameState: gsm?.getState(),
+        battleId: combat.battleId,
+        winner: outcome.winnerId,
+        turns: combat.turnCount,
+        logs: turnLogs,
+        allLogs: combat.logs,
+        rewards: outcome.rewards,
+        enemy: {
+          ...combat.enemy,
+          hp: enemy.hp,
+          maxHP: enemy.maxHP,
+        },
+        gameState: gsm.getState(),
+        isFinished: !!outcome.winnerId,
       },
     });
   } catch (err: any) {

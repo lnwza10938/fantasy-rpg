@@ -18,6 +18,7 @@ let G: any = {
   selectedRegionIndex: 0,
   user: null,
   gs: null,
+  activeCombat: null,
   selectedLegend: null as any,
   allContent: { biomes: [], monsters: [], factions: [], maps: [] },
   customSelection: { biomes: [] as string[], monsters: [] as string[] },
@@ -1116,7 +1117,7 @@ async function submitNewGame() {
       if (j.success) {
         G.characterId = j.data.characterId;
         G.worldSeed = j.data.worldSeed;
-        G.gs = j.data.gameState;
+        G.gs = j.data.gameState || j.data.state || G.gs;
         G.regions = j.data.regions;
         renderRegions();
         updateAllStatusBars();
@@ -1552,7 +1553,7 @@ async function exploreRegion() {
       updateAllStatusBars();
     }
 
-    if (ev.type === "enemy_encounter" && ev.combatLogs) {
+    if (ev.type === "enemy_encounter" && ev.enemy) {
       showCombat(ev);
     } else if (ev.type === "treasure_found") {
       logBox.insertAdjacentHTML(
@@ -1623,40 +1624,147 @@ function showCombat(ev: any) {
 
   if (logBox) logBox.innerHTML = "";
   if (resultBox) resultBox.innerHTML = "";
-
-  if (ev.combatLogs && logBox && resultBox) {
-    let i = 0;
-    const interval = setInterval(() => {
-      if (i >= ev.combatLogs.length) {
-        clearInterval(interval);
-        resultBox.innerHTML = `
-                    <div style="text-align:center;margin-top:12px">
-                        <button class="btn btn-action" id="btn-post-combat-explore">← Continue Exploring</button>
-                        <button class="btn btn-action" id="btn-post-combat-stats">👤 View Stats</button>
-                    </div>`;
-        document
-          .getElementById("btn-post-combat-explore")
-          ?.addEventListener("click", () => showScreen("explore"));
-        document
-          .getElementById("btn-post-combat-stats")
-          ?.addEventListener("click", () => showScreen("character"));
-        return;
-      }
-      const line = ev.combatLogs[i];
-      const cls = line.includes("wins")
-        ? "log-victory"
-        : line.includes("takes")
-          ? "log-combat"
-          : "log-info";
-      logBox.insertAdjacentHTML(
-        "beforeend",
-        `<div class="${cls}">${line}</div>`,
-      );
-      logBox.scrollTop = logBox.scrollHeight;
-      i++;
-    }, 120);
+  G.activeCombat = {
+    battleId: ev.battleId,
+    enemy: ev.enemy,
+    isFinished: false,
+  };
+  syncCombatPanels();
+  if (ev.combatLogs && logBox) {
+    ev.combatLogs.forEach((line: string) => appendCombatLog(line));
   }
+  renderCombatActions();
   showScreen("combat");
+}
+
+function appendCombatLog(line: string) {
+  const logBox = document.getElementById("combat-log");
+  if (!logBox) return;
+  const cls =
+    line.includes("Victory") || line.includes("defeats")
+      ? "log-victory"
+      : line.includes("attacks") || line.includes("damage")
+        ? "log-combat"
+        : "log-info";
+  logBox.insertAdjacentHTML("beforeend", `<div class="${cls}">${line}</div>`);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function syncCombatPanels() {
+  const playerNameEl = document.getElementById("combat-player-name");
+  const playerHpEl = document.getElementById("combat-player-hp");
+  const playerBarEl = document.getElementById("combat-player-bar");
+  const enemyNameEl = document.getElementById("combat-enemy-name");
+  const enemyHpEl = document.getElementById("combat-enemy-hp");
+  const enemyBarEl = document.getElementById("combat-enemy-bar");
+
+  const playerName = G.gs?.characterName || "Hero";
+  const playerHp = G.gs?.hp || 0;
+  const playerMaxHp = G.gs?.maxHP || 1;
+  const enemyName = G.activeCombat?.enemy?.name || "Enemy";
+  const enemyHp = G.activeCombat?.enemy?.hp || 0;
+  const enemyMaxHp = G.activeCombat?.enemy?.maxHP || 1;
+
+  if (playerNameEl) playerNameEl.textContent = playerName;
+  if (playerHpEl) playerHpEl.textContent = `${playerHp}/${playerMaxHp}`;
+  if (playerBarEl)
+    playerBarEl.style.width = `${Math.max(0, (playerHp / playerMaxHp) * 100)}%`;
+
+  if (enemyNameEl) enemyNameEl.textContent = enemyName;
+  if (enemyHpEl) enemyHpEl.textContent = `${enemyHp}/${enemyMaxHp}`;
+  if (enemyBarEl)
+    enemyBarEl.style.width = `${Math.max(0, (enemyHp / enemyMaxHp) * 100)}%`;
+}
+
+function renderCombatActions() {
+  const resultBox = document.getElementById("combat-result");
+  if (!resultBox) return;
+
+  if (!G.activeCombat) {
+    resultBox.innerHTML = "";
+    return;
+  }
+
+  if (G.activeCombat.isFinished) {
+    resultBox.innerHTML = `
+      <div style="text-align:center;margin-top:12px">
+        <button class="btn btn-action" id="btn-post-combat-explore">← Continue Exploring</button>
+        <button class="btn btn-action" id="btn-post-combat-stats">👤 View Stats</button>
+      </div>`;
+    document
+      .getElementById("btn-post-combat-explore")
+      ?.addEventListener("click", () => {
+        G.activeCombat = null;
+        showScreen("explore");
+      });
+    document
+      .getElementById("btn-post-combat-stats")
+      ?.addEventListener("click", () => {
+        G.activeCombat = null;
+        showScreen("character");
+      });
+    return;
+  }
+
+  resultBox.innerHTML = `
+    <div style="display:flex; gap:8px; margin-top:12px">
+      <button class="btn btn-primary" id="btn-combat-attack" style="flex:1">⚔️ Attack</button>
+      <button class="btn btn-action" id="btn-combat-retreat" style="flex:1" disabled title="Coming soon">🏃 Retreat</button>
+    </div>
+    <div style="margin-top:8px; font-size:10px; color:var(--muted); text-align:center">
+      Combat now resolves one turn at a time.
+    </div>`;
+  document
+    .getElementById("btn-combat-attack")
+    ?.addEventListener("click", executeCombatTurn);
+}
+
+async function executeCombatTurn() {
+  if (!G.characterId || !G.activeCombat?.battleId) return;
+  const attackBtn = document.getElementById(
+    "btn-combat-attack",
+  ) as HTMLButtonElement | null;
+  if (attackBtn) {
+    attackBtn.disabled = true;
+    attackBtn.textContent = "Resolving...";
+  }
+
+  try {
+    const res = await fetch(API + "/combat/turn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ characterId: G.characterId }),
+    });
+    const j = await res.json();
+    if (!j.success) {
+      appendCombatLog(`Combat error: ${j.error || "Unknown error"}`);
+      return;
+    }
+
+    G.gs = j.data.gameState || G.gs;
+    G.activeCombat.enemy = j.data.enemy;
+    G.activeCombat.isFinished = j.data.isFinished;
+
+    updateAllStatusBars();
+    syncCombatPanels();
+    (j.data.logs || []).forEach((line: string) => appendCombatLog(line));
+
+    if (j.data.isFinished) {
+      if (j.data.rewards?.exp || j.data.rewards?.gold) {
+        appendCombatLog(
+          `Rewards: +${j.data.rewards.exp || 0} EXP, +${j.data.rewards.gold || 0} Gold`,
+        );
+      }
+    }
+    renderCombatActions();
+  } catch {
+    appendCombatLog("Network error while resolving turn.");
+  } finally {
+    if (attackBtn && !G.activeCombat?.isFinished) {
+      attackBtn.disabled = false;
+      attackBtn.textContent = "⚔️ Attack";
+    }
+  }
 }
 
 // Expose to window for onclicks if needed, or better, attach all in TS
