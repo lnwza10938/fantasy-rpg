@@ -26,6 +26,7 @@ let G: any = {
 
 const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
+const INVITE_STORAGE_KEY = "rpg_invite_code";
 
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
@@ -66,6 +67,7 @@ function clearAuthError() {
 function enterGuestMode() {
   clearAuthError();
   localStorage.setItem(GUEST_STORAGE_KEY, "true");
+  localStorage.removeItem(INVITE_STORAGE_KEY);
   G.user = {
     id: null,
     email: GUEST_EMAIL,
@@ -74,10 +76,59 @@ function enterGuestMode() {
   onLoginSuccess();
 }
 
+function buildIdentityQuery() {
+  const params = new URLSearchParams();
+  if (G.user?.id) params.set("userId", G.user.id);
+  if (G.user?.email) params.set("email", G.user.email);
+  if (G.user?.inviteCode) params.set("inviteCode", G.user.inviteCode);
+  return params;
+}
+
+async function enterInviteMode() {
+  clearAuthError();
+  const inviteEl = document.getElementById("auth-invite-code") as HTMLInputElement;
+  const code = inviteEl?.value.trim();
+  if (!code) return showAuthError("กรุณากรอกรหัสรับเชิญ");
+
+  const btn = document.getElementById("btn-invite-auth") as HTMLButtonElement;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Checking code...";
+  }
+
+  try {
+    const res = await fetch(API + "/invite/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteCode: code }),
+    });
+    const j = await res.json();
+    if (!j.success) {
+      throw new Error(j.error || "Invite code is invalid");
+    }
+
+    localStorage.setItem(INVITE_STORAGE_KEY, code);
+    localStorage.removeItem(GUEST_STORAGE_KEY);
+    G.user = {
+      ...j.data.profile,
+      inviteCode: code,
+    };
+    onLoginSuccess();
+  } catch (e: any) {
+    showAuthError(e.message || "Invite code is invalid");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Enter with Invite Code";
+    }
+  }
+}
+
 async function handleAuth(event?: Event) {
   if (event) event.preventDefault();
   clearAuthError();
   localStorage.removeItem(GUEST_STORAGE_KEY);
+  localStorage.removeItem(INVITE_STORAGE_KEY);
   const emailEl = document.getElementById("auth-email") as HTMLInputElement;
   const passwordEl = document.getElementById(
     "auth-password",
@@ -146,7 +197,9 @@ function onLoginSuccess() {
   if (userDisplay && G.user)
     userDisplay.textContent = G.user.isGuest
       ? "Playing as Guest"
-      : `Logged in as: ${G.user.email}`;
+      : G.user.isInvite
+        ? `Invite Access: ${G.user.label || "Streamer"}`
+        : `Logged in as: ${G.user.email}`;
   showScreen("menu");
   loadWorldContent(); // Load DB content for the world creation screen
   fetchSaveList(); // Fetch existing saves so user can see their data
@@ -156,6 +209,7 @@ function onLoginSuccess() {
 
 async function logout() {
   localStorage.removeItem(GUEST_STORAGE_KEY);
+  localStorage.removeItem(INVITE_STORAGE_KEY);
   if (!G.user?.isGuest) {
     await supabase.auth.signOut();
   }
@@ -164,6 +218,25 @@ async function logout() {
 
 // Initialize state check
 window.addEventListener("load", async () => {
+  const savedInviteCode = localStorage.getItem(INVITE_STORAGE_KEY);
+  if (savedInviteCode) {
+    try {
+      const res = await fetch(API + "/invite/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inviteCode: savedInviteCode }),
+      });
+      const j = await res.json();
+      if (j.success) {
+        G.user = { ...j.data.profile, inviteCode: savedInviteCode };
+        onLoginSuccess();
+        return;
+      }
+      localStorage.removeItem(INVITE_STORAGE_KEY);
+    } catch {
+      localStorage.removeItem(INVITE_STORAGE_KEY);
+    }
+  }
   if (localStorage.getItem(GUEST_STORAGE_KEY) === "true") {
     G.user = { id: null, email: GUEST_EMAIL, isGuest: true };
     onLoginSuccess();
@@ -311,6 +384,7 @@ function showToast(msg: string, type = "success") {
 (window as any).toggleAuthMode = toggleAuthMode;
 (window as any).handleAuth = handleAuth;
 (window as any).enterGuestMode = enterGuestMode;
+(window as any).enterInviteMode = enterInviteMode;
 (window as any).deleteLegend = deleteLegend;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
@@ -612,9 +686,7 @@ function startWizardWithLegend(legend: any) {
 }
 
 async function fetchUserCharacters() {
-  const params = new URLSearchParams();
-  if (G.user?.id) params.set("userId", G.user.id);
-  if (G.user?.email) params.set("email", G.user.email);
+  const params = buildIdentityQuery();
   const query = params.toString();
   const res = await fetch(`${API}/characters${query ? `?${query}` : ""}`);
   const j = await res.json();
@@ -624,7 +696,9 @@ async function fetchUserCharacters() {
 async function fetchLegendCollection() {
   const [characters, saveResponse] = await Promise.all([
     fetchUserCharacters().catch(() => []),
-    fetch(API + "/load/list/all")
+    fetch(
+      `${API}/load/list/all?${buildIdentityQuery().toString()}`,
+    )
       .then((res) => res.json())
       .catch(() => ({ success: false, data: [] })),
   ]);
@@ -967,9 +1041,13 @@ async function confirmForge() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         characterName: name,
-        playerName: G.user?.email?.split("@")[0] || "Hero",
+        playerName:
+          (G.user?.email && G.user.email.split("@")[0]) ||
+          G.user?.label ||
+          "Hero",
         userId: G.user?.id,
         email: G.user?.email,
+        inviteCode: G.user?.inviteCode,
         signatureSkill: { code: forgeState.skillCode, ...forgeState.skillData },
         appearance: appearance, // Dev placeholder data for generating portraits later
       }),
@@ -1206,6 +1284,7 @@ async function submitNewGame() {
           characterId: G.selectedLegend.id,
           userId: G.user?.id,
           email: G.user?.email,
+          inviteCode: G.user?.inviteCode,
           customSelection: autoCustomSelection,
         }),
       });
@@ -1252,7 +1331,7 @@ async function submitNewGame() {
 async function fetchSaveList() {
   try {
     const [saveRes, legends] = await Promise.all([
-      fetch(API + "/load/list/all"),
+      fetch(`${API}/load/list/all?${buildIdentityQuery().toString()}`),
       fetchUserCharacters(),
     ]);
     const j = await saveRes.json();

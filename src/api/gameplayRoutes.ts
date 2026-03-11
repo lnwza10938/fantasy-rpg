@@ -2,6 +2,7 @@
 // Game Loop API: /start, /world, /event, /combat, /spawn, /save, /load
 
 import { Router } from "express";
+import crypto from "node:crypto";
 import {
   createPlayer,
   createCharacter,
@@ -76,6 +77,9 @@ const router = Router();
 // In-memory session cache (still useful for local or warm-starts, but not relied upon)
 const sessions = new Map<string, GameStateManager>();
 const combatSessions = new Map<string, ActiveCombatSession>();
+const INVITE_PREFIX = "invite:";
+const INVITE_MIN_LENGTH = 8;
+const INVITE_MAX_LENGTH = 64;
 
 interface ActiveCombatSession {
   battleId: string;
@@ -84,6 +88,96 @@ interface ActiveCombatSession {
   regionName: string;
   regionDangerLevel: number;
   logs: string[];
+}
+
+function normalizeInviteCode(code: string): string {
+  return code.trim();
+}
+
+function validateInviteCode(code: string): boolean {
+  return /^[A-Za-z0-9_-]{8,64}$/.test(code);
+}
+
+function hashInviteCode(code: string): string {
+  const pepper = process.env.INVITE_CODE_PEPPER || "fantasy-rpg-invite-pepper";
+  return crypto
+    .createHash("sha256")
+    .update(`${pepper}:${normalizeInviteCode(code)}`)
+    .digest("hex");
+}
+
+function inviteEmailKey(code: string): string {
+  return `${INVITE_PREFIX}${hashInviteCode(code)}`;
+}
+
+function invitePlayerName(code: string): string {
+  return `Invite-${hashInviteCode(code).slice(0, 10)}`;
+}
+
+async function resolvePlayerFromRequest(params: {
+  userId?: string | null;
+  email?: string | null;
+  inviteCode?: string | null;
+  playerName?: string | null;
+  createIfMissing?: boolean;
+  allowGuestFallback?: boolean;
+}) {
+  const {
+    userId,
+    email,
+    inviteCode,
+    playerName,
+    createIfMissing = false,
+    allowGuestFallback = false,
+  } = params;
+
+  if (inviteCode) {
+    if (!validateInviteCode(inviteCode)) {
+      throw new Error(
+        `Invite code must be ${INVITE_MIN_LENGTH}-${INVITE_MAX_LENGTH} characters and contain only letters, numbers, "_" or "-".`,
+      );
+    }
+
+    const inviteEmail = inviteEmailKey(inviteCode);
+    let player = await getPlayerByEmail(inviteEmail);
+    if (!player && createIfMissing) {
+      player = await createPlayer(
+        playerName || invitePlayerName(inviteCode),
+        null,
+        inviteEmail,
+      );
+    }
+    return player;
+  }
+
+  if (userId) {
+    let player = await getPlayerByUserId(userId);
+    if (!player && email) {
+      player = await getPlayerByEmail(email);
+    }
+    if (!player && createIfMissing && email) {
+      player = await createPlayer(playerName || "Hero", userId, email);
+    }
+    return player;
+  }
+
+  if (email) {
+    let player = await getPlayerByEmail(email);
+    if (!player && createIfMissing) {
+      player = await createPlayer(playerName || "Hero", null, email);
+    }
+    return player;
+  }
+
+  if (allowGuestFallback) {
+    let player = await getPlayerByEmail("guest@local");
+    if (!player && createIfMissing) {
+      player = await createPlayer(playerName || "Hero", null, "guest@local");
+    }
+    return player;
+  }
+
+  return null;
 }
 
 function getCombatOutcome(
@@ -250,6 +344,37 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
   if (error) console.error(`[AutoSave Error] ${characterId}:`, error.message);
 }
 
+router.post("/invite/login", async (req, res) => {
+  try {
+    const { inviteCode } = req.body;
+    if (!inviteCode || typeof inviteCode !== "string") {
+      res.status(400).json({ success: false, error: "inviteCode required" });
+      return;
+    }
+
+    const player = await resolvePlayerFromRequest({
+      inviteCode,
+      createIfMissing: true,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        playerId: player.id,
+        profile: {
+          id: null,
+          email: null,
+          isInvite: true,
+          playerId: player.id,
+          label: player.name,
+        },
+      },
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // --- /start ---
 router.post("/start", async (req, res) => {
   try {
@@ -259,32 +384,21 @@ router.post("/start", async (req, res) => {
       worldSeed,
       userId,
       email,
+      inviteCode,
       signatureSkill,
       characterId,
       customSelection,
     } = req.body;
 
     // --- AUTH INTEGRATION ---
-    let player;
-    if (userId && email) {
-      player = await getPlayerByUserId(userId);
-      if (!player) {
-        player = await getPlayerByEmail(email);
-      }
-      if (!player) {
-        player = await createPlayer(playerName || "Hero", userId, email);
-      }
-    } else if (email) {
-      player = await getPlayerByEmail(email);
-      if (!player) {
-        player = await createPlayer(playerName || "Hero", null, email);
-      }
-    } else {
-      player = await getPlayerByEmail("guest@local");
-      if (!player) {
-        player = await createPlayer(playerName || "Hero", null, "guest@local");
-      }
-    }
+    const player = await resolvePlayerFromRequest({
+      userId,
+      email,
+      inviteCode,
+      playerName,
+      createIfMissing: true,
+      allowGuestFallback: true,
+    });
 
     let character;
     if (characterId) {
@@ -348,26 +462,13 @@ router.post("/start", async (req, res) => {
 // --- /characters (List characters in vault) ---
 router.get("/characters", async (req, res) => {
   try {
-    const { userId, email } = req.query;
-    let player;
-
-    if (userId && userId !== "undefined") {
-      player = await getPlayerByUserId(userId as string);
-      if (!player && email && email !== "undefined") {
-        player = await getPlayerByEmail(email as string);
-      }
-    } else if (email && email !== "undefined") {
-      player = await getPlayerByEmail(email as string);
-    } else {
-      // Safer guest fallback: don't throw if players is empty
-      const { data, error } = await supabase
-        .from("players")
-        .select("id")
-        .limit(1)
-        .maybeSingle();
-      if (error) console.error("Guest lookup failed:", error);
-      player = data;
-    }
+    const { userId, email, inviteCode } = req.query;
+    const player = await resolvePlayerFromRequest({
+      userId: userId as string,
+      email: email as string,
+      inviteCode: inviteCode as string,
+      allowGuestFallback: true,
+    });
 
     if (!player) return res.json({ success: true, data: [] });
 
@@ -387,36 +488,28 @@ router.get("/characters", async (req, res) => {
 // --- /character (Forge new legend) ---
 router.post("/character", async (req, res) => {
   try {
-    const { playerName, characterName, userId, email, signatureSkill } =
+    const {
+      playerName,
+      characterName,
+      userId,
+      email,
+      inviteCode,
+      signatureSkill,
+    } =
       req.body;
     if (!characterName)
       return res
         .status(400)
         .json({ success: false, error: "characterName required" });
 
-    let player;
-    if (userId && email) {
-      player = await getPlayerByUserId(userId);
-      if (!player) {
-        player = await getPlayerByEmail(email);
-      }
-      if (!player)
-        player = await createPlayer(playerName || "Hero", userId, email);
-    } else if (email) {
-      player = await getPlayerByEmail(email);
-      if (!player)
-        player = await createPlayer(playerName || "Hero", null, email);
-    } else {
-      // Find any guest player or create one
-      const { data } = await supabase
-        .from("players")
-        .select("*")
-        .eq("email", "guest@local")
-        .limit(1)
-        .single();
-      player =
-        data || (await createPlayer(playerName || "Hero", null, "guest@local"));
-    }
+    const player = await resolvePlayerFromRequest({
+      userId,
+      email,
+      inviteCode,
+      playerName,
+      createIfMissing: true,
+      allowGuestFallback: true,
+    });
 
     const character = await createCharacter(
       player.id,
@@ -696,14 +789,37 @@ router.post("/save", async (req, res) => {
 // --- /load/list ---
 router.get("/load/list/:playerName", async (req, res) => {
   try {
-    const { playerName } = req.params;
-    // In this implementation, character_id is tied to the player_id derived from the char name or we just list all
-    // For simplicity, let's list all player states with character metadata
+    const { userId, email, inviteCode } = req.query;
+    const player = await resolvePlayerFromRequest({
+      userId: userId as string,
+      email: email as string,
+      inviteCode: inviteCode as string,
+      allowGuestFallback: true,
+    });
+
+    if (!player) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
+    const { data: characters, error: characterError } = await supabase
+      .from("characters")
+      .select("id")
+      .eq("player_id", player.id);
+
+    if (characterError) throw characterError;
+    const characterIds = (characters || []).map((c: any) => c.id);
+    if (characterIds.length === 0) {
+      res.json({ success: true, data: [] });
+      return;
+    }
+
     const { data, error } = await supabase
       .from("player_states")
       .select(
         "character_id, character_name, level, updated_at, last_action_log",
       )
+      .in("character_id", characterIds)
       .order("updated_at", { ascending: false });
 
     if (error) throw error;

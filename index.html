@@ -241,6 +241,41 @@
               >
                 Continue as Guest
               </button>
+              <div
+                style="
+                  margin-top: 10px;
+                  padding-top: 10px;
+                  border-top: 1px solid var(--border);
+                "
+              >
+                <label>Invite Code</label>
+                <input
+                  type="text"
+                  id="auth-invite-code"
+                  placeholder="STREAMER-ACCESS"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  type="button"
+                  id="btn-invite-auth"
+                  class="btn btn-action"
+                  style="width: 100%; margin-top: 10px"
+                  onclick="enterInviteMode()"
+                >
+                  Enter with Invite Code
+                </button>
+                <div
+                  style="
+                    margin-top: 8px;
+                    font-size: 11px;
+                    color: var(--muted);
+                    text-align: center;
+                  "
+                >
+                  ใช้รหัสเดียวกันเพื่อเข้า account เดิมจากอุปกรณ์ไหนก็ได้
+                </div>
+              </div>
               <div style="text-align: center; font-size: 12px; margin-top: 8px">
                 <a
                   href="#"
