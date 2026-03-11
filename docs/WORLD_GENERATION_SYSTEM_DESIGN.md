@@ -3,6 +3,9 @@
 Source summary created from the shared ChatGPT conversation titled `การออกแบบระบบแผนที่`, published on March 11, 2026:
 `https://chatgpt.com/s/t_69b1e382f4888191adadeed9871860a5`
 
+Reviewed and sharpened after a follow-up evaluation shared on March 11, 2026:
+`https://chatgpt.com/s/t_69b1e8c8dc508191be743373e5141b40`
+
 This document adapts that design into the context of this project: a web-based fantasy RPG with turn-based combat, choice-driven exploration, persistent character progression, and AI-assisted content systems.
 
 ## 1. Purpose
@@ -35,6 +38,19 @@ The system should generate or load structured world data first, then render:
 - world-level views
 - region-level views
 - settlement and dungeon views
+
+### Canonical world model
+
+The unified world model must be the canonical source of truth for world definition.
+
+That means:
+
+- renderers read from the world model
+- gameplay systems read from the world model
+- dialogue and quest systems read from the world model
+- authoring and override systems modify or transform world definition through controlled layers
+
+No downstream system should create a competing definition of the world.
 
 ### Dual generation modes
 
@@ -282,6 +298,33 @@ For this project, that model should also support:
 - world preset and seed metadata
 - persistent world identity for save/load and resume
 
+### World definition versus runtime game state
+
+The project should explicitly separate:
+
+- `World Definition`
+- `Runtime Game State`
+
+`World Definition` includes static or authored world truth such as:
+
+- geography
+- regions
+- settlements
+- dungeons
+- factions
+- lore structure
+
+`Runtime Game State` includes session-dependent or player-dependent state such as:
+
+- player position
+- quest progress
+- inventory
+- combat state
+- NPC relationship changes
+- temporary event outcomes
+
+Runtime systems may reference the world model, but they should not become the place where world definition lives.
+
 ## 6. Multi-Agent AI Architecture
 
 The shared design recommends using an orchestrated multi-agent workflow instead of one overloaded prompt.
@@ -298,6 +341,7 @@ Responsibilities:
 - resolve conflicts and missing data
 
 The orchestrator coordinates work rather than inventing every detail alone.
+It should also assemble and pass context to specialist agents instead of requiring each agent to hold long-lived internal state.
 
 ### Suggested specialist agents
 
@@ -323,6 +367,17 @@ The orchestrator coordinates work rather than inventing every detail alone.
   - produce NPC dialogue on demand from live state
 - `Quest/Event AI`
   - generate hooks, conflicts, and world events
+
+### Stateless agent rule
+
+Specialist agents should be treated as stateless workers.
+
+This means:
+
+- the orchestrator owns workflow and context assembly
+- agent calls should receive explicit structured input
+- agent calls should return explicit structured output
+- agent behavior should not depend on hidden conversation memory
 
 ## 7. Validation Layer
 

@@ -3,6 +3,9 @@
 Source summary created from the shared ChatGPT conversation titled `การออกแบบระบบแผนที่`, published on March 11, 2026:
 `https://chatgpt.com/s/t_69b1e731c1588191b962ae4ef1bd2008`
 
+This report was later evaluated and refined against a follow-up review shared on March 11, 2026:
+`https://chatgpt.com/s/t_69b1e8c8dc508191be743373e5141b40`
+
 This document is a pre-implementation understanding report. Its purpose is to confirm how the shared prompt strategy should be interpreted for this repository before any major code changes begin.
 
 ## 1. What the Shared Conversation Is Actually Asking For
@@ -72,6 +75,7 @@ My interpretation:
 - this is the real foundation
 - procedural generation, custom worlds, maps, lore, and gameplay should all use the same data shape
 - this step matters more than any rendering or UI step
+- the world model must be canonical, with downstream systems deriving from it rather than inventing parallel truth
 
 ### Step 4: Manual Override System
 
@@ -110,6 +114,7 @@ My interpretation:
 - each AI role should have narrow responsibilities
 - prompts and outputs should stay structured
 - agent boundaries matter more than model personality
+- specialist agents should be stateless where possible
 
 ### Step 8: Orchestrator AI
 
@@ -119,6 +124,7 @@ My interpretation:
 
 - the orchestrator decides workflow
 - it should not become another giant content-generation prompt
+- the orchestrator should assemble context for agents rather than storing fragile implicit state inside each agent
 
 ### Step 9: Validator System
 
@@ -225,6 +231,7 @@ What should happen here:
 - define the stable world data contract
 - separate generated world data from runtime player state
 - clarify which data is canonical and which is derived
+- enforce the rule that the world model is the canonical source for world definition
 
 ### Data Model Layer
 
@@ -238,6 +245,7 @@ What should happen here:
 
 - normalize `World`, `Region`, enemy pool, lore references, world metadata, and overrides
 - make procedural and custom worlds resolve to the same shape
+- separate `World Definition` from `Runtime Game State` as different concerns
 
 ### Pipeline Layer
 
@@ -264,6 +272,7 @@ What should happen here:
 - define specialist roles as interfaces first
 - keep provider-specific logic behind adapters
 - prefer structured input/output contracts
+- treat specialist agents as stateless workers coordinated by an orchestrator
 
 ### Renderer Layer
 
@@ -312,42 +321,59 @@ If the multi-agent system grows, it should exchange structured data, ideally JSO
 
 Override logic should be explicit and layered.
 
+### Do not mix runtime state into world definition
+
+Player session state and world definition should be separate models, even when they reference each other closely.
+
+### Do not let agents accumulate hidden state
+
+Specialist agents should receive context explicitly from the orchestrator instead of relying on fragile internal memory.
+
 ### Do not break the existing playable product for a clean-architecture fantasy
 
 This repo already has value. Architecture work should strengthen it, not reset it.
 
 ## 6. My Readiness Assessment Before Implementation
 
-Based on the shared strategy, I believe the safest next implementation sequence for this repo is:
+Based on the shared strategy and the later review, I believe the safest next implementation sequence for this repo is:
 
-### Phase A: Documentation and model alignment
+### Step 1: Lock the unified world model
 
-- finalize world architecture docs
-- define current unified world shape in code terms
-- identify missing fields and duplicated concepts
+- finalize world architecture rules
+- define the current unified world shape in code terms
+- make the canonical-source rule explicit
 
-### Phase B: Type and contract cleanup
+### Step 2: Split world definition from runtime state
 
-- move toward cleaner shared world types
-- define stable input/output contracts for world creation
-- separate runtime state from world definition state
+- separate static world truth from player/session state
+- identify which current fields belong to world data versus runtime gameplay
+- keep save/load compatibility in mind while splitting responsibilities
 
-### Phase C: Pipeline hardening
+### Step 3: Create pipeline interfaces, not full generators yet
 
-- formalize procedural world generation stages
-- formalize custom world interpretation stages
-- add override-friendly world metadata
+- formalize procedural pipeline interfaces
+- formalize custom world pipeline interfaces
+- keep the output shape compatible with the unified world model
 
-### Phase D: Rendering and tooling expansion
+### Step 4: Create AI agent interfaces and orchestrator boundaries
 
-- add better map-scale rendering only after the world model is stable
-- add dev tools for authored world packs and story uploads against the stable model
+- define agent interfaces
+- define orchestrator responsibilities
+- keep specialist agents stateless and structured
 
-### Phase E: Advanced AI orchestration
+### Step 5: Only then begin generator implementation
 
-- add specialist agents
-- add validator/refiner layers
-- add structured communication protocol
+- begin procedural generators
+- begin custom-world builders
+- add validators as the first generator outputs appear
+
+### What should still wait
+
+- map renderer expansion
+- dialogue AI
+- quest system growth
+
+These should stay downstream until the world model and boundaries are stable.
 
 ## 7. Final Understanding Statement
 
@@ -355,8 +381,11 @@ My understanding of the linked conversation is:
 
 - it is a strategy for controlling Codex, not a request to code everything immediately
 - it assumes the world model is the foundation of the entire system
+- it requires the world model to be canonical
 - it requires layered construction and narrow prompts
 - it warns against starting from rendering or giant all-in-one prompts
+- it works best when runtime state is kept separate from world definition
+- it works best when specialist agents remain stateless and orchestrator-driven
 - in this repository, it should be used as an incremental refactor and expansion guide, not as a destructive rewrite plan
 
 If this understanding is accepted, the next step should be to choose one concrete layer and implement only that layer.
