@@ -591,6 +591,49 @@ async function fetchUserCharacters() {
   return j.success ? j.data || [] : [];
 }
 
+async function fetchLegendCollection() {
+  const [characters, saveResponse] = await Promise.all([
+    fetchUserCharacters().catch(() => []),
+    fetch(API + "/load/list/all")
+      .then((res) => res.json())
+      .catch(() => ({ success: false, data: [] })),
+  ]);
+
+  const merged = new Map<string, any>();
+
+  for (const character of characters) {
+    merged.set(character.id, {
+      ...character,
+      hasSave: false,
+      last_action_log: null,
+      updated_at: character.created_at || null,
+    });
+  }
+
+  for (const save of saveResponse.success ? saveResponse.data || [] : []) {
+    const existing = merged.get(save.character_id) || {
+      id: save.character_id,
+      name: save.character_name || "Unknown Hero",
+      level: save.level || 1,
+      skill_data: null,
+    };
+    merged.set(save.character_id, {
+      ...existing,
+      name: existing.name || save.character_name || "Unknown Hero",
+      level: existing.level || save.level || 1,
+      hasSave: true,
+      last_action_log: save.last_action_log || null,
+      updated_at: save.updated_at || existing.updated_at || null,
+    });
+  }
+
+  return Array.from(merged.values()).sort((a, b) => {
+    const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const bTime = b.updated_at ? new Date(b.updated_at).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
 // --- VAULT & FORGE LOGIC ---
 
 async function fetchVaultSelections() {
@@ -600,7 +643,7 @@ async function fetchVaultSelections() {
     '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Loading vault...</div>';
 
   try {
-    const legends = await fetchUserCharacters();
+    const legends = await fetchLegendCollection();
     if (legends.length > 0) {
       grid.innerHTML = legends
         .map(
@@ -651,7 +694,7 @@ async function renderFullVault() {
     '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Opening the archives...</div>';
 
   try {
-    const legends = await fetchUserCharacters();
+    const legends = await fetchLegendCollection();
     if (legends.length > 0) {
       grid.innerHTML = legends
         .map(
