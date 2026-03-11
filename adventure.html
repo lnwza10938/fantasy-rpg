@@ -1202,31 +1202,6 @@
                 </div>
               </div>
 
-              <div class="map-log-panel">
-                <div class="map-log-header">
-                  <h3 style="margin-bottom: 0">📜 Action Log</h3>
-                  <button
-                    onclick="clearAdventureLog()"
-                    style="
-                      background: none;
-                      border: none;
-                      color: var(--muted);
-                      cursor: pointer;
-                      font-size: 10px;
-                    "
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div id="gp-log" class="map-log-box" data-pristine="true">
-                  <div style="color: var(--muted); font-style: italic">
-                    Choose a region and explore to begin your adventure...
-                  </div>
-                </div>
-                <div id="event-log" style="display: none"></div>
-                <div id="combat-log" style="display: none"></div>
-                <div id="combat-rewards" style="display: none"></div>
-              </div>
             </div>
           </div>
 
@@ -1306,6 +1281,32 @@
             <h3>🧪 Items</h3>
             <div id="inv-display" style="font-size: 11px; color: var(--muted)">
               <p>No items yet.</p>
+            </div>
+
+            <div class="map-log-panel sidebar-action-log">
+              <div class="map-log-header">
+                <h3 style="margin-bottom: 0">📜 Action Log</h3>
+                <button
+                  onclick="clearAdventureLog()"
+                  style="
+                    background: none;
+                    border: none;
+                    color: var(--muted);
+                    cursor: pointer;
+                    font-size: 10px;
+                  "
+                >
+                  Clear
+                </button>
+              </div>
+              <div id="gp-log" class="map-log-box" data-pristine="true">
+                <div style="color: var(--muted); font-style: italic">
+                  Choose a region and explore to begin your adventure...
+                </div>
+              </div>
+              <div id="event-log" style="display: none"></div>
+              <div id="combat-log" style="display: none"></div>
+              <div id="combat-rewards" style="display: none"></div>
             </div>
           </div>
         </div>
