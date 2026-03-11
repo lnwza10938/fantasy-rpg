@@ -23,6 +23,18 @@
       "destination": "/api/index.ts"
     },
     {
+      "source": "/vault",
+      "destination": "/vault.html"
+    },
+    {
+      "source": "/forge",
+      "destination": "/forge.html"
+    },
+    {
+      "source": "/adventure",
+      "destination": "/adventure.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

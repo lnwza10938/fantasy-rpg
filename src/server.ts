@@ -28,6 +28,18 @@ app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
 
+app.get("/vault", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "vault.html"));
+});
+
+app.get("/forge", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "forge.html"));
+});
+
+app.get("/adventure", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "adventure.html"));
+});
+
 export default app;
 
 // Only listen locally if not deployed on Vercel

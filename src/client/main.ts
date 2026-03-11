@@ -27,6 +27,7 @@ let G: any = {
 const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
+const APP_PAGE = document.documentElement.dataset.appPage || "menu";
 
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
@@ -82,6 +83,47 @@ function buildIdentityQuery() {
   if (G.user?.email) params.set("email", G.user.email);
   if (G.user?.inviteCode) params.set("inviteCode", G.user.inviteCode);
   return params;
+}
+
+function pageHref(page: string) {
+  if (page === "vault") return "/vault";
+  if (page === "forge") return "/forge";
+  if (page === "adventure") return "/adventure";
+  return "/";
+}
+
+function navigateToPage(page: string, params?: Record<string, string>) {
+  const url = new URL(pageHref(page), window.location.origin);
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+  }
+  window.location.href = url.toString();
+}
+
+function enterCurrentPage() {
+  if (APP_PAGE === "vault") {
+    showScreen("vault");
+    renderFullVault();
+    return;
+  }
+  if (APP_PAGE === "forge") {
+    forgeReturnState =
+      (new URLSearchParams(window.location.search).get("returnTo") as
+        | "menu"
+        | "vault"
+        | "wizard"
+        | null) || "menu";
+    showScreen("forge");
+    return;
+  }
+  if (APP_PAGE === "adventure") {
+    showScreen("wizard");
+    wizardGoStep(1);
+    return;
+  }
+  showScreen("menu");
 }
 
 async function enterInviteMode() {
@@ -200,11 +242,11 @@ function onLoginSuccess() {
       : G.user.isInvite
         ? `Invite Access: ${G.user.label || "Streamer"}`
         : `Logged in as: ${G.user.email}`;
-  showScreen("menu");
   loadWorldContent(); // Load DB content for the world creation screen
   fetchSaveList(); // Fetch existing saves so user can see their data
   renderThemeBiomes("balanced"); // Initial biome preview
   renderThemeMonsters("balanced"); // Initial monster preview
+  enterCurrentPage();
 }
 
 async function logout() {
@@ -218,6 +260,16 @@ async function logout() {
 
 // Initialize state check
 window.addEventListener("load", async () => {
+  const storedLegend = sessionStorage.getItem("rpg_selected_legend");
+  if (storedLegend) {
+    try {
+      G.selectedLegend = JSON.parse(storedLegend);
+    } catch {
+      /* ignore malformed session cache */
+    } finally {
+      sessionStorage.removeItem("rpg_selected_legend");
+    }
+  }
   const savedInviteCode = localStorage.getItem(INVITE_STORAGE_KEY);
   if (savedInviteCode) {
     try {
@@ -257,6 +309,32 @@ window.addEventListener("load", async () => {
 
 // --- SCREEN ---
 function showScreen(name: string) {
+  if (name === "menu" && APP_PAGE !== "menu") {
+    navigateToPage("menu");
+    return;
+  }
+  if (name === "vault" && APP_PAGE !== "vault") {
+    navigateToPage("vault");
+    return;
+  }
+  if (name === "forge" && APP_PAGE !== "forge") {
+    navigateToPage("forge");
+    return;
+  }
+  if (
+    [
+      "wizard",
+      "world",
+      "explore",
+      "combat",
+      "character",
+      "inventory",
+    ].includes(name) &&
+    APP_PAGE !== "adventure"
+  ) {
+    navigateToPage("adventure");
+    return;
+  }
   // Ensure game-container is always visible when navigating app screens
   const gameContainer = document.getElementById("game-container");
   if (gameContainer) gameContainer.style.display = "block";
@@ -674,12 +752,21 @@ function wizardGoStep(step: number) {
 }
 
 function startWizard() {
+  if (APP_PAGE !== "adventure") {
+    navigateToPage("adventure");
+    return;
+  }
   showScreen("wizard");
   wizardGoStep(1);
 }
 
 function startWizardWithLegend(legend: any) {
   G.selectedLegend = legend;
+  if (APP_PAGE !== "adventure") {
+    sessionStorage.setItem("rpg_selected_legend", JSON.stringify(legend));
+    navigateToPage("adventure");
+    return;
+  }
   showScreen("wizard");
   wizardGoStep(1);
   showToast(`Legend selected: ${legend.name}. Choose a world to begin.`, "info");
@@ -787,6 +874,10 @@ function selectLegend(id: string, legend: any) {
 }
 
 function showVault() {
+  if (APP_PAGE !== "vault") {
+    navigateToPage("vault");
+    return;
+  }
   showScreen("vault");
   renderFullVault();
 }
@@ -868,6 +959,10 @@ function forgeGoStep(step: number) {
 let forgeReturnState: "menu" | "vault" | "wizard" = "menu";
 
 function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
+  if (APP_PAGE !== "forge") {
+    navigateToPage("forge", { returnTo });
+    return;
+  }
   forgeReturnState = returnTo;
   showScreen("forge");
   // Reset state

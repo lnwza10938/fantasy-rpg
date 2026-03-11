@@ -1,4 +1,8 @@
 import { defineConfig } from "vite";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   root: "./",
@@ -17,5 +21,13 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        vault: resolve(__dirname, "vault.html"),
+        forge: resolve(__dirname, "forge.html"),
+        adventure: resolve(__dirname, "adventure.html"),
+      },
+    },
   },
 });
