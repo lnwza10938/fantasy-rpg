@@ -285,7 +285,7 @@ function showToast(msg: string, type = "success") {
 (window as any).logout = logout;
 (window as any).toggleAuthMode = toggleAuthMode;
 (window as any).handleAuth = handleAuth;
-(window as any).deleteSave = deleteSave;
+(window as any).deleteLegend = deleteLegend;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
 (window as any).startWizard = startWizard;
@@ -704,6 +704,14 @@ async function renderFullVault() {
         .map(
           (c: any) => `
                 <div class="legend-card">
+                    <button
+                      class="btn-delete"
+                      title="Delete Legend"
+                      onclick="event.stopPropagation(); deleteLegend('${c.id}', '${c.name.replace(/'/g, "\\'")}')"
+                      style="position:absolute; top:10px; right:10px; background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;"
+                    >
+                      🗑️
+                    </button>
                     <div class="name">${c.name}</div>
                     <div style="font-size:11px; color:var(--muted); margin-bottom:10px">Lv.${c.level} Adventurer</div>
                     <div style="background:rgba(0,0,0,0.2); border-radius:6px; padding:10px; font-size:11px">
@@ -1252,17 +1260,20 @@ async function fetchSaveList() {
         <div style="font-size:9px; color:var(--muted); margin-top:4px">
           ${hasSave ? new Date(save.updated_at).toLocaleString() : "Not started yet"}
         </div>
-        ${
-          hasSave
-            ? `<button class="btn-delete" title="Delete Save" onclick="event.stopPropagation(); deleteSave('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')" 
-              style="position:absolute; top:8px; right:8px; background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
-              🗑️
-            </button>`
-            : `<button class="btn btn-action" onclick="event.stopPropagation(); startWizardWithLegend(${JSON.stringify(legend).replace(/"/g, "&quot;")})"
-              style="position:absolute; top:8px; right:8px; font-size:10px; padding:6px 8px;">
-              Start
-            </button>`
-        }
+        <div style="position:absolute; top:8px; right:8px; display:flex; gap:6px; align-items:center;">
+          ${
+            !hasSave
+              ? `<button class="btn btn-action" onclick="event.stopPropagation(); startWizardWithLegend(${JSON.stringify(legend).replace(/"/g, "&quot;")})"
+                style="font-size:10px; padding:6px 8px;">
+                Start
+              </button>`
+              : ""
+          }
+          <button class="btn-delete" title="Delete Legend" onclick="event.stopPropagation(); deleteLegend('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')" 
+            style="background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
+            🗑️
+          </button>
+        </div>
       `;
       listEl.appendChild(card);
     });
@@ -1271,10 +1282,10 @@ async function fetchSaveList() {
   }
 }
 
-async function deleteSave(cid: string, name: string) {
+async function deleteLegend(cid: string, name: string) {
   if (
     !confirm(
-      `Are you sure you want to permanently delete the legend of ${name}?`,
+      `Are you sure you want to permanently delete ${name}? This will remove the legend and any save data.`,
     )
   )
     return;
@@ -1283,8 +1294,9 @@ async function deleteSave(cid: string, name: string) {
     const res = await fetch(API + "/load/" + cid, { method: "DELETE" });
     const j = await res.json();
     if (j.success) {
+      if (G.selectedLegend?.id === cid) G.selectedLegend = null;
       showToast(`Legend of ${name} has been erased.`, "info");
-      fetchSaveList(); // Refresh list
+      await Promise.all([fetchSaveList(), renderFullVault(), fetchVaultSelections()]);
     } else {
       showToast(j.error || "Delete failed", "error");
     }
