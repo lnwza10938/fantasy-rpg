@@ -93,6 +93,19 @@ function pageHref(page: string) {
   return "/";
 }
 
+function normalizeRegions(regions: any[] | null | undefined) {
+  return (regions || []).map((region: any, index: number) => ({
+    ...region,
+    id: region?.id || `region-${index}`,
+    dangerLevel: region?.dangerLevel ?? region?.danger_level ?? 1,
+    enemyTypes: Array.isArray(region?.enemyTypes)
+      ? region.enemyTypes
+      : Array.isArray(region?.enemyPool)
+        ? region.enemyPool
+        : [],
+  }));
+}
+
 function navigateToPage(page: string, params?: Record<string, string>) {
   const url = new URL(pageHref(page), window.location.origin);
   if (params) {
@@ -1334,6 +1347,8 @@ async function submitNewGame() {
   }
 
   G.worldSeed = seed;
+  G.selectedRegion = null;
+  G.selectedRegionIndex = 0;
   G.regions = [];
   G.gs = {
     characterName: G.selectedLegend.name,
@@ -1402,7 +1417,7 @@ async function submitNewGame() {
         G.characterId = j.data.characterId;
         G.worldSeed = j.data.worldSeed;
         G.gs = j.data.gameState || j.data.state || G.gs;
-        G.regions = j.data.regions;
+        G.regions = normalizeRegions(j.data.regions);
         renderRegions();
         updateAllStatusBars();
         showToast("Adventure synced! 🌍", "success");
@@ -1413,7 +1428,7 @@ async function submitNewGame() {
       console.warn("[World] Server sync failed, using local state:", err);
       // Default regions if offline
       if (!G.regions || G.regions.length === 0) {
-        G.regions = [
+        G.regions = normalizeRegions([
           {
             name: "Starting Plains",
             dangerLevel: 1,
@@ -1429,7 +1444,7 @@ async function submitNewGame() {
             dangerLevel: 5,
             enemyTypes: ["Skeleton", "Ghost"],
           },
-        ];
+        ]);
         renderRegions();
       }
     }
@@ -1535,6 +1550,8 @@ async function loadGame(cid: string, charName?: string) {
 
   // --- Enter game screen IMMEDIATELY ---
   G.characterId = cid;
+  G.selectedRegion = null;
+  G.selectedRegionIndex = 0;
   G.gs = G.gs || {
     characterName: charName || "Hero",
     level: 1,
@@ -1570,13 +1587,13 @@ async function loadGame(cid: string, charName?: string) {
     if (j.success) {
       G.gs = j.data.gameState;
       G.worldSeed = j.data.gameState.worldSeed;
-      G.regions = j.data.regions;
+      G.regions = normalizeRegions(j.data.regions);
       renderRegions();
       updateAllStatusBars();
       showToast("Game loaded! ✅", "success");
     } else {
       // Server error — show offline regions so the UI isn't stuck
-      G.regions = [
+      G.regions = normalizeRegions([
         {
           name: "Starting Plains",
           dangerLevel: 1,
@@ -1588,12 +1605,12 @@ async function loadGame(cid: string, charName?: string) {
           dangerLevel: 5,
           enemyTypes: ["Skeleton", "Ghost"],
         },
-      ];
+      ]);
       renderRegions();
       showToast(j.error || "Offline mode", "info");
     }
   } catch {
-    G.regions = [
+    G.regions = normalizeRegions([
       {
         name: "Starting Plains",
         dangerLevel: 1,
@@ -1605,7 +1622,7 @@ async function loadGame(cid: string, charName?: string) {
         dangerLevel: 5,
         enemyTypes: ["Skeleton", "Ghost"],
       },
-    ];
+    ]);
     renderRegions();
     showToast("Offline mode – syncing failed", "info");
   }
@@ -1632,13 +1649,31 @@ function renderRegions() {
   const listEl = document.getElementById("region-list");
   if (!listEl) return;
   listEl.innerHTML = "";
-  G.regions.forEach((r: any, i: number) => {
+  const regions = normalizeRegions(G.regions);
+  G.regions = regions;
+
+  if (regions.length === 0) {
+    listEl.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:26px 18px;color:var(--muted)">
+        <div style="font-size:34px;margin-bottom:10px">🗺️</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">No regions loaded yet</div>
+        <div style="font-size:11px;line-height:1.5">Create or load an adventure again and the world map will repopulate here.</div>
+      </div>
+    `;
+    return;
+  }
+
+  regions.forEach((r: any, i: number) => {
+    const enemyList =
+      Array.isArray(r.enemyTypes) && r.enemyTypes.length > 0
+        ? r.enemyTypes.join(", ")
+        : "Unknown threats";
     const card = document.createElement("div");
     card.className = "region-card";
     card.innerHTML = `
             <div class="name">${r.name}</div>
             <div class="danger">⚠️ Danger: ${r.dangerLevel}</div>
-            <div class="enemies">${r.enemyTypes.join(", ")}</div>
+            <div class="enemies">${enemyList}</div>
         `;
     card.onclick = () => selectRegion(i);
     listEl.appendChild(card);
