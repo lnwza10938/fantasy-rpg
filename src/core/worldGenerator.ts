@@ -58,33 +58,29 @@ Make it mysterious and hinting at ancient history. Return ONLY the JSON object.`
     skill: `You are interpreting a procedurally generated 9-digit skill code for a Turn-Based RPG.
 Each digit (1st-9th) has a specific meaning (0-9):
 
-1. Trigger (0=AlwaysActive, 1=OnHit, 2=OnDamaged, 3=OnKill, 4=LowHP, 5=LowMana, 6=Timed, 7=EnterCombat, 8=BuffEvent, 9=CHAOTIC)
-2. Role (0=None, 1=Attack, 2=Defense, 3=Buff, 4=Debuff, 5=Curse, 6=Heal, 7=Summon, 8=Utility, 9=CHAOTIC)
-3. Target (0=Self, 1=SingleEnemy, 2=MultiEnemy, 3=AllEnemies, 4=Area, 5=SingleAlly, 6=AllAllies, 7=Random, 8=AllUnitsArea, 9=CHAOTIC)
-4. Effect (0=None, 1=Physical, 2=Magical, 3=Soul, 4=LifeSteal, 5=ManaDrain, 6=MaxHPDamage, 7=ManaBreak, 8=ArmorBreak, 9=CHAOTIC)
-5. Scaling (0=None, 1=AttackPower, 2=DefensePower, 3=MaxHP, 4=MaxMana, 5=Speed, 6=Level, 7=EnemyCount, 8=BuffCount, 9=CHAOTIC)
-6. Delivery (0=Instant, 1=DirectStrike, 2=Explosion, 3=Wave, 4=Chain, 5=Aura, 6=Ring, 7=Beam, 8=SpawnObject, 9=CHAOTIC)
-7. Duration (0=Instant, 1=Short, 2=Medium, 3=Long, 4=Continuous, 5=Periodic, 6=Stackable, 7=Delayed, 8=Conditional, 9=CHAOTIC)
-8. Modifier (0=None, 1=LifeSteal, 2=ArmorUp, 3=AttackUp, 4=Slow, 5=StatusEffect, 6=Bounce, 7=RangeUp, 8=CDReduce, 9=CHAOTIC)
-9. Special (0=None, 1=HPTrade, 2=ManaOverload, 3=Random, 4=Backfire, 5=PermStack, 6=Mutation, 7=LowHPBoost, 8=Hidden, 9=CHAOTIC)
+1. Trigger: 0=AlwaysActive, 1=OnHit, 2=OnDamaged, 3=OnKill, 4=LowHP, 5=LowMana, 6=Timed, 7=EnterCombat, 8=BuffEvent, 9=CHAOTIC
+2. Role: 0=None, 1=Attack, 2=Defense, 3=Buff, 4=Debuff, 5=Curse, 6=Heal, 7=Summon, 8=Utility, 9=CHAOTIC
+3. Target: 0=Self, 1=SingleEnemy, 2=MultiEnemy, 3=AllEnemies, 4=Area, 5=SingleAlly, 6=AllAllies, 7=Random, 8=AllUnitsArea, 9=CHAOTIC
+4. Effect: 0=None, 1=Physical, 2=Magical, 3=Soul, 4=LifeSteal, 5=ManaDrain, 6=MaxHPDamage, 7=ManaBreak, 8=ArmorBreak, 9=CHAOTIC
+5. Scaling: 0=None, 1=AttackPower, 2=DefensePower, 3=MaxHP, 4=MaxMana, 5=Speed, 6=Level, 7=EnemyCount, 8=BuffCount, 9=CHAOTIC
+6. Delivery: 0=Instant, 1=DirectStrike, 2=Explosion, 3=Wave, 4=Chain, 5=Aura, 6=Ring, 7=Beam, 8=SpawnObject, 9=CHAOTIC
+7. Duration: 0=Instant, 1=Short, 2=Medium, 3=Long, 4=Continuous, 5=Periodic, 6=Stackable, 7=Delayed, 8=Conditional, 9=CHAOTIC
+8. Modifier: 0=None, 1=LifeSteal, 2=ArmorUp, 3=AttackUp, 4=Slow, 5=StatusEffect, 6=Bounce, 7=RangeUp, 8=CDReduce, 9=CHAOTIC
+9. Special: 0=None, 1=HPTrade, 2=ManaOverload, 3=Random, 4=Backfire, 5=PermStack, 6=Mutation, 7=LowHPBoost, 8=Hidden, 9=CHAOTIC
 
-Translate the provided 9-digit code into ONE COHESIVE PASSIVE SKILL.
-Think like a modular skill builder: bridge the Trigger, Role, Target, and Effect into a unified mechanic.
-MANDATORY: 
-- Description must explain HOW these 9 facets work together as a single passive mechanism.
-- All skills are Passive/Auto-Trigger (no active commands).
-- If any digit is 9, describe that specific facet as unstable or chaotic.
-Return ONLY this JSON format:
-{
-  "name": "Unified Skill Name",
-  "description": "Explanatory text weaving all 9 structural components into one passive mechanism.",
-  "mana_cost": 0,
-  "cooldown": 0,
-  "target_type": "all_enemies|single_enemy|self|ally",
-  "effect_type": "damage|heal|buff|debuff",
-  "scaling_stat": "attack|defense|speed|maxMana|maxHP",
-  "power_multiplier": 0.5-2.0
-}`
+Translate the provided 9-digit code into ONE COHESIVE PASSIVE/TRIGGERED SKILL.
+MANDATORY SCHEMA:
+- "name": Atmospheric name.
+- "description": High-quality flavorful description in English.
+- "mechanics": A clear, detailed technical breakdown explaining EXACTLY how the Trigger, Role, Target, and Effect interact based on the code.
+- "mana_cost": 0-100 (if triggered)
+- "cooldown": 0-10 (turns)
+- "target_type": single_enemy|all_enemies|self|all_allies
+- "effect_type": damage|heal|buff|debuff
+- "scaling_stat": attack|defense|speed|maxMana|maxHP|level
+- "power_multiplier": 0.5 to 3.0 (damage/heal potency)
+
+Return ONLY the JSON object. No narrative.`
 };
 
 export class WorldGenerator {
@@ -198,7 +194,8 @@ export class WorldGenerator {
 
         return {
             name,
-            description: `A powerful passive ability weave from code ${code.match(/.{1,3}/g)?.join('-')}. It channels ${elements.toLowerCase()} energy to manifest as a ${role.toLowerCase()} effect.`,
+            description: `A unique passive ability forged from the essence of code ${code.match(/.{1,3}/g)?.join('-')}.`,
+            mechanics: `This skill triggers based on digit ${d[0]} and performs a ${role.toLowerCase()} effect using ${elements.toLowerCase()} energy. Target: ${d[2]}, Scaling: ${d[4]}.`,
             mana_cost: 0,
             cooldown: 0,
             target_type: 'single_enemy',

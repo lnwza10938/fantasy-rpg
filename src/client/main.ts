@@ -106,7 +106,7 @@ function onLoginSuccess() {
     if (authScreen) authScreen.style.display = 'none';
     if (gameContainer) gameContainer.style.display = 'block';
     if (userDisplay && G.user) userDisplay.textContent = `Logged in as: ${G.user.email}`;
-    showScreen('login');
+    showScreen('menu');
     loadWorldContent(); // Load DB content for the world creation screen
     fetchSaveList();   // Fetch existing saves so user can see their data
     renderThemeBiomes('balanced'); // Initial biome preview
@@ -139,19 +139,23 @@ function showScreen(name: string) {
     const gameContainer = document.getElementById('game-container');
     if (gameContainer) gameContainer.style.display = 'block';
 
-    const loginEl = document.getElementById('screen-login');
+    const menuEl = document.getElementById('screen-menu');
+    const wizardEl = document.getElementById('screen-wizard');
     const vaultEl = document.getElementById('screen-vault');
     const forgeEl = document.getElementById('screen-forge');
     const gameUi = document.getElementById('game-ui-screen');
 
     // Hide all major screens
-    if (loginEl) loginEl.style.display = 'none';
+    if (menuEl) menuEl.style.display = 'none';
+    if (wizardEl) wizardEl.style.display = 'none';
     if (vaultEl) vaultEl.style.display = 'none';
     if (forgeEl) forgeEl.style.display = 'none';
     if (gameUi) gameUi.classList.remove('active');
 
-    if (name === 'login') {
-        if (loginEl) loginEl.style.display = 'block';
+    if (name === 'menu') {
+        if (menuEl) menuEl.style.display = 'block';
+    } else if (name === 'wizard') {
+        if (wizardEl) wizardEl.style.display = 'block';
     } else if (name === 'vault') {
         if (vaultEl) vaultEl.style.display = 'block';
     } else if (name === 'forge') {
@@ -244,6 +248,7 @@ function showToast(msg: string, type = 'success') {
 (window as any).deleteSave = deleteSave;
 (window as any).exploreRegion = exploreRegion;
 (window as any).showScreen = showScreen;
+(window as any).startWizard = startWizard;
 (window as any).gpTab = gpTab;
 (window as any).wizardGoStep = wizardGoStep;
 (window as any).rollSkill = rollSkill;
@@ -470,9 +475,14 @@ function wizardGoStep(step: number) {
         }
     });
 
-    const loginScreen = document.getElementById('screen-login');
-    if (loginScreen) loginScreen.scrollTo(0, 0);
+    const wizardScreen = document.getElementById('screen-wizard');
+    if (wizardScreen) wizardScreen.scrollTo(0, 0);
     window.scrollTo(0, 0);
+}
+
+function startWizard() {
+    showScreen('wizard');
+    wizardGoStep(1);
 }
 
 // --- VAULT & FORGE LOGIC ---
@@ -490,7 +500,7 @@ async function fetchVaultSelections() {
                 <div class="legend-card ${G.selectedLegend?.id === c.id ? 'selected' : ''}" onclick="selectLegend('${c.id}', ${JSON.stringify(c).replace(/"/g, '&quot;')})">
                     <div class="name">${c.name}</div>
                     <div style="font-size:11px; color:var(--muted)">Lv.${c.level} Adventurer</div>
-                    <div class="skill-badge">🌟 ${c.skill_data?.name || 'Innate'}</div>
+                    <div class="skill-badge" title="${c.skill_data?.mechanics || ''}">🌟 ${c.skill_data?.name || 'Innate'}</div>
                 </div>
             `).join('');
         } else {
@@ -531,9 +541,17 @@ async function renderFullVault() {
                 <div class="legend-card">
                     <div class="name">${c.name}</div>
                     <div style="font-size:11px; color:var(--muted); margin-bottom:10px">Lv.${c.level} Adventurer</div>
-                    <div style="background:rgba(255,255,255,0.03); border-radius:6px; padding:10px; font-size:11px">
-                        <div style="color:var(--accent); font-weight:700; margin-bottom:4px">🌟 ${c.skill_data?.name || 'Unique Skill'}</div>
-                        <div style="opacity:0.8; line-height:1.4">${c.skill_data?.description || 'No description available.'}</div>
+                    <div style="background:rgba(0,0,0,0.2); border-radius:6px; padding:10px; font-size:11px">
+                        <div style="color:var(--accent); font-weight:700; margin-bottom:4px">🌟 ${c.skill_data?.name || 'Innate Power'}</div>
+                        <div style="opacity:0.8; font-style: italic; margin-bottom: 8px; line-height:1.4">${c.skill_data?.description || 'No lore description.'}</div>
+                        ${c.skill_data?.mechanics ? `
+                        <div style="font-size: 9px; color: var(--accent2); font-weight: 800; margin-bottom: 2px; text-transform: uppercase;">Mechanics:</div>
+                        <div style="color:var(--text); line-height:1.3">${c.skill_data.mechanics}</div>
+                        ` : ''}
+                        <div style="display:flex; gap:10px; margin-top:8px; font-size:9px; color:var(--muted)">
+                            <span>CD: <b style="color:var(--gold)">${c.skill_data?.cooldown || 0}</b></span>
+                            <span>Target: <b style="color:var(--text)">${c.skill_data?.target_type || 'N/A'}</b></span>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -564,7 +582,10 @@ function forgeGoStep(step: number) {
     }
 }
 
-function showForge() {
+let forgeReturnState: 'menu' | 'vault' | 'wizard' = 'menu';
+
+function showForge(returnTo: 'menu' | 'vault' | 'wizard' = 'menu') {
+    forgeReturnState = returnTo;
     showScreen('forge');
     // Reset state
     forgeState = { skillCode: '', skillData: null };
@@ -591,13 +612,14 @@ function backFromForge() {
     fetchVaultSelections();
     renderFullVault();
 
-    // Go back to wherever we were (Vault or Wizard Step 2)
-    const vaultScreen = document.getElementById('screen-vault');
-    if (vaultScreen && vaultScreen.style.display === 'block') {
+    // Go back to wherever we were
+    if (forgeReturnState === 'vault') {
         showScreen('vault');
-    } else {
-        showScreen('login');
+    } else if (forgeReturnState === 'wizard') {
+        showScreen('wizard');
         wizardGoStep(2);
+    } else {
+        showScreen('menu');
     }
 }
 
@@ -649,6 +671,7 @@ async function rollForgeSkill() {
                 document.getElementById('forge-skill-name')!.textContent = j.data.name;
                 document.getElementById('forge-skill-cost')!.textContent = j.data.mana_cost + ' MP';
                 document.getElementById('forge-skill-desc')!.textContent = j.data.description;
+                document.getElementById('forge-skill-mechanics')!.textContent = j.data.mechanics;
                 document.getElementById('forge-skill-cd')!.textContent = String(j.data.cooldown);
                 document.getElementById('forge-skill-target')!.textContent = j.data.target_type;
                 document.getElementById('forge-skill-scaling')!.textContent = j.data.scaling_stat;
@@ -1106,6 +1129,16 @@ function updateHUD() {
     f('gp-def', s.effectiveStats?.defense ?? 5);
     f('gp-spd', s.effectiveStats?.speed ?? 8);
     f('gp-gold', s.gold);
+    
+    // ── Signature Skill Preview ──
+    const skill = s.signatureSkill;
+    if (skill) {
+        f('gp-skill-name', skill.name);
+        f('gp-skill-brief', skill.mechanics || skill.description || 'Power unknown');
+        const tooltip = `Full Mechanics:\n${skill.mechanics || 'Unknown'}\n\nCost: ${skill.mana_cost || 0} MP\nCD: ${skill.cooldown || 0} Turns\nScaling: ${skill.scaling_stat || 'N/A'}`;
+        const skillBox = document.getElementById('gp-skill-preview');
+        if (skillBox) skillBox.title = tooltip;
+    }
 
     // ── EXP bar (old compat) ──
     const expPctOld = Math.round(s.exp / (s.level * 100) * 100);
