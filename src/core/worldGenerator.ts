@@ -12,10 +12,13 @@ export interface AIGeneratorConfig {
 // Runtime config — initialized from environment variables if available
 let config: AIGeneratorConfig = {
     apiKey: process.env.GEMINI_API_KEY || '',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-1.5-flash',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     provider: 'gemini'
 };
+
+// Interpretation cache to prevent redundant hits and save quota
+const interpretationCache = new Map<string, any>();
 
 export function setAIConfig(newConfig: Partial<AIGeneratorConfig>) {
     Object.assign(config, newConfig);
@@ -93,12 +96,16 @@ export class WorldGenerator {
     public async generate(type: keyof typeof PROMPTS, context?: string): Promise<any | null> {
         if (!isAIConfigured()) return null;
 
+        // Check cache first for skill interpretations
+        if (type === 'skill' && context && interpretationCache.has(context)) {
+            return interpretationCache.get(context);
+        }
+
         const systemMsg = 'You are a fantasy RPG content generator. Return ONLY valid JSON.';
         const prompt = PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : '');
 
         try {
             let text = '';
-
             if (config.provider === 'gemini') {
                 const url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
                 const response = await fetch(url, {
@@ -113,6 +120,12 @@ export class WorldGenerator {
                         }
                     })
                 });
+
+                if (response.status === 429) {
+                    console.warn('Gemini Rate Limit Hit (429). Using fallback.');
+                    return this.getFallbackSkillInterpretation(context || '000000000');
+                }
+
                 if (!response.ok) throw new Error(`Gemini Error: ${response.status} ${await response.text()}`);
                 const data = await response.json();
                 text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
@@ -151,15 +164,48 @@ export class WorldGenerator {
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             let jsonString = jsonMatch ? jsonMatch[0] : text;
 
+            let result = text;
             try {
-                return JSON.parse(jsonString);
+                result = JSON.parse(jsonString);
             } catch (e: any) {
                 throw new Error(`Failed to parse AI response as JSON. Received text: ${text.substring(0, 200)}...\nParse Error: ${e.message}`);
             }
+
+            // Save to cache before returning
+            if (type === 'skill' && context) {
+                interpretationCache.set(context, result);
+            }
+            return result;
+
         } catch (err: any) {
             console.error('AI generation failed:', err);
+            // If it's a skill and it failed (other than 429 handled above), use fallback
+            if (type === 'skill') {
+                return this.getFallbackSkillInterpretation(context || '000000000');
+            }
             throw new Error(`AI generation failed: ${err.message}`);
         }
+    }
+
+    private getFallbackSkillInterpretation(code: string) {
+        const d = code.split('').map(Number);
+        // Basic fallback logic based on 9_digit_skill_system.md
+        const prefix = ['Chaotic', 'Infernal', 'Sacred', 'Echoing', 'Void', 'Vibrant', 'Abyssal', 'Golden', 'Shattered'][d[0]] || 'Primal';
+        const role = ['Striker', 'Healer', 'Buffer', 'Debuffer', 'Protector', 'Assailant', 'Infuser', 'Warden', 'Executioner'][d[1]] || 'Skill';
+        const elements = ['Kinetic', 'Spark', 'Flow', 'Spirit', 'Life', 'Mana', 'True', 'Null', 'Armor'][d[3]] || 'Force';
+
+        const name = `${prefix} ${elements} ${role}`;
+
+        return {
+            name,
+            description: `A powerful passive ability weave from code ${code.match(/.{1,3}/g)?.join('-')}. It channels ${elements.toLowerCase()} energy to manifest as a ${role.toLowerCase()} effect.`,
+            mana_cost: 0,
+            cooldown: 0,
+            target_type: 'single_enemy',
+            effect_type: 'damage',
+            scaling_stat: 'attack',
+            power_multiplier: 1.0
+        };
     }
 
     /**
