@@ -1341,18 +1341,34 @@ function selectRegion(i: number) {
   showScreen("explore");
 }
 
+// --- DOM CACHE FOR STATIC HUD ELEMENTS ---
+const hudCache: Record<string, HTMLElement> = {};
+function getHudEl(id: string): HTMLElement | null {
+  if (hudCache[id]) return hudCache[id];
+  const el = document.getElementById(id);
+  if (el) hudCache[id] = el;
+  return el;
+}
+
 // --- HUD ---
 function updateHUD() {
   const s = G.gs;
   if (!s) return;
   const name = s.characterName || "Hero";
+
   const f = (id: string, v: any) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = String(v);
+    const el = getHudEl(id);
+    if (el && el.textContent !== String(v)) {
+      el.textContent = String(v);
+    }
   };
+
   const setBar = (id: string, pct: number) => {
-    const el = document.getElementById(id) as HTMLElement;
-    if (el) el.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    const el = getHudEl(id);
+    if (el) {
+      const w = Math.max(0, Math.min(100, pct)) + "%";
+      if (el.style.width !== w) el.style.width = w;
+    }
   };
 
   // ── Old HUD compat ──
@@ -1416,15 +1432,18 @@ function renderCharacter() {
 
   // New bar elements
   const f = (id: string, v: any) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = String(v);
+    const el = getHudEl(id);
+    if (el && el.textContent !== String(v)) el.textContent = String(v);
   };
   f("char-hp-text", `${s.hp}/${s.maxHP}`);
   f("char-mp-text", `${s.mana}/${s.maxMana}`);
   f("char-exp-text", `${s.exp}/${s.level * 100}`);
   const setBar = (id: string, pct: number) => {
-    const el = document.getElementById(id);
-    if (el) el.style.width = pct + "%";
+    const el = getHudEl(id);
+    if (el) {
+      const w = pct + "%";
+      if (el.style.width !== w) el.style.width = w;
+    }
   };
   setBar("char-hp-bar", hpPct);
   setBar("char-mp-bar", mpPct);
@@ -1505,7 +1524,10 @@ async function exploreRegion() {
   if (!G.selectedRegion) return;
   const logBox = document.getElementById("event-log");
   if (!logBox) return;
-  logBox.innerHTML += '<div class="log-info">───────────────────</div>';
+  logBox.insertAdjacentHTML(
+    "beforeend",
+    '<div class="log-info">───────────────────</div>',
+  );
   try {
     const res = await fetch(API + "/event", {
       method: "POST",
@@ -1517,7 +1539,10 @@ async function exploreRegion() {
     });
     const j = await res.json();
     if (!j.success) {
-      logBox.innerHTML += `<div class="log-combat">Error: ${j.error}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-combat">Error: ${j.error}</div>`,
+      );
       return;
     }
 
@@ -1530,32 +1555,62 @@ async function exploreRegion() {
     if (ev.type === "enemy_encounter" && ev.combatLogs) {
       showCombat(ev);
     } else if (ev.type === "treasure_found") {
-      logBox.innerHTML += `<div class="log-treasure">💰 ${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-treasure">💰 ${ev.description}</div>`,
+      );
       if (ev.treasureGold)
-        logBox.innerHTML += `<div class="log-exp">+${ev.treasureGold} Gold!</div>`;
+        logBox.insertAdjacentHTML(
+          "beforeend",
+          `<div class="log-exp">+${ev.treasureGold} Gold!</div>`,
+        );
     } else if (ev.type === "rare_event") {
-      logBox.innerHTML += `<div class="log-rare">✨ ${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-rare">✨ ${ev.description}</div>`,
+      );
     } else if (ev.type === "npc_encounter") {
-      logBox.innerHTML += `<div class="log-dialogue">💬 ${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-dialogue">💬 ${ev.description}</div>`,
+      );
     } else if (ev.type === "lore_event") {
-      logBox.innerHTML += `
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `
                 <div class="log-info" style="margin: 8px 0; padding: 10px; background:rgba(79, 195, 247, 0.1); border-left: 3px solid var(--accent); border-radius: 4px">
                     <strong style="color:var(--accent)">📖 ${ev.loreTitle || "Ancient Scroll"}</strong><br/>
                     <p style="margin-top:4px; font-style:italic">${ev.loreContent || ev.description}</p>
                 </div>
-            `;
+            `,
+      );
     } else if (ev.type === "ambient_event") {
-      logBox.innerHTML += `<div class="log-info" style="font-style:italic; color:var(--muted)">☁️ ${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-info" style="font-style:italic; color:var(--muted)">☁️ ${ev.description}</div>`,
+      );
     } else if (ev.type === "rest_event") {
-      logBox.innerHTML += `<div class="log-victory">🧘 ${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-victory">🧘 ${ev.description}</div>`,
+      );
       if (ev.restLog)
-        logBox.innerHTML += `<div class="log-exp">${ev.restLog}</div>`;
+        logBox.insertAdjacentHTML(
+          "beforeend",
+          `<div class="log-exp">${ev.restLog}</div>`,
+        );
     } else {
-      logBox.innerHTML += `<div class="log-info">${ev.description}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="log-info">${ev.description}</div>`,
+      );
     }
     logBox.scrollTop = logBox.scrollHeight;
   } catch {
-    logBox.innerHTML += '<div class="log-combat">Network error</div>';
+    logBox.insertAdjacentHTML(
+      "beforeend",
+      '<div class="log-combat">Network error</div>',
+    );
   }
 }
 
@@ -1593,7 +1648,10 @@ function showCombat(ev: any) {
         : line.includes("takes")
           ? "log-combat"
           : "log-info";
-      logBox.innerHTML += `<div class="${cls}">${line}</div>`;
+      logBox.insertAdjacentHTML(
+        "beforeend",
+        `<div class="${cls}">${line}</div>`,
+      );
       logBox.scrollTop = logBox.scrollHeight;
       i++;
     }, 120);
