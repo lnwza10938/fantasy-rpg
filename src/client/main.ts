@@ -27,6 +27,7 @@ let G: any = {
 const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
+const PENDING_LOAD_KEY = "rpg_pending_load";
 const APP_PAGE = document.documentElement.dataset.appPage || "menu";
 
 // Vault and Forge state
@@ -121,6 +122,19 @@ function enterCurrentPage() {
   if (APP_PAGE === "adventure") {
     showScreen("wizard");
     wizardGoStep(1);
+    const pendingLoad = sessionStorage.getItem(PENDING_LOAD_KEY);
+    if (pendingLoad) {
+      try {
+        const { characterId, characterName } = JSON.parse(pendingLoad);
+        if (characterId) {
+          loadGame(characterId, characterName);
+        }
+      } catch {
+        /* ignore malformed session cache */
+      } finally {
+        sessionStorage.removeItem(PENDING_LOAD_KEY);
+      }
+    }
     return;
   }
   showScreen("menu");
@@ -1507,6 +1521,18 @@ async function deleteLegend(cid: string, name: string) {
 }
 
 async function loadGame(cid: string, charName?: string) {
+  if (APP_PAGE !== "adventure") {
+    sessionStorage.setItem(
+      PENDING_LOAD_KEY,
+      JSON.stringify({
+        characterId: cid,
+        characterName: charName || null,
+      }),
+    );
+    navigateToPage("adventure");
+    return;
+  }
+
   // --- Enter game screen IMMEDIATELY ---
   G.characterId = cid;
   G.gs = G.gs || {
@@ -1929,6 +1955,7 @@ function showCombat(ev: any) {
 
 function appendCombatLog(line: string) {
   const logBox = document.getElementById("combat-log");
+  const resultBox = document.getElementById("combat-result");
   if (!logBox) return;
   const cls =
     line.includes("Victory") || line.includes("defeats")
@@ -1938,49 +1965,111 @@ function appendCombatLog(line: string) {
         : "log-info";
   logBox.insertAdjacentHTML("beforeend", `<div class="${cls}">${line}</div>`);
   logBox.scrollTop = logBox.scrollHeight;
+  if (resultBox) resultBox.textContent = line;
+}
+
+function applyCombatSprite(
+  el: HTMLElement | null,
+  imageUrl: string,
+  fallback: string,
+  placeholder: string,
+) {
+  if (!el) return;
+  el.setAttribute("data-placeholder", placeholder);
+  const fallbackEl = el.querySelector(".sprite-fallback") as HTMLElement | null;
+  if (fallbackEl) fallbackEl.textContent = fallback;
+
+  if (imageUrl) {
+    el.style.backgroundImage = `linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)), url("${imageUrl}")`;
+    el.style.borderStyle = "solid";
+    el.style.borderColor = "rgba(255,255,255,0.14)";
+    if (fallbackEl) fallbackEl.style.display = "none";
+    return;
+  }
+
+  el.style.backgroundImage =
+    "linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)), rgba(9, 14, 22, 0.65)";
+  el.style.borderStyle = "dashed";
+  el.style.borderColor = "rgba(200, 211, 224, 0.18)";
+  if (fallbackEl) fallbackEl.style.display = "";
 }
 
 function syncCombatPanels() {
   const playerNameEl = document.getElementById("combat-player-name");
+  const playerLevelEl = document.getElementById("combat-player-level");
   const playerHpEl = document.getElementById("combat-player-hp");
   const playerBarEl = document.getElementById("combat-player-bar");
+  const playerSpriteEl = document.getElementById("combat-player-sprite");
   const enemyNameEl = document.getElementById("combat-enemy-name");
+  const enemyLevelEl = document.getElementById("combat-enemy-level");
   const enemyHpEl = document.getElementById("combat-enemy-hp");
   const enemyBarEl = document.getElementById("combat-enemy-bar");
+  const enemySpriteEl = document.getElementById("combat-enemy-sprite");
 
   const playerName = G.gs?.characterName || "Hero";
+  const playerLevel = G.gs?.level || 1;
   const playerHp = G.gs?.hp || 0;
   const playerMaxHp = G.gs?.maxHP || 1;
   const enemyName = G.activeCombat?.enemy?.name || "Enemy";
+  const enemyLevel = G.activeCombat?.enemy?.level || 1;
   const enemyHp = G.activeCombat?.enemy?.hp || 0;
   const enemyMaxHp = G.activeCombat?.enemy?.maxHP || 1;
+  const playerImageUrl =
+    G.gs?.portraitUrl ||
+    G.selectedLegend?.portrait_url ||
+    G.selectedLegend?.portraitUrl ||
+    G.selectedLegend?.image_url ||
+    G.selectedLegend?.imageUrl ||
+    "";
+  const enemyImageUrl =
+    G.activeCombat?.enemy?.imageUrl || G.activeCombat?.enemy?.image_url || "";
 
   if (playerNameEl) playerNameEl.textContent = playerName;
+  if (playerLevelEl) playerLevelEl.textContent = `Lv.${playerLevel}`;
   if (playerHpEl) playerHpEl.textContent = `${playerHp}/${playerMaxHp}`;
   if (playerBarEl)
-    playerBarEl.style.width = `${Math.max(0, (playerHp / playerMaxHp) * 100)}%`;
+    playerBarEl.style.width = `${Math.max(0, Math.min(100, (playerHp / playerMaxHp) * 100))}%`;
 
   if (enemyNameEl) enemyNameEl.textContent = enemyName;
+  if (enemyLevelEl) enemyLevelEl.textContent = `Lv.${enemyLevel}`;
   if (enemyHpEl) enemyHpEl.textContent = `${enemyHp}/${enemyMaxHp}`;
   if (enemyBarEl)
-    enemyBarEl.style.width = `${Math.max(0, (enemyHp / enemyMaxHp) * 100)}%`;
+    enemyBarEl.style.width = `${Math.max(0, Math.min(100, (enemyHp / enemyMaxHp) * 100))}%`;
+
+  applyCombatSprite(playerSpriteEl, playerImageUrl, "🧙", "Hero Art Slot");
+  applyCombatSprite(enemySpriteEl, enemyImageUrl, "👾", "Dev Monster Art Slot");
 }
 
 function renderCombatActions() {
   const resultBox = document.getElementById("combat-result");
-  if (!resultBox) return;
+  const actionBox = document.getElementById("combat-actions");
+  if (!resultBox || !actionBox) return;
 
   if (!G.activeCombat) {
-    resultBox.innerHTML = "";
+    resultBox.textContent = "";
+    actionBox.innerHTML = "";
     return;
   }
 
   if (G.activeCombat.isFinished) {
-    resultBox.innerHTML = `
-      <div style="text-align:center;margin-top:12px">
-        <button class="btn btn-action" id="btn-post-combat-explore">← Continue Exploring</button>
-        <button class="btn btn-action" id="btn-post-combat-stats">👤 View Stats</button>
-      </div>`;
+    resultBox.textContent = "Battle complete. Choose your next move.";
+    actionBox.innerHTML = `
+      <button class="battle-action-btn primary" id="btn-post-combat-explore">
+        <strong>Continue</strong>
+        <span>Return to the current region</span>
+      </button>
+      <button class="battle-action-btn" id="btn-post-combat-stats">
+        <strong>Party</strong>
+        <span>Review your hero and gear</span>
+      </button>
+      <button class="battle-action-btn" disabled title="Planned for a future update">
+        <strong>Capture</strong>
+        <span>Reserved for monster systems</span>
+      </button>
+      <button class="battle-action-btn" disabled title="Wire monster art from the dev panel here later">
+        <strong>Link Art</strong>
+        <span>Future dev image integration slot</span>
+      </button>`;
     document
       .getElementById("btn-post-combat-explore")
       ?.addEventListener("click", () => {
@@ -1996,14 +2085,26 @@ function renderCombatActions() {
     return;
   }
 
-  resultBox.innerHTML = `
-    <div style="display:flex; gap:8px; margin-top:12px">
-      <button class="btn btn-primary" id="btn-combat-attack" style="flex:1">⚔️ Attack</button>
-      <button class="btn btn-action" id="btn-combat-retreat" style="flex:1" disabled title="Coming soon">🏃 Retreat</button>
-    </div>
-    <div style="margin-top:8px; font-size:10px; color:var(--muted); text-align:center">
-      Combat now resolves one turn at a time.
-    </div>`;
+  if (!resultBox.textContent?.trim()) {
+    resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
+  }
+  actionBox.innerHTML = `
+    <button class="battle-action-btn primary" id="btn-combat-attack">
+      <strong>Attack</strong>
+      <span>Resolve one turn right now</span>
+    </button>
+    <button class="battle-action-btn" id="btn-combat-skill" disabled title="Skill commands are coming soon">
+      <strong>Skill</strong>
+      <span>Future active abilities</span>
+    </button>
+    <button class="battle-action-btn" id="btn-combat-bag" disabled title="Bag support is planned">
+      <strong>Bag</strong>
+      <span>Items and consumables later</span>
+    </button>
+    <button class="battle-action-btn" id="btn-combat-retreat" disabled title="Retreat is not enabled yet">
+      <strong>Run</strong>
+      <span>Escape options later</span>
+    </button>`;
   document
     .getElementById("btn-combat-attack")
     ?.addEventListener("click", executeCombatTurn);
@@ -2011,12 +2112,18 @@ function renderCombatActions() {
 
 async function executeCombatTurn() {
   if (!G.characterId || !G.activeCombat?.battleId) return;
-  const attackBtn = document.getElementById(
-    "btn-combat-attack",
-  ) as HTMLButtonElement | null;
+  const actionButtons = Array.from(
+    document.querySelectorAll("#combat-actions button"),
+  ) as HTMLButtonElement[];
+  const attackBtn = document.getElementById("btn-combat-attack") as
+    | HTMLButtonElement
+    | null;
+  actionButtons.forEach((btn) => {
+    btn.disabled = true;
+  });
   if (attackBtn) {
-    attackBtn.disabled = true;
-    attackBtn.textContent = "Resolving...";
+    attackBtn.innerHTML =
+      "<strong>Resolving...</strong><span>Processing this turn</span>";
   }
 
   try {
@@ -2052,7 +2159,8 @@ async function executeCombatTurn() {
   } finally {
     if (attackBtn && !G.activeCombat?.isFinished) {
       attackBtn.disabled = false;
-      attackBtn.textContent = "⚔️ Attack";
+      attackBtn.innerHTML =
+        "<strong>Attack</strong><span>Resolve one turn right now</span>";
     }
   }
 }

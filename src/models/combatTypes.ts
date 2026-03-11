@@ -5,6 +5,7 @@ export interface CharacterStats {
   id: string;
   name: string;
   level: number;
+  imageUrl?: string;
   hp: number;
   maxHP: number;
   mana: number;

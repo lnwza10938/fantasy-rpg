@@ -80,6 +80,7 @@ export class SpawnSystem {
       return {
         id: `monster_${data.id}`,
         name: data.name,
+        imageUrl: data.image_url || "",
         level: level,
         hp: Math.floor(data.base_hp + level * 5),
         maxHP: Math.floor(data.base_hp + level * 5),

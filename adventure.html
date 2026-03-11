@@ -1009,7 +1009,7 @@
               <button
                 class="btn btn-action"
                 style="font-size: 11px; width: 100%"
-                onclick="showScreen('login')"
+                onclick="showScreen('menu')"
               >
                 🏠 Main Menu
               </button>
@@ -1085,65 +1085,76 @@
             <div class="gp-sub" id="sub-combat">
               <h3
                 id="combat-title"
-                style="color: var(--red); font-size: 11px; margin-bottom: 8px"
+                style="color: var(--red); font-size: 11px; margin-bottom: 10px"
               >
                 ⚔️ Combat
               </h3>
-              <div class="combat-vs-panel">
-                <div class="combatant-box">
-                  <div style="font-size: 24px">🧙</div>
-                  <div
-                    id="combat-player-name"
-                    style="font-size: 11px; font-weight: 700; margin: 3px 0"
-                  >
-                    Hero
+              <div class="battlefield-shell">
+                <div class="battlefield-stage">
+                  <div class="battle-status enemy-status">
+                    <div class="battle-status-row">
+                      <div id="combat-enemy-name" class="battle-name">Enemy</div>
+                      <div id="combat-enemy-level" class="battle-level">Lv.1</div>
+                    </div>
+                    <div class="battle-hp-row">
+                      <span>HP</span>
+                      <span id="combat-enemy-hp">100/100</span>
+                    </div>
+                    <div class="battle-hp-track">
+                      <div
+                        id="combat-enemy-bar"
+                        class="battle-hp-fill enemy-fill"
+                        style="width: 100%"
+                      ></div>
+                    </div>
                   </div>
-                  <span
-                    id="combat-player-hp"
-                    style="font-size: 10px; color: var(--green)"
-                    >100/100</span
-                  >
-                  <div class="bar" style="margin-top: 3px">
+
+                  <div class="battlefield-enemy">
+                    <div class="battlefield-platform enemy-platform"></div>
                     <div
-                      id="combat-player-bar"
-                      class="bar-fill bar-hp"
-                      style="width: 100%"
-                    ></div>
+                      id="combat-enemy-sprite"
+                      class="battle-sprite enemy-sprite"
+                      data-placeholder="Enemy Art"
+                    >
+                      <span class="sprite-fallback">👾</span>
+                    </div>
+                  </div>
+
+                  <div class="battlefield-player">
+                    <div class="battlefield-platform player-platform"></div>
+                    <div
+                      id="combat-player-sprite"
+                      class="battle-sprite player-sprite"
+                      data-placeholder="Hero Art"
+                    >
+                      <span class="sprite-fallback">🧙</span>
+                    </div>
+                  </div>
+
+                  <div class="battle-status player-status">
+                    <div class="battle-status-row">
+                      <div id="combat-player-name" class="battle-name">Hero</div>
+                      <div id="combat-player-level" class="battle-level">Lv.1</div>
+                    </div>
+                    <div class="battle-hp-row">
+                      <span>HP</span>
+                      <span id="combat-player-hp">100/100</span>
+                    </div>
+                    <div class="battle-hp-track">
+                      <div
+                        id="combat-player-bar"
+                        class="battle-hp-fill player-fill"
+                        style="width: 100%"
+                      ></div>
+                    </div>
                   </div>
                 </div>
-                <div
-                  style="font-size: 16px; font-weight: 900; color: var(--red)"
-                >
-                  VS
-                </div>
-                <div class="combatant-box enemy-box">
-                  <div style="font-size: 24px">👹</div>
-                  <div
-                    id="combat-enemy-name"
-                    style="
-                      font-size: 11px;
-                      font-weight: 700;
-                      margin: 3px 0;
-                      color: var(--red);
-                    "
-                  >
-                    Enemy
-                  </div>
-                  <span
-                    id="combat-enemy-hp"
-                    style="font-size: 10px; color: var(--red)"
-                    >100/100</span
-                  >
-                  <div class="bar" style="margin-top: 3px">
-                    <div
-                      id="combat-enemy-bar"
-                      class="bar-fill"
-                      style="width: 100%; background: var(--red)"
-                    ></div>
-                  </div>
+
+                <div class="battle-command-panel">
+                  <div id="combat-result" class="battle-dialogue"></div>
+                  <div id="combat-actions" class="battle-actions-grid"></div>
                 </div>
               </div>
-              <div id="combat-result" style="margin-top: 6px"></div>
             </div>
           </div>
 

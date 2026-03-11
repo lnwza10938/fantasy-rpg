@@ -192,6 +192,7 @@ export class WorldSystem {
     return {
       id: `enemy_${name.toLowerCase().replace(/\s/g, "_")}_lv${level}`,
       name,
+      imageUrl: baseMonster?.image_url || "",
       level,
       hp: Math.floor(baseHP * scaleFactor) + rng.nextInt(0, 10),
       maxHP: Math.floor(baseHP * scaleFactor) + rng.nextInt(0, 10),
