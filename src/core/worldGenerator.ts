@@ -108,86 +108,201 @@ MANDATORY SCHEMA:
 Return ONLY the JSON object. No narrative.`,
 };
 
-export class WorldGenerator {
-  public async generateFromPrompt(
-    prompt: string,
-    options?: {
-      systemMsg?: string;
-      temperature?: number;
-      maxTokens?: number;
-    },
-  ): Promise<any | null> {
-    if (!isAIConfigured()) return null;
+type GenerationOptions = {
+  systemMsg?: string;
+  temperature?: number;
+  maxTokens?: number;
+};
 
+function stripMarkdownFences(text: string) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("```json")) {
+    return trimmed.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
+  }
+  if (trimmed.startsWith("```")) {
+    return trimmed.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
+  return trimmed;
+}
+
+function extractBalancedJsonCandidate(text: string) {
+  const start = text.search(/[{\[]/);
+  if (start < 0) return text.trim();
+
+  let depth = 0;
+  let inString = false;
+  let isEscaped = false;
+
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false;
+      } else if (char === "\\") {
+        isEscaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        return text.slice(start, index + 1).trim();
+      }
+    }
+  }
+
+  return text.slice(start).trim();
+}
+
+function repairCommonJsonIssues(text: string) {
+  return text
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/\/\/.*$/gm, "")
+    .replace(/,\s*([}\]])/g, "$1")
+    .replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_-]*)(\s*:)/g, '$1"$2"$3')
+    .replace(
+      /("([^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[}\]])(\s+)(?=("([^"\\]|\\.)*"|[{[]|-?\d|true\b|false\b|null\b))/g,
+      "$1,$3",
+    );
+}
+
+export class WorldGenerator {
+  private async requestTextFromProvider(
+    prompt: string,
+    options?: GenerationOptions,
+  ) {
     const systemMsg =
       options?.systemMsg ||
       "You are a fantasy RPG content generator. Return ONLY valid JSON.";
 
-    try {
-      let text = "";
-      if (config.provider === "gemini") {
-        const activeModel = normalizeAIConfigValue(config.provider, config.model);
-        const url = `${config.baseUrl}/models/${activeModel}:generateContent?key=${config.apiKey}`;
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
-            generationConfig: {
-              temperature: options?.temperature ?? 0.4,
-              maxOutputTokens: options?.maxTokens ?? 8000,
-              responseMimeType: "application/json",
-            },
-          }),
-        });
-
-        if (response.status === 429) {
-          throw new Error("AI rate limit hit. Please try again in a moment.");
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            `Gemini Error: ${response.status} ${await response.text()}`,
-          );
-        }
-        const data = await response.json();
-        text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      } else {
-        const response = await fetch(`${config.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: config.model,
-            messages: [
-              { role: "system", content: systemMsg },
-              { role: "user", content: prompt },
-            ],
+    if (config.provider === "gemini") {
+      const activeModel = normalizeAIConfigValue(config.provider, config.model);
+      const url = `${config.baseUrl}/models/${activeModel}:generateContent?key=${config.apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
+          generationConfig: {
             temperature: options?.temperature ?? 0.4,
-            max_tokens: options?.maxTokens ?? 1400,
-          }),
-        });
-        if (!response.ok) {
-          throw new Error(
-            `AI API error: ${response.status} ${await response.text()}`,
-          );
-        }
-        const data = await response.json();
-        text = data.choices?.[0]?.message?.content ?? "";
+            maxOutputTokens: options?.maxTokens ?? 8000,
+            responseMimeType: "application/json",
+          },
+        }),
+      });
+
+      if (response.status === 429) {
+        throw new Error("AI rate limit hit. Please try again in a moment.");
       }
 
-      text = text.trim();
-      if (text.startsWith("```json")) {
-        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-      } else if (text.startsWith("```")) {
-        text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      if (!response.ok) {
+        throw new Error(
+          `Gemini Error: ${response.status} ${await response.text()}`,
+        );
       }
+      const data = await response.json();
+      return String(data.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+    }
 
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const jsonString = jsonMatch ? jsonMatch[0] : text;
-      return JSON.parse(jsonString);
+    const response = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user", content: prompt },
+        ],
+        temperature: options?.temperature ?? 0.4,
+        max_tokens: options?.maxTokens ?? 1400,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `AI API error: ${response.status} ${await response.text()}`,
+      );
+    }
+    const data = await response.json();
+    return String(data.choices?.[0]?.message?.content ?? "").trim();
+  }
+
+  private parseGeneratedJson(text: string) {
+    const stripped = stripMarkdownFences(text);
+    const extracted = extractBalancedJsonCandidate(stripped);
+    const repairedExtracted = repairCommonJsonIssues(extracted);
+    const repairedStripped = repairCommonJsonIssues(stripped);
+    const candidates = Array.from(
+      new Set([extracted, repairedExtracted, stripped, repairedStripped]),
+    ).filter(Boolean);
+
+    let lastError: Error | null = null;
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate);
+      } catch (error: any) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error("Could not parse AI response as JSON");
+  }
+
+  private async repairJsonWithAI(rawText: string, parseError: string) {
+    const repairPrompt = `Repair this malformed JSON so it becomes ONE valid JSON object.
+
+Rules:
+- Return ONLY valid JSON.
+- Keep the same structure and meaning.
+- Do not explain anything.
+- Do not wrap the result in markdown fences.
+
+Parse error:
+${parseError}
+
+Malformed JSON:
+${rawText}`;
+
+    return this.requestTextFromProvider(repairPrompt, {
+      systemMsg:
+        "You repair malformed JSON for a game database tool. Return only valid JSON.",
+      temperature: 0.1,
+      maxTokens: 2200,
+    });
+  }
+
+  public async generateFromPrompt(
+    prompt: string,
+    options?: GenerationOptions,
+  ): Promise<any | null> {
+    if (!isAIConfigured()) return null;
+
+    try {
+      const text = await this.requestTextFromProvider(prompt, options);
+      try {
+        return this.parseGeneratedJson(text);
+      } catch (parseError: any) {
+        const repairedText = await this.repairJsonWithAI(text, parseError.message);
+        return this.parseGeneratedJson(repairedText);
+      }
     } catch (err: any) {
       console.error("AI prompt generation failed:", err);
       throw new Error(`AI generation failed: ${err.message}`);
