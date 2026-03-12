@@ -406,6 +406,12 @@ function navigateToPage(page: string, params?: Record<string, string>) {
       url.searchParams.set(key, value);
     });
   }
+  if (
+    url.pathname === window.location.pathname &&
+    url.search === window.location.search
+  ) {
+    return;
+  }
   window.location.href = url.toString();
 }
 
@@ -673,7 +679,7 @@ function showScreen(name: string) {
     navigateToPage("map");
     return;
   }
-  if (name === "menu" && APP_PAGE !== "menu") {
+  if (name === "menu" && APP_PAGE !== "menu" && APP_PAGE !== "hub") {
     navigateToPage("hub");
     return;
   }
