@@ -101,6 +101,51 @@ User brief:
 ${userText}`;
 }
 
+function normalizeAIDraftRecord(value: unknown, depth = 0): Record<string, unknown> | null {
+  if (depth > 4 || value === null || value === undefined) return null;
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    try {
+      return normalizeAIDraftRecord(JSON.parse(trimmed), depth + 1);
+    } catch {
+      return null;
+    }
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 1) {
+      return normalizeAIDraftRecord(value[0], depth + 1);
+    }
+
+    const firstObject = value.find(
+      (entry) => entry && typeof entry === "object" && !Array.isArray(entry),
+    );
+    return firstObject ? normalizeAIDraftRecord(firstObject, depth + 1) : null;
+  }
+
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const unwrapKeys = ["record", "data", "result", "payload", "item", "entry", "object"];
+  for (const key of unwrapKeys) {
+    if (key in record) {
+      const unwrapped = normalizeAIDraftRecord(record[key], depth + 1);
+      if (unwrapped) return unwrapped;
+    }
+  }
+
+  for (const key of ["records", "items", "entries", "results", "objects"]) {
+    if (key in record) {
+      const unwrapped = normalizeAIDraftRecord(record[key], depth + 1);
+      if (unwrapped) return unwrapped;
+    }
+  }
+
+  return record;
+}
+
 function isDevPanelAuthorized(req: any) {
   if (!DEV_PANEL_KEY) return true;
   const providedKey =
@@ -456,15 +501,18 @@ router.post(
 
     try {
       const prompt = buildDevRecordDraftPrompt(sourceKey, promptText, currentRecord);
-      const record = await worldGenerator.generateFromPrompt(prompt, {
+      const generated = await worldGenerator.generateFromPrompt(prompt, {
         systemMsg:
           "You are a database shaping assistant for a fantasy RPG tool. Return only one valid JSON object.",
         temperature: 0.35,
         maxTokens: 1800,
       });
+      const record = normalizeAIDraftRecord(generated);
 
-      if (!record || typeof record !== "object" || Array.isArray(record)) {
-        throw new Error("AI did not return a valid JSON object");
+      if (!record) {
+        throw new Error(
+          `AI did not return a valid JSON object. Received ${Array.isArray(generated) ? "array" : typeof generated}.`,
+        );
       }
 
       res.json({ success: true, data: { record } });
