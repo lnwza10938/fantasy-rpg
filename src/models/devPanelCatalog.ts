@@ -260,7 +260,10 @@ export const DEV_PANEL_SOURCES: DevSourceConfig[] = [
         effectRefs: [],
         audioRefs: [],
         sliceRefs: [],
-        paletteOverride: {},
+        paletteOverride: {
+          zoneColor: "",
+          flowColor: "",
+        },
       },
       is_active: true,
     },

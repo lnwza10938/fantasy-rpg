@@ -47,6 +47,14 @@ function metadataNumber(metadata: Record<string, unknown>, key: string, fallback
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function metadataString(metadata: Record<string, unknown>, key: string) {
+  return typeof metadata[key] === "string" ? String(metadata[key]).trim() : "";
+}
+
+function inputValue(id: string) {
+  return (document.getElementById(id) as HTMLInputElement | HTMLTextAreaElement | null)?.value?.trim() || "";
+}
+
 function slugify(value: string) {
   return String(value || "")
     .trim()
@@ -160,6 +168,8 @@ function renderAllPickers(selected: {
 }
 
 function getCurrentRecord() {
+  const zoneColor = inputValue("terrain-zone-color");
+  const flowColor = inputValue("terrain-flow-color");
   return {
     category: "recipe",
     subcategory: "terrain",
@@ -194,10 +204,33 @@ function getCurrentRecord() {
       effectRefs: [],
       audioRefs: getSelectedIds("terrain-audio-picks"),
       sliceRefs: Array.from(document.querySelectorAll<HTMLInputElement>("[data-terrain-slice]:checked")).map((input) => input.dataset.terrainSlice || ""),
-      paletteOverride: {},
+      paletteOverride: {
+        zoneColor,
+        flowColor,
+      },
     },
     is_active: true,
   };
+}
+
+function validateRecord(record: Record<string, unknown>) {
+  const metadata = safeObject(record.metadata_json);
+  const biome = metadataString(metadata, "biome");
+  const terrainType = metadataString(metadata, "terrainType");
+  const intendedUse = metadataString(metadata, "intendedUse");
+  const assetRefs = Array.isArray(metadata.assetRefs) ? metadata.assetRefs : [];
+  const audioRefs = Array.isArray(metadata.audioRefs) ? metadata.audioRefs : [];
+  const sliceRefs = Array.isArray(metadata.sliceRefs) ? metadata.sliceRefs : [];
+  const palette = safeObject(metadata.paletteOverride);
+  const hasPalette = !!metadataString(palette, "zoneColor") || !!metadataString(palette, "flowColor");
+  const notes = String(record.body_text || "").trim();
+
+  if (!biome && !terrainType && !intendedUse) {
+    throw new Error("Recipe needs at least a biome, terrain type, or intended use.");
+  }
+  if (!assetRefs.length && !audioRefs.length && !sliceRefs.length && !hasPalette && !notes) {
+    throw new Error("Attach assets, slices, audio, palette colors, or notes before saving the recipe.");
+  }
 }
 
 function fillForm(record?: TerrainContextRecord, mode: "create" | "edit" = "create") {
@@ -220,6 +253,10 @@ function fillForm(record?: TerrainContextRecord, mode: "create" | "edit" = "crea
       effectRefs: [],
       audioRefs: [],
       sliceRefs: [],
+      paletteOverride: {
+        zoneColor: "",
+        flowColor: "",
+      },
     },
   };
   const metadata = safeObject(next.metadata_json);
@@ -236,6 +273,9 @@ function fillForm(record?: TerrainContextRecord, mode: "create" | "edit" = "crea
   (document.getElementById("terrain-min-danger") as HTMLInputElement | null)!.value = String(metadataNumber(metadata, "minDanger", null) ?? "");
   (document.getElementById("terrain-max-danger") as HTMLInputElement | null)!.value = String(metadataNumber(metadata, "maxDanger", null) ?? "");
   (document.getElementById("terrain-use") as HTMLInputElement | null)!.value = String(metadata.intendedUse || "");
+  const palette = safeObject(metadata.paletteOverride);
+  (document.getElementById("terrain-zone-color") as HTMLInputElement | null)!.value = String(palette.zoneColor || "");
+  (document.getElementById("terrain-flow-color") as HTMLInputElement | null)!.value = String(palette.flowColor || "");
   (document.getElementById("terrain-summary") as HTMLTextAreaElement | null)!.value = String(next.summary || "");
   (document.getElementById("terrain-body-text") as HTMLTextAreaElement | null)!.value = String(next.body_text || "");
   (document.getElementById("terrain-editor-title") as HTMLElement | null)!.textContent =
@@ -268,6 +308,7 @@ async function loadContext() {
 
 async function saveRecipe() {
   const record = getCurrentRecord();
+  validateRecord(record);
   const url =
     state.mode === "create"
       ? "/dev/panel/records/terrain_recipes"

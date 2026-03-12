@@ -270,6 +270,7 @@ It now has:
 - terrain-facing metadata fields such as biome, terrain type, render layer, intended use, palette hints, tileability, and slice metadata
 - manual slice entry, drag-to-slice, crop previews, and slice promotion into standalone sub-assets
 - weighted terrain recipe matching with biome / terrain / danger constraints
+- palette override controls and save-time validation in the terrain recipe editor
 - first generator-side geography binding from terrain recipes and tagged asset records
 
 This matters because the map generator can now begin reading a real tagged asset library instead of relying only on hard-coded visual assumptions.

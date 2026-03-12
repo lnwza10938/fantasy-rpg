@@ -160,6 +160,7 @@ Current direction:
 - metadata designed for terrain and geography generation
 - manual slice entry, drag-to-slice, and slice promotion into standalone sub-assets
 - first-pass terrain recipe application during geography generation with weighted matching
+- palette override and validation controls in the terrain recipe editor
 
 This is important because geography rendering should eventually read from tagged
 asset libraries instead of hand-wired filenames.
