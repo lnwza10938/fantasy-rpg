@@ -429,6 +429,8 @@ function openEditor(sourceKey: string, mode: "create" | "edit", recordId?: strin
   const copyEl = document.getElementById("dev-editor-copy");
   const textareaEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
   const fileMetaEl = document.getElementById("dev-editor-file-meta");
+  const aiStatusEl = document.getElementById("dev-editor-ai-status");
+  const aiBriefEl = document.getElementById("dev-editor-ai-brief") as HTMLTextAreaElement;
   const deleteBtn = document.getElementById("dev-editor-delete") as HTMLButtonElement;
   if (!overlayEl || !titleEl || !copyEl || !textareaEl || !deleteBtn) return;
 
@@ -449,6 +451,8 @@ function openEditor(sourceKey: string, mode: "create" | "edit", recordId?: strin
   copyEl.textContent = source.description;
   deleteBtn.style.display = mode === "edit" ? "inline-flex" : "none";
   if (fileMetaEl) fileMetaEl.textContent = "";
+  if (aiStatusEl) aiStatusEl.textContent = "";
+  if (aiBriefEl) aiBriefEl.value = "";
   overlayEl.classList.add("open");
 }
 
@@ -542,6 +546,93 @@ function mergeEditorJson(nextRecord: Record<string, unknown>) {
     null,
     2,
   );
+}
+
+function collectDraftTextFromRecord(record: Record<string, unknown>) {
+  const candidateKeys = [
+    "body_text",
+    "dialogue_text",
+    "description",
+    "summary",
+    "content",
+    "event_text",
+    "title",
+    "name",
+    "npc_name",
+    "role",
+    "ideology",
+    "personality",
+    "biome",
+    "type",
+    "subcategory",
+  ];
+
+  return candidateKeys
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join("\n");
+}
+
+async function generateEditorDraftWithAI() {
+  const textareaEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
+  const briefEl = document.getElementById("dev-editor-ai-brief") as HTMLTextAreaElement;
+  const buttonEl = document.getElementById("dev-editor-ai-draft") as HTMLButtonElement;
+  if (!textareaEl || !buttonEl || !state.editor.source) return;
+
+  let currentRecord: Record<string, unknown> = {};
+  try {
+    currentRecord = JSON.parse(textareaEl.value || "{}");
+  } catch (error: any) {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      `Fix JSON before using AI: ${error.message}`,
+      true,
+    );
+    return;
+  }
+
+  const directBrief = briefEl?.value?.trim() || "";
+  const promptText = directBrief || collectDraftTextFromRecord(currentRecord);
+  if (!promptText) {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      "Add a short brief or put text into the current JSON first.",
+      true,
+    );
+    return;
+  }
+
+  buttonEl.disabled = true;
+  setInlineStatus("dev-editor-ai-status", "AI is shaping the draft...");
+
+  try {
+    const response = await fetch(
+      `/dev/panel/ai/draft/${encodeURIComponent(state.editor.sourceKey)}`,
+      {
+        method: "POST",
+        headers: panelHeaders(),
+        body: JSON.stringify({
+          promptText,
+          currentRecord,
+        }),
+      },
+    );
+    const payload = await response.json();
+    if (!payload.success) {
+      throw new Error(payload.error || "Could not generate AI draft");
+    }
+
+    mergeEditorJson(payload.data?.record || {});
+    setInlineStatus("dev-editor-ai-status", "AI draft merged into the editor.");
+  } catch (error: any) {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      error.message || "Could not generate AI draft",
+      true,
+    );
+  } finally {
+    buttonEl.disabled = false;
+  }
 }
 
 async function importEditorFile(file: File) {
@@ -692,6 +783,9 @@ function bindGlobalControls() {
   document.getElementById("dev-editor-template")?.addEventListener("click", () => {
     if (!state.editor.source) return;
     mergeEditorJson(state.editor.source.defaultRecord);
+  });
+  document.getElementById("dev-editor-ai-draft")?.addEventListener("click", async () => {
+    await generateEditorDraftWithAI();
   });
   document.getElementById("dev-editor-save")?.addEventListener("click", async () => {
     await saveEditorRecord();

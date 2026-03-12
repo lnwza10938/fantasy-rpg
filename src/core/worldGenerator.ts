@@ -9,10 +9,25 @@ export interface AIGeneratorConfig {
   provider: "openai" | "gemini" | "groq" | "openrouter";
 }
 
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
+function normalizeAIConfigValue(
+  provider: AIGeneratorConfig["provider"],
+  model: string,
+): string {
+  const trimmed = model.trim();
+  if (provider === "gemini") {
+    if (!trimmed || /^gemini-1\.5\b/i.test(trimmed)) {
+      return DEFAULT_GEMINI_MODEL;
+    }
+  }
+  return trimmed;
+}
+
 // Runtime config — initialized from environment variables if available
 let config: AIGeneratorConfig = {
   apiKey: process.env.GEMINI_API_KEY || "",
-  model: "gemini-1.5-flash",
+  model: DEFAULT_GEMINI_MODEL,
   baseUrl: "https://generativelanguage.googleapis.com/v1beta",
   provider: "gemini",
 };
@@ -21,7 +36,16 @@ let config: AIGeneratorConfig = {
 const interpretationCache = new Map<string, any>();
 
 export function setAIConfig(newConfig: Partial<AIGeneratorConfig>) {
-  Object.assign(config, newConfig);
+  const nextProvider = newConfig.provider || config.provider;
+  const nextModel =
+    typeof newConfig.model === "string"
+      ? normalizeAIConfigValue(nextProvider, newConfig.model)
+      : config.model;
+
+  Object.assign(config, newConfig, {
+    provider: nextProvider,
+    model: nextModel,
+  });
 }
 
 export function getAIConfig(): Readonly<AIGeneratorConfig> {
@@ -85,6 +109,91 @@ Return ONLY the JSON object. No narrative.`,
 };
 
 export class WorldGenerator {
+  public async generateFromPrompt(
+    prompt: string,
+    options?: {
+      systemMsg?: string;
+      temperature?: number;
+      maxTokens?: number;
+    },
+  ): Promise<any | null> {
+    if (!isAIConfigured()) return null;
+
+    const systemMsg =
+      options?.systemMsg ||
+      "You are a fantasy RPG content generator. Return ONLY valid JSON.";
+
+    try {
+      let text = "";
+      if (config.provider === "gemini") {
+        const activeModel = normalizeAIConfigValue(config.provider, config.model);
+        const url = `${config.baseUrl}/models/${activeModel}:generateContent?key=${config.apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
+            generationConfig: {
+              temperature: options?.temperature ?? 0.4,
+              maxOutputTokens: options?.maxTokens ?? 8000,
+              responseMimeType: "application/json",
+            },
+          }),
+        });
+
+        if (response.status === 429) {
+          throw new Error("AI rate limit hit. Please try again in a moment.");
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Gemini Error: ${response.status} ${await response.text()}`,
+          );
+        }
+        const data = await response.json();
+        text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+      } else {
+        const response = await fetch(`${config.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${config.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: config.model,
+            messages: [
+              { role: "system", content: systemMsg },
+              { role: "user", content: prompt },
+            ],
+            temperature: options?.temperature ?? 0.4,
+            max_tokens: options?.maxTokens ?? 1400,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(
+            `AI API error: ${response.status} ${await response.text()}`,
+          );
+        }
+        const data = await response.json();
+        text = data.choices?.[0]?.message?.content ?? "";
+      }
+
+      text = text.trim();
+      if (text.startsWith("```json")) {
+        text = text.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (text.startsWith("```")) {
+        text = text.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonString = jsonMatch ? jsonMatch[0] : text;
+      return JSON.parse(jsonString);
+    } catch (err: any) {
+      console.error("AI prompt generation failed:", err);
+      throw new Error(`AI generation failed: ${err.message}`);
+    }
+  }
+
   /**
    * Generate content of a given type using AI.
    * Returns parsed JSON or null on failure.
@@ -100,85 +209,16 @@ export class WorldGenerator {
       return interpretationCache.get(context);
     }
 
-    const systemMsg =
-      "You are a fantasy RPG content generator. Return ONLY valid JSON.";
     const prompt =
       PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : "");
 
     try {
-      let text = "";
-      if (config.provider === "gemini") {
-        const url = `${config.baseUrl}/models/${config.model}:generateContent?key=${config.apiKey}`;
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 8000,
-              responseMimeType: "application/json",
-            },
-          }),
-        });
-
-        if (response.status === 429) {
-          console.warn("Gemini Rate Limit Hit (429). Using fallback.");
-          return this.getFallbackSkillInterpretation(context || "000000000");
-        }
-
-        if (!response.ok)
-          throw new Error(
-            `Gemini Error: ${response.status} ${await response.text()}`,
-          );
-        const data = await response.json();
-        text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-      } else {
-        // OpenAI / Groq / OpenRouter format
-        const response = await fetch(`${config.baseUrl}/chat/completions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${config.apiKey}`,
-          },
-          body: JSON.stringify({
-            model: config.model,
-            messages: [
-              { role: "system", content: systemMsg },
-              { role: "user", content: prompt },
-            ],
-            temperature: 0.8,
-            max_tokens: 1000,
-          }),
-        });
-        if (!response.ok)
-          throw new Error(
-            `AI API error: ${response.status} ${await response.text()}`,
-          );
-        const data = await response.json();
-        text = data.choices?.[0]?.message?.content ?? "";
-      }
-
-      // Extract JSON (handle potential markdown wrapping)
-      text = text.trim();
-      if (text.startsWith("```json")) {
-        text = text.replace(/^```json\n/, "").replace(/\n```$/, "");
-      } else if (text.startsWith("```")) {
-        text = text.replace(/^```\n/, "").replace(/\n```$/, "");
-      }
-
-      // Still fallback to regex if there's other fluff
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      let jsonString = jsonMatch ? jsonMatch[0] : text;
-
-      let result = text;
-      try {
-        result = JSON.parse(jsonString);
-      } catch (e: any) {
-        throw new Error(
-          `Failed to parse AI response as JSON. Received text: ${text.substring(0, 200)}...\nParse Error: ${e.message}`,
-        );
-      }
+      const result = await this.generateFromPrompt(prompt, {
+        systemMsg:
+          "You are a fantasy RPG content generator. Return ONLY valid JSON.",
+        temperature: 0.8,
+        maxTokens: 8000,
+      });
 
       // Save to cache before returning
       if (type === "skill" && context) {

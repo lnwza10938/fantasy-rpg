@@ -31,12 +31,74 @@ import {
   updateSourceRecord,
   type DevSortOrder,
 } from "../db/devPanelRepositories.js";
+import { getDevSourceConfig } from "../models/devPanelCatalog.js";
 
 const router = Router();
 const DEV_PANEL_KEY = process.env.DEV_PANEL_KEY || "";
 
 function getRequestedSortOrder(value: unknown): DevSortOrder {
   return value === "oldest" ? "oldest" : "latest";
+}
+
+function inferDraftFieldType(value: unknown): string {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "array";
+    return `array<${inferDraftFieldType(value[0])}>`;
+  }
+  if (value === null) return "null";
+  if (typeof value === "number") return Number.isInteger(value) ? "integer" : "number";
+  if (typeof value === "boolean") return "boolean";
+  if (typeof value === "string") return "string";
+  if (value && typeof value === "object") return "object";
+  return "unknown";
+}
+
+function buildDevRecordDraftPrompt(
+  sourceKey: string,
+  userText: string,
+  currentRecord: Record<string, unknown>,
+) {
+  const source = getDevSourceConfig(sourceKey);
+  if (!source) throw new Error(`Unknown dev source: ${sourceKey}`);
+
+  const baseRecord = {
+    ...(source.defaultRecord || {}),
+    ...(source.fixedValues || {}),
+  };
+
+  const fieldGuide = Object.entries(baseRecord)
+    .map(([key, value]) => `- ${key}: ${inferDraftFieldType(value)}`)
+    .join("\n");
+
+  return `You convert natural-language design notes into ONE valid JSON object for a game database editor.
+
+Target source:
+- key: ${source.key}
+- label: ${source.label}
+- description: ${source.description}
+- table: ${source.table}
+
+Rules:
+- Return ONLY a JSON object.
+- Use exactly the field names from the schema below.
+- Keep the output practical for direct database editing.
+- Preserve fixed values exactly where provided.
+- Fill missing text with concise useful defaults.
+- Keep arrays as arrays and nested objects as objects.
+- Do not include markdown, comments, or explanation text.
+- Do not invent extra top-level fields outside the schema.
+
+Field schema:
+${fieldGuide}
+
+Default record example:
+${JSON.stringify(baseRecord, null, 2)}
+
+Current editor JSON:
+${JSON.stringify(currentRecord || {}, null, 2)}
+
+User brief:
+${userText}`;
 }
 
 function isDevPanelAuthorized(req: any) {
@@ -360,6 +422,52 @@ router.delete(
         req.params.recordId,
       );
       res.json({ success: true, data });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  },
+);
+
+router.post(
+  "/panel/ai/draft/:sourceKey",
+  requireDevPanelAccess,
+  async (req, res) => {
+    const sourceKey = req.params.sourceKey;
+    const promptText = String(req.body?.promptText || "").trim();
+    const currentRecord =
+      req.body?.currentRecord &&
+      typeof req.body.currentRecord === "object" &&
+      !Array.isArray(req.body.currentRecord)
+        ? req.body.currentRecord
+        : {};
+
+    if (!promptText) {
+      res.status(400).json({ success: false, error: "promptText is required" });
+      return;
+    }
+
+    if (!isAIConfigured()) {
+      res.status(400).json({
+        success: false,
+        error: "AI not configured. Set API key first via /dev/ai/config",
+      });
+      return;
+    }
+
+    try {
+      const prompt = buildDevRecordDraftPrompt(sourceKey, promptText, currentRecord);
+      const record = await worldGenerator.generateFromPrompt(prompt, {
+        systemMsg:
+          "You are a database shaping assistant for a fantasy RPG tool. Return only one valid JSON object.",
+        temperature: 0.35,
+        maxTokens: 1800,
+      });
+
+      if (!record || typeof record !== "object" || Array.isArray(record)) {
+        throw new Error("AI did not return a valid JSON object");
+      }
+
+      res.json({ success: true, data: { record } });
     } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
     }

@@ -193,11 +193,28 @@
           <button id="dev-editor-template" class="btn btn-action" type="button">
             Load Template
           </button>
+          <button id="dev-editor-ai-draft" class="btn btn-action" type="button">
+            AI To DB
+          </button>
           <label class="btn btn-action dev-file-import-btn">
             Import File
             <input id="dev-editor-file" type="file" hidden />
           </label>
           <div id="dev-editor-file-meta" class="dev-inline-status"></div>
+        </div>
+
+        <div class="dev-ai-draft-box">
+          <div class="dev-panel-kicker">AI Draft</div>
+          <p class="dev-panel-copy dev-ai-draft-copy">
+            Paste free text, lore notes, or design instructions. AI will map it
+            into the JSON shape for this database source.
+          </p>
+          <textarea
+            id="dev-editor-ai-brief"
+            class="dev-editor-ai-brief"
+            placeholder="Describe the record in natural language, or leave this blank and let the tool read the text already inside the JSON editor."
+          ></textarea>
+          <div id="dev-editor-ai-status" class="dev-inline-status"></div>
         </div>
 
         <textarea id="dev-editor-json" class="dev-editor-json"></textarea>

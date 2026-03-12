@@ -1241,7 +1241,7 @@ function enterCurrentPage() {
         | "vault"
         | "wizard"
         | null) || "menu";
-    showScreen("forge");
+    showForge(forgeReturnState);
     return;
   }
   if (APP_PAGE === "adventure") {
@@ -1477,14 +1477,6 @@ async function initializeAuthState() {
     console.error("Failed to bootstrap auth state", error);
     enterLoggedOutState();
   }
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    void initializeAuthState();
-  });
-} else {
-  void initializeAuthState();
 }
 
 // --- SCREEN ---
@@ -4627,3 +4619,11 @@ async function executeCombatTurn() {
 (window as any).panMap = panMap;
 (window as any).zoomMap = zoomMap;
 (window as any).resetMapCamera = resetMapCameraState;
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    void initializeAuthState();
+  });
+} else {
+  void initializeAuthState();
+}

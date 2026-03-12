@@ -5074,6 +5074,33 @@ html[data-app-page="dev"] body::after {
   overflow: auto;
 }
 
+.dev-ai-draft-box {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(233, 245, 216, 0.12);
+  background: rgba(14, 31, 20, 0.42);
+}
+
+.dev-ai-draft-copy {
+  margin-top: 8px;
+  max-width: none;
+}
+
+.dev-editor-ai-brief {
+  width: 100%;
+  min-height: 116px;
+  margin-top: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(233, 245, 216, 0.14);
+  background: rgba(14, 31, 20, 0.6);
+  color: #f7ffea;
+  padding: 12px 14px;
+  font: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
 .dev-editor-json {
   min-height: 420px;
   margin-top: 14px;
