@@ -44,6 +44,7 @@
           <a href="/dev-assets" class="btn btn-action">Asset Library</a>
           <a href="/dev-assets/slices" class="btn btn-primary">Sheet Slicer</a>
           <a href="/dev-assets/audio" class="btn btn-action">Audio Intake</a>
+          <a href="/dev-terrain" class="btn btn-action">Terrain Recipes</a>
         </nav>
       </header>
 
@@ -110,9 +111,31 @@
 
             <div class="dev-editor-tools">
               <button id="slice-generate" class="btn btn-primary" type="button">Generate Grid</button>
+              <button id="slice-add-manual" class="btn btn-action" type="button">Add Manual Slice</button>
+              <button id="slice-remove-last" class="btn btn-action" type="button">Remove Last</button>
+              <button id="slice-promote" class="btn btn-action" type="button">Promote To Sub-Assets</button>
               <button id="slice-save" class="btn btn-action" type="button">Save Slice Metadata</button>
             </div>
             <div id="slice-status" class="dev-inline-status"></div>
+
+            <div class="dev-slice-controls">
+              <label class="dev-override-field">
+                <span>Manual X</span>
+                <input id="slice-manual-x" type="number" min="0" step="1" value="0" />
+              </label>
+              <label class="dev-override-field">
+                <span>Manual Y</span>
+                <input id="slice-manual-y" type="number" min="0" step="1" value="0" />
+              </label>
+              <label class="dev-override-field">
+                <span>Manual Width</span>
+                <input id="slice-manual-width" type="number" min="1" step="1" value="32" />
+              </label>
+              <label class="dev-override-field">
+                <span>Manual Height</span>
+                <input id="slice-manual-height" type="number" min="1" step="1" value="32" />
+              </label>
+            </div>
 
             <div class="dev-slice-stage">
               <div class="dev-slice-preview-shell">

@@ -31,6 +31,7 @@ export default defineConfig({
         devAssets: resolve(__dirname, "dev-assets.html"),
         devAssetsSlices: resolve(__dirname, "dev-assets-slices.html"),
         devAssetsAudio: resolve(__dirname, "dev-assets-audio.html"),
+        devTerrain: resolve(__dirname, "dev-terrain.html"),
       },
     },
   },

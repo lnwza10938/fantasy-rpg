@@ -28,6 +28,11 @@ import {
   getMonsters,
   getSpawnPoints,
 } from "../db/contentRepositories.js";
+import {
+  listTerrainFacingAssets,
+  listTerrainRecipeEntries,
+  type ContentEntryRecord,
+} from "../db/assetRepositories.js";
 
 interface MapRecord {
   id: string;
@@ -160,6 +165,22 @@ function normalizeBiomeKey(value: string | null | undefined): string {
 
 function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
+}
+
+function safeObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function metadataString(metadata: Record<string, unknown>, key: string): string {
+  return typeof metadata[key] === "string" ? String(metadata[key]).trim() : "";
+}
+
+function metadataStringArray(metadata: Record<string, unknown>, key: string): string[] {
+  return Array.isArray(metadata[key])
+    ? metadata[key].map((entry) => String(entry || "").trim()).filter(Boolean)
+    : [];
 }
 
 function deterministicShuffle<T>(values: T[], rng: SeededRNG): T[] {
@@ -561,6 +582,8 @@ export class WorldSystem {
     seed: number,
     regions: WorldRegion[],
     mapLayout: WorldMapLayout,
+    terrainAssets: ContentEntryRecord[],
+    terrainRecipes: ContentEntryRecord[],
   ): WorldGeographyLayer {
     const geographyRng = new SeededRNG(seed ^ 0x5b9d4f21);
     const zoneByRegionId = new Map<string, WorldGeographyZone>();
@@ -585,6 +608,9 @@ export class WorldSystem {
         rotation: geographyRng.nextInt(-24, 24),
         color: style.geographyColor,
         opacity: clamp(0.2 + geographyRng.next() * 0.12, 0.18, 0.38),
+        recipeId: null,
+        assetRefs: [],
+        sliceRefs: [],
       };
       zoneByRegionId.set(region.id, zone);
       return zone;
@@ -620,6 +646,8 @@ export class WorldSystem {
           width: 8 + Math.round(path.difficulty / 2),
           color: "rgba(120, 196, 233, 0.8)",
           opacity: 0.34,
+          recipeId: null,
+          assetRefs: [],
         });
       }
 
@@ -641,6 +669,8 @@ export class WorldSystem {
           width: 14 + Math.round(path.difficulty / 2),
           color: "rgba(92, 88, 84, 0.72)",
           opacity: 0.26,
+          recipeId: null,
+          assetRefs: [],
         });
       }
 
@@ -663,6 +693,8 @@ export class WorldSystem {
           width: 26 + Math.round(path.difficulty / 2),
           color: "rgba(232, 242, 255, 0.76)",
           opacity: path.kind === "secret" ? 0.2 : 0.14,
+          recipeId: null,
+          assetRefs: [],
         });
       }
 
@@ -681,7 +713,126 @@ export class WorldSystem {
           width: Math.round((fromZone.height + toZone.height) / 10),
           color: sharedColor,
           opacity: 0.08,
+          recipeId: null,
+          assetRefs: [],
         });
+      }
+    });
+
+    const eligibleZoneAssets = terrainAssets.filter((entry) => {
+      const subcategory = String(entry.subcategory || "");
+      return (
+        subcategory === "terrain" ||
+        subcategory === "structure" ||
+        subcategory === "background" ||
+        subcategory === "effect"
+      );
+    });
+
+    const matchRecipeForZone = (zone: WorldGeographyZone) => {
+      return (
+        terrainRecipes.find((recipe) => {
+          const metadata = safeObject(recipe.metadata_json);
+          const appliesTo = metadataString(metadata, "appliesTo") || "zone";
+          const biome = metadataString(metadata, "biome");
+          const terrainType = metadataString(metadata, "terrainType");
+          return (
+            appliesTo === "zone" &&
+            (!biome || biome === zone.biome) &&
+            (!terrainType || terrainType === zone.terrain)
+          );
+        }) || null
+      );
+    };
+
+    const matchRecipeForFlow = (flow: WorldGeographyFlow) => {
+      return (
+        terrainRecipes.find((recipe) => {
+          const metadata = safeObject(recipe.metadata_json);
+          const appliesTo = metadataString(metadata, "appliesTo") || "zone";
+          const terrainType = metadataString(metadata, "terrainType");
+          return (
+            appliesTo === "flow" &&
+            (!terrainType || terrainType === flow.kind)
+          );
+        }) || null
+      );
+    };
+
+    const inferZoneAssets = (zone: WorldGeographyZone) => {
+      return eligibleZoneAssets
+        .filter((entry) => {
+          const metadata = safeObject(entry.metadata_json);
+          const biome = metadataString(metadata, "biome");
+          const terrainType = metadataString(metadata, "terrainType");
+          const intendedUse = metadataString(metadata, "intendedUse");
+          return (
+            (!biome || biome === zone.biome) &&
+            (!terrainType || terrainType === zone.terrain) &&
+            (!intendedUse ||
+              intendedUse.includes("world") ||
+              intendedUse.includes("regional") ||
+              intendedUse.includes("geography"))
+          );
+        })
+        .slice(0, 4)
+        .map((entry) => entry.id);
+    };
+
+    const inferFlowAssets = (flow: WorldGeographyFlow) => {
+      return eligibleZoneAssets
+        .filter((entry) => {
+          const metadata = safeObject(entry.metadata_json);
+          const intendedUse = metadataString(metadata, "intendedUse");
+          const tags = entry.tags || [];
+          return (
+            tags.some((tag) => tag.toLowerCase().includes(flow.kind)) ||
+            metadataString(metadata, "terrainType") === flow.kind ||
+            metadataString(metadata, "structureType") === flow.kind ||
+            intendedUse.includes(flow.kind)
+          );
+        })
+        .slice(0, 3)
+        .map((entry) => entry.id);
+    };
+
+    zones.forEach((zone) => {
+      const recipe = matchRecipeForZone(zone);
+      if (recipe) {
+        const metadata = safeObject(recipe.metadata_json);
+        zone.recipeId = recipe.id;
+        zone.assetRefs = uniqueStrings([
+          ...metadataStringArray(metadata, "assetRefs"),
+          ...metadataStringArray(metadata, "structureRefs"),
+          ...metadataStringArray(metadata, "effectRefs"),
+        ]).slice(0, 6);
+        zone.sliceRefs = metadataStringArray(metadata, "sliceRefs").slice(0, 16);
+        const palette = safeObject(metadata.paletteOverride);
+        if (typeof palette.zoneColor === "string" && palette.zoneColor.trim()) {
+          zone.color = palette.zoneColor.trim();
+        }
+      }
+      if (!zone.assetRefs?.length) {
+        zone.assetRefs = inferZoneAssets(zone);
+      }
+    });
+
+    flows.forEach((flow) => {
+      const recipe = matchRecipeForFlow(flow);
+      if (recipe) {
+        const metadata = safeObject(recipe.metadata_json);
+        flow.recipeId = recipe.id;
+        flow.assetRefs = uniqueStrings([
+          ...metadataStringArray(metadata, "assetRefs"),
+          ...metadataStringArray(metadata, "effectRefs"),
+        ]).slice(0, 6);
+        const palette = safeObject(metadata.paletteOverride);
+        if (typeof palette.flowColor === "string" && palette.flowColor.trim()) {
+          flow.color = palette.flowColor.trim();
+        }
+      }
+      if (!flow.assetRefs?.length) {
+        flow.assetRefs = inferFlowAssets(flow);
       }
     });
 
@@ -753,7 +904,17 @@ export class WorldSystem {
       selection,
     );
     const mapLayout = this.buildMapLayout(seed, regions, hints);
-    const geography = this.buildGeographyLayer(seed, regions, mapLayout);
+    const [terrainAssets, terrainRecipes] = await Promise.all([
+      listTerrainFacingAssets(),
+      listTerrainRecipeEntries(),
+    ]);
+    const geography = this.buildGeographyLayer(
+      seed,
+      regions,
+      mapLayout,
+      terrainAssets,
+      terrainRecipes,
+    );
 
     const metadata: WorldMetadata = {
       worldName: defaultWorldNameFromPreset(inferWorldPresetFromSeed(seed), seed),

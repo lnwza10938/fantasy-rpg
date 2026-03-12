@@ -80,6 +80,9 @@ export interface WorldGeographyZone {
   rotation: number;
   color: string;
   opacity: number;
+  recipeId?: string | null;
+  assetRefs?: string[];
+  sliceRefs?: string[];
 }
 
 export interface WorldGeographyFlow {
@@ -89,6 +92,8 @@ export interface WorldGeographyFlow {
   width: number;
   color: string;
   opacity: number;
+  recipeId?: string | null;
+  assetRefs?: string[];
 }
 
 export interface WorldGeographyLayer {
@@ -617,6 +622,12 @@ export function normalizeWorldGeographyLayer(
               typeof record.opacity === "number" && Number.isFinite(record.opacity)
                 ? Math.max(0.05, Math.min(1, record.opacity))
                 : fallback.zones[index]?.opacity || 0.24,
+            recipeId:
+              typeof record.recipeId === "string" && record.recipeId.trim()
+                ? record.recipeId.trim()
+                : null,
+            assetRefs: normalizeStringArray(record.assetRefs),
+            sliceRefs: normalizeStringArray(record.sliceRefs),
           };
         })
     : fallback.zones;
@@ -648,6 +659,11 @@ export function normalizeWorldGeographyLayer(
               typeof record.opacity === "number" && Number.isFinite(record.opacity)
                 ? Math.max(0.04, Math.min(1, record.opacity))
                 : fallback.flows[index]?.opacity || 0.3,
+            recipeId:
+              typeof record.recipeId === "string" && record.recipeId.trim()
+                ? record.recipeId.trim()
+                : null,
+            assetRefs: normalizeStringArray(record.assetRefs),
           };
         })
         .filter((flow) => flow.points.length >= 2)

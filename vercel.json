@@ -31,6 +31,10 @@
       "destination": "/dev-assets-audio.html"
     },
     {
+      "source": "/dev-terrain",
+      "destination": "/dev-terrain.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },

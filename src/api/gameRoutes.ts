@@ -36,6 +36,11 @@ import {
   getDevSourceConfig,
 } from "../models/devPanelCatalog.js";
 import { reviewAssetAgainstFilename } from "../core/assetReview.js";
+import {
+  listAudioAssetEntries,
+  listTerrainFacingAssets,
+  listTerrainRecipeEntries,
+} from "../db/assetRepositories.js";
 
 const router = Router();
 const DEV_PANEL_KEY = process.env.DEV_PANEL_KEY || "";
@@ -688,6 +693,29 @@ router.get("/panel/assets/workbench", requireDevPanelAccess, async (req, res) =>
     });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/panel/assets/terrain-context", requireDevPanelAccess, async (_req, res) => {
+  try {
+    const [assets, audio, recipes] = await Promise.all([
+      listTerrainFacingAssets(),
+      listAudioAssetEntries(),
+      listTerrainRecipeEntries(),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        assets,
+        audio,
+        recipes,
+      },
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      error: error.message || "Could not load terrain asset context",
+    });
   }
 });
 

@@ -6042,6 +6042,21 @@ html[data-app-page="dev"] body::after {
   color: #f7ffea;
 }
 
+.dev-terrain-pick-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.dev-terrain-pick {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(233, 245, 216, 0.12);
+  background: rgba(12, 27, 16, 0.56);
+}
+
 @media (max-width: 1180px) {
   .dev-panel-topbar,
   .dev-source-grid,

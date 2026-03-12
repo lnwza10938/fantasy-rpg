@@ -264,15 +264,18 @@ It now has:
 - `/dev-assets` for terrain / structure / effect / background intake
 - `/dev-assets/slices` for grid-based sprite sheet and atlas slicing
 - `/dev-assets/audio` for ambience, BGM, SFX, UI, and voice intake
+- `/dev-terrain` for recipe-driven binding between biomes and asset libraries
 - AI filename review using a free-model image caption pass plus heuristic fallback
 - asset-kind guessing for `single`, `sheet`, `atlas`, `gif`, and `audio`
 - terrain-facing metadata fields such as biome, terrain type, render layer, intended use, palette hints, tileability, and slice metadata
+- manual slice entry and slice promotion into standalone sub-assets
+- first generator-side geography binding from terrain recipes and tagged asset records
 
 This matters because the map generator can now begin reading a real tagged asset library instead of relying only on hard-coded visual assumptions.
 
 Still to do:
 
-- richer manual slicing and sub-asset promotion
+- richer manual slicing ergonomics and direct drag-to-slice
 - audio-specific AI classification
 - terrain recipe binding between assets and generator rules
 - better story / world-pack binding on top of the new asset pages

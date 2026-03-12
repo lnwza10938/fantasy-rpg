@@ -937,6 +937,13 @@ function normalizeWorldGeography(geography: any, regions: any[], mapLayout: any)
           opacity: Number.isFinite(zone?.opacity)
             ? Math.max(0.05, Math.min(1, Number(zone.opacity)))
             : fallback.zones[index]?.opacity || 0.24,
+          recipeId: zone?.recipeId || null,
+          assetRefs: Array.isArray(zone?.assetRefs)
+            ? zone.assetRefs.filter((entry: any) => typeof entry === "string")
+            : [],
+          sliceRefs: Array.isArray(zone?.sliceRefs)
+            ? zone.sliceRefs.filter((entry: any) => typeof entry === "string")
+            : [],
         }))
         .filter((zone: any) => Number.isFinite(zone.x) && Number.isFinite(zone.y))
     : fallback.zones;
@@ -957,6 +964,10 @@ function normalizeWorldGeography(geography: any, regions: any[], mapLayout: any)
           opacity: Number.isFinite(flow?.opacity)
             ? Math.max(0.04, Math.min(1, Number(flow.opacity)))
             : fallback.flows[index]?.opacity || 0.3,
+          recipeId: flow?.recipeId || null,
+          assetRefs: Array.isArray(flow?.assetRefs)
+            ? flow.assetRefs.filter((entry: any) => typeof entry === "string")
+            : [],
         }))
         .filter((flow: any) => flow.points.length >= 2)
     : fallback.flows;
@@ -4258,7 +4269,11 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           class="map-geography-zone ${zoneClass}"
           fill="${escapeHtml(zone.color || "rgba(95, 168, 211, 0.74)")}"
           fill-opacity="${Math.max(0.04, Math.min(1, Number(zone.opacity) || 0.24))}"
-        />
+        >
+          <title>${escapeHtml(
+            `${String(zone.biome || "unknown")} • ${String(zone.terrain || "plains")}${Array.isArray(zone.assetRefs) && zone.assetRefs.length ? ` • ${zone.assetRefs.length} assets` : ""}${Array.isArray(zone.sliceRefs) && zone.sliceRefs.length ? ` • ${zone.sliceRefs.length} slices` : ""}`,
+          )}</title>
+        </ellipse>
       `;
     })
     .join("");
@@ -4284,7 +4299,11 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           stroke="${escapeHtml(flow.color || "rgba(132, 197, 231, 0.8)")}"
           stroke-width="${Math.max(2, Number(flow.width) || 10)}"
           stroke-opacity="${Math.max(0.04, Math.min(1, Number(flow.opacity) || 0.3))}"
-        />
+        >
+          <title>${escapeHtml(
+            `${String(flow.kind || "river")}${Array.isArray(flow.assetRefs) && flow.assetRefs.length ? ` • ${flow.assetRefs.length} assets` : ""}`,
+          )}</title>
+        </path>
       `;
     })
     .join("");

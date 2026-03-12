@@ -155,8 +155,11 @@ Current direction:
 - separate `/dev-assets` page for terrain and structure intake
 - `/dev-assets/slices` for sprite sheet and atlas slicing
 - `/dev-assets/audio` for ambient and cue intake
+- `/dev-terrain` for recipe-driven asset binding
 - AI filename review with free-model image captioning plus fallback heuristics
 - metadata designed for terrain and geography generation
+- manual slice entry and slice promotion into standalone sub-assets
+- first-pass terrain recipe application during geography generation
 
 This is important because geography rendering should eventually read from tagged
 asset libraries instead of hand-wired filenames.

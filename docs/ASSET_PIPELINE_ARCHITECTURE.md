@@ -143,6 +143,8 @@ The dev-side asset workflow is intentionally split into separate pages:
   - sprite sheet / atlas slicing workbench
 - `/dev-assets/audio`
   - audio-specific intake and metadata
+- `/dev-terrain`
+  - recipe-driven terrain and geography binding
 
 This keeps the workflow focused and avoids one overloaded page.
 
@@ -167,7 +169,7 @@ The next useful layers after the current implementation are:
 
 1. richer sheet slicing and sub-asset editing
 2. AI-assisted slice planning
-3. terrain recipe binding
+3. deeper terrain recipe authoring and validation
 4. local map / dungeon tileset usage
 5. stronger audio classification
 

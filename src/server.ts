@@ -48,6 +48,10 @@ app.get("/dev-assets/audio", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "dev-assets-audio.html"));
 });
 
+app.get("/dev-terrain", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev-terrain.html"));
+});
+
 app.get("/hub", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });

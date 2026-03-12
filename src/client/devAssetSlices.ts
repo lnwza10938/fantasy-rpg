@@ -51,6 +51,15 @@ function parseIntInput(id: string, fallback = 0) {
   return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : fallback;
 }
 
+function slugify(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 function setStatus(text: string, isError = false) {
   const el = document.getElementById("slice-status");
   if (!el) return;
@@ -253,6 +262,43 @@ function generateSlices() {
   setStatus(`Generated ${slices.length} grid slices.`);
 }
 
+function addManualSlice() {
+  if (!state.active) {
+    setStatus("Choose an asset before adding manual slices.", true);
+    return;
+  }
+  const x = parseIntInput("slice-manual-x", 0);
+  const y = parseIntInput("slice-manual-y", 0);
+  const width = parseIntInput("slice-manual-width", 32);
+  const height = parseIntInput("slice-manual-height", 32);
+  const prefix = ((document.getElementById("slice-prefix") as HTMLInputElement | null)?.value || "slice")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const index = state.slices.length;
+  state.slices.push({
+    id: `${prefix}-${String(index + 1).padStart(3, "0")}`,
+    x,
+    y,
+    width,
+    height,
+    index,
+  });
+  renderPreview();
+  setStatus(`Added manual slice ${index + 1}.`);
+}
+
+function removeLastSlice() {
+  if (!state.slices.length) {
+    setStatus("No slices to remove.", true);
+    return;
+  }
+  state.slices.pop();
+  renderPreview();
+  setStatus("Removed the last slice.");
+}
+
 async function saveSlices() {
   if (!state.active) {
     setStatus("Choose an asset before saving.", true);
@@ -293,6 +339,66 @@ async function saveSlices() {
   setStatus("Slice metadata saved to the asset record.");
 }
 
+async function promoteSlices() {
+  if (!state.active) {
+    setStatus("Choose an asset before promoting slices.", true);
+    return;
+  }
+  if (!state.slices.length) {
+    setStatus("Generate or add slices before promoting.", true);
+    return;
+  }
+
+  const metadata = getMetadata(state.active);
+  const sourceKey = state.active.sourceKey;
+  const baseTitle = String(state.active.title || "Slice Asset");
+  const baseSlug = slugify(String(state.active.slug || state.active.title || "slice-asset"));
+  let created = 0;
+
+  for (const slice of state.slices) {
+    const record = {
+      title: `${baseTitle} ${slice.id}`,
+      slug: `${baseSlug}-${slice.id}`,
+      summary: `Derived from ${baseTitle} at x:${slice.x} y:${slice.y} w:${slice.width} h:${slice.height}.`,
+      body_text: "",
+      file_url: state.active.file_url || "",
+      preview_url: state.active.preview_url || state.active.file_url || "",
+      mime_type: state.active.mime_type || "image/png",
+      tags: Array.from(
+        new Set([...(Array.isArray(state.active.tags) ? state.active.tags : []), "slice", "derived-asset"]),
+      ),
+      world_definition_id: state.active.world_definition_id || null,
+      metadata_json: {
+        ...metadata,
+        assetKind: "single",
+        derivedFromSheet: true,
+        sourceSheetId: state.active.id,
+        parentAssetId: state.active.id,
+        sliceRect: {
+          x: slice.x,
+          y: slice.y,
+          width: slice.width,
+          height: slice.height,
+        },
+        sourceSliceId: slice.id,
+      },
+    };
+
+    const response = await fetch(`/dev/panel/records/${encodeURIComponent(sourceKey)}`, {
+      method: "POST",
+      headers: panelHeaders(),
+      body: JSON.stringify({ record }),
+    });
+    const payload = await response.json();
+    if (!payload.success) {
+      throw new Error(payload.error || `Could not promote ${slice.id}`);
+    }
+    created += 1;
+  }
+
+  setStatus(`Promoted ${created} slices into standalone asset records.`);
+}
+
 async function loadAssets() {
   const response = await fetch("/dev/panel/assets/workbench?sort=latest", {
     headers: panelHeaders(),
@@ -320,6 +426,15 @@ async function loadAssets() {
 
 function bindControls() {
   document.getElementById("slice-generate")?.addEventListener("click", generateSlices);
+  document.getElementById("slice-add-manual")?.addEventListener("click", addManualSlice);
+  document.getElementById("slice-remove-last")?.addEventListener("click", removeLastSlice);
+  document.getElementById("slice-promote")?.addEventListener("click", async () => {
+    try {
+      await promoteSlices();
+    } catch (error: any) {
+      setStatus(error.message || "Could not promote slices", true);
+    }
+  });
   document.getElementById("slice-save")?.addEventListener("click", async () => {
     try {
       await saveSlices();
