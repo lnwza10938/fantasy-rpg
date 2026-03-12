@@ -17,6 +17,7 @@ import { eventSystem } from "../core/eventSystem.js";
 import { combatSystem } from "../core/combatSystem.js";
 import { legendSystem } from "../core/legendSystem.js";
 import { GameStateManager, GamePhase } from "../core/gameState.js";
+import { worldPipelineCoordinator } from "../core/worldPipelines.js";
 import {
   hydrateGameStateFromSave,
   mapSaveToWorldArchive,
@@ -25,10 +26,6 @@ import {
 import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 import type { CharacterStats } from "../models/combatTypes.js";
-import {
-  defaultWorldNameFromPreset,
-  inferWorldPresetFromSeed,
-} from "../models/worldTypes.js";
 import {
   getItems,
   getEquipment,
@@ -402,7 +399,13 @@ router.post("/start", async (req, res) => {
     }
 
     const seed = worldSeed ?? Math.floor(Math.random() * 999999999);
-    const instance = await worldSystem.generateWorld(seed, customSelection);
+    const pipeline = await worldPipelineCoordinator.generate({
+      seed,
+      worldName,
+      worldPreset,
+      customSelection,
+    });
+    const instance = pipeline.instance;
 
     // Create game state session
     const gsm = new GameStateManager(player.id, character.id, seed);
@@ -417,21 +420,7 @@ router.post("/start", async (req, res) => {
       characterName: character.name,
       signatureSkill: character.skillData || signatureSkill,
     });
-    gsm.setWorldMeta({
-      worldName:
-        worldName ||
-        defaultWorldNameFromPreset(
-          worldPreset || inferWorldPresetFromSeed(seed),
-          seed,
-        ),
-      worldPreset: worldPreset || inferWorldPresetFromSeed(seed),
-      customBiomes: Array.isArray(customSelection?.biomes)
-        ? customSelection.biomes
-        : [],
-      customMonsters: Array.isArray(customSelection?.monsters)
-        ? customSelection.monsters
-        : [],
-    });
+    gsm.setWorldMeta(pipeline.context.metadata);
     instance.setMetadata(gsm.getWorldState().metadata);
     sessions.set(character.id, gsm);
 
@@ -446,6 +435,7 @@ router.post("/start", async (req, res) => {
         worldSeed: seed,
         regions: instance.regions,
         worldDefinition: instance.definition,
+        generationMode: pipeline.mode,
         state: gsm.getState(),
         structuredState: gsm.getStructuredState(),
       },
@@ -522,15 +512,26 @@ router.post("/character", async (req, res) => {
 // --- /world ---
 router.post("/world", async (req, res) => {
   try {
-    const { seed } = req.body;
+    const { seed, worldName, worldPreset, customSelection, mode } = req.body;
     if (!seed) {
       res.status(400).json({ success: false, error: "seed required" });
       return;
     }
-    const instance = await worldSystem.generateWorld(seed);
+    const pipeline = await worldPipelineCoordinator.generate({
+      seed: Number(seed),
+      worldName,
+      worldPreset,
+      customSelection,
+      mode,
+    });
     res.json({
       success: true,
-      data: { worldSeed: seed, regions: instance.regions },
+      data: {
+        worldSeed: Number(seed),
+        generationMode: pipeline.mode,
+        worldDefinition: pipeline.definition,
+        regions: pipeline.instance.regions,
+      },
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -583,10 +584,25 @@ router.post("/event", async (req, res) => {
     }
 
     let instance = worldSystem.getInstance();
+    const worldState = gsm.getWorldState();
+    const shouldRegenerateWorld =
+      !instance ||
+      instance.seed !== worldState.seed ||
+      JSON.stringify(instance.metadata) !== JSON.stringify(worldState.metadata);
+
+    if (shouldRegenerateWorld) {
+      // Hot-reload or swap the cached world instance if it does not match this session.
+      const pipeline = await worldPipelineCoordinator.generateFromStoredWorld({
+        seed: worldState.seed,
+        worldName: worldState.metadata.worldName,
+        worldPreset: worldState.metadata.worldPreset,
+        customBiomes: worldState.metadata.customBiomes,
+        customMonsters: worldState.metadata.customMonsters,
+      });
+      instance = pipeline.instance;
+    }
     if (!instance) {
-      // Hot-reload world instance if serverless function cold-started
-      const seed = gsm.getState().worldSeed;
-      instance = await worldSystem.generateWorld(seed);
+      throw new Error("World instance could not be restored for this session.");
     }
 
     const region =
@@ -905,8 +921,14 @@ router.get("/load/:characterId", async (req, res) => {
     sessions.set(characterId, gsm);
 
     // Regenerate world from saved seed
-    const world = await worldSystem.generateWorld(Number(data.world_seed));
-    world.setMetadata(gsm.getWorldState().metadata);
+    const pipeline = await worldPipelineCoordinator.generateFromStoredWorld({
+      seed: Number(data.world_seed),
+      worldName: gsm.getWorldState().metadata.worldName,
+      worldPreset: gsm.getWorldState().metadata.worldPreset,
+      customBiomes: gsm.getWorldState().metadata.customBiomes,
+      customMonsters: gsm.getWorldState().metadata.customMonsters,
+    });
+    const world = pipeline.instance;
 
     res.json({
       success: true,
@@ -914,6 +936,7 @@ router.get("/load/:characterId", async (req, res) => {
         gameState: gsm.getState(),
         structuredState: gsm.getStructuredState(),
         worldDefinition: world.definition,
+        generationMode: pipeline.mode,
         regions: world.regions,
       },
     });
