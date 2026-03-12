@@ -35,6 +35,10 @@
       "destination": "/adventure.html"
     },
     {
+      "source": "/map",
+      "destination": "/adventure.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

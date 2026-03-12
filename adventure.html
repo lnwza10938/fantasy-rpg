@@ -308,6 +308,13 @@
           <button
             class="btn btn-action"
             style="font-size: 10px"
+            onclick="showMapPage()"
+          >
+            🗺️ World Map
+          </button>
+          <button
+            class="btn btn-action"
+            style="font-size: 10px"
             onclick="showVault()"
           >
             📚 The Vault
@@ -1082,6 +1089,23 @@
               id="sub-map"
               style="flex: 1; display: flex; flex-direction: column; min-height: 0"
             >
+              <div
+                id="map-progress-panel"
+                class="map-progress-panel"
+                style="display: none"
+              >
+                <div class="map-progress-header">
+                  <div>
+                    <div class="map-section-kicker">Tracked Worlds</div>
+                    <div class="map-progress-title">Map Progress Feed</div>
+                  </div>
+                  <div id="map-preview-note" class="map-progress-note">
+                    Choose a saved world to inspect its current map progress.
+                  </div>
+                </div>
+                <div id="map-world-selector" class="map-world-selector"></div>
+              </div>
+
               <div class="map-region-header">
                 <div class="map-section-kicker">World Map</div>
                 <div id="map-region-heading" class="map-region-heading">

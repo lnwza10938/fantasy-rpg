@@ -29,7 +29,19 @@ const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
 const PENDING_LOAD_KEY = "rpg_pending_load";
-const APP_PAGE = document.documentElement.dataset.appPage || "menu";
+const NORMALIZED_PATH =
+  window.location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/";
+const APP_PAGE =
+  NORMALIZED_PATH === "/map"
+    ? "map"
+    : NORMALIZED_PATH === "/vault"
+      ? "vault"
+      : NORMALIZED_PATH === "/forge"
+        ? "forge"
+        : NORMALIZED_PATH === "/adventure"
+          ? "adventure"
+          : document.documentElement.dataset.appPage || "menu";
+const IS_GAMEPLAY_PAGE = APP_PAGE === "adventure" || APP_PAGE === "map";
 const PRESET_WORLD_BIOMES: Record<string, string[]> = {
   balanced: ["forest", "coast", "mountain", "desert"],
   inferno: ["volcanic"],
@@ -94,6 +106,7 @@ function buildIdentityQuery() {
 }
 
 function pageHref(page: string) {
+  if (page === "map") return "/map";
   if (page === "vault") return "/vault";
   if (page === "forge") return "/forge";
   if (page === "adventure") return "/adventure";
@@ -136,6 +149,14 @@ function worldPresetLabel(preset: string) {
   return preset || "Unknown World";
 }
 
+function sortCreatedWorlds(worlds: any[] = []) {
+  return [...worlds].sort((a, b) => {
+    const aTime = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+    const bTime = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
 function escapeHtml(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -161,6 +182,14 @@ function navigateToPage(page: string, params?: Record<string, string>) {
     });
   }
   window.location.href = url.toString();
+}
+
+function showMapPage() {
+  if (APP_PAGE !== "map") {
+    navigateToPage("map");
+    return;
+  }
+  initializeMapPage(true);
 }
 
 function enterCurrentPage() {
@@ -195,6 +224,11 @@ function enterCurrentPage() {
         sessionStorage.removeItem(PENDING_LOAD_KEY);
       }
     }
+    return;
+  }
+  if (APP_PAGE === "map") {
+    showScreen("world");
+    initializeMapPage();
     return;
   }
   showScreen("menu");
@@ -384,6 +418,10 @@ window.addEventListener("load", async () => {
 
 // --- SCREEN ---
 function showScreen(name: string) {
+  if (name === "map" && APP_PAGE !== "map") {
+    navigateToPage("map");
+    return;
+  }
   if (name === "menu" && APP_PAGE !== "menu") {
     navigateToPage("menu");
     return;
@@ -405,7 +443,7 @@ function showScreen(name: string) {
       "character",
       "inventory",
     ].includes(name) &&
-    APP_PAGE !== "adventure"
+    !IS_GAMEPLAY_PAGE
   ) {
     navigateToPage("adventure");
     return;
@@ -633,6 +671,7 @@ function showToast(msg: string, type = "success") {
 (window as any).submitNewGame = submitNewGame;
 (window as any).showVault = showVault;
 (window as any).showForge = showForge;
+(window as any).showMapPage = showMapPage;
 (window as any).fetchCreatedWorlds = fetchCreatedWorlds;
 (window as any).rollForgeSkill = rollForgeSkill;
 (window as any).confirmForge = confirmForge;
@@ -641,6 +680,7 @@ function showToast(msg: string, type = "success") {
 (window as any).selectLegend = selectLegend;
 (window as any).applyWorldRecord = applyWorldRecord;
 (window as any).deleteWorldRecord = deleteWorldRecord;
+(window as any).openWorldInAdventure = openWorldInAdventure;
 (window as any).clearAdventureLog = clearAdventureLog;
 (window as any).toggleCustomTag = toggleCustomTag;
 (window as any).forgeGoStep = forgeGoStep;
@@ -1004,12 +1044,13 @@ async function fetchCreatedWorlds() {
     const query = buildIdentityQuery().toString();
     const res = await fetch(`${API}/worlds${query ? `?${query}` : ""}`);
     const j = await res.json();
-    G.createdWorlds = j.success ? j.data || [] : [];
+    G.createdWorlds = sortCreatedWorlds(j.success ? j.data || [] : []);
   } catch {
     G.createdWorlds = [];
   }
 
   renderCreatedWorlds();
+  renderMapPreviewWorldSelector();
 }
 
 function renderCreatedWorlds() {
@@ -1078,6 +1119,171 @@ function renderCreatedWorlds() {
       `;
     })
     .join("");
+}
+
+function renderMapPreviewWorldSelector() {
+  const shell = document.getElementById("map-progress-panel");
+  const listEl = document.getElementById("map-world-selector");
+  const noteEl = document.getElementById("map-preview-note");
+  if (!shell || !listEl) return;
+
+  if (APP_PAGE !== "map") {
+    shell.style.display = "none";
+    return;
+  }
+
+  shell.style.display = "block";
+  const worlds = sortCreatedWorlds(G.createdWorlds || []);
+  if (noteEl) {
+    noteEl.textContent =
+      G.characterId && G.gs
+        ? "Previewing the latest saved map state for this legend."
+        : "Choose a saved world to inspect its current map progress.";
+  }
+
+  if (worlds.length === 0) {
+    listEl.innerHTML = `
+      <div class="map-preview-empty">
+        <div class="map-preview-empty-title">No saved worlds yet</div>
+        <div class="map-preview-empty-copy">
+          Start an adventure once, then come back here to track the world as it evolves.
+        </div>
+        <div class="map-preview-empty-actions">
+          <button class="btn btn-primary" onclick="startWizard()">⚔️ Start Adventure</button>
+          <button class="btn btn-action" onclick="showForge('menu')">⚒️ Forge Legend</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = worlds
+    .slice(0, 8)
+    .map((world: any) => {
+      const isActive = G.characterId === world.characterId;
+      const worldName = escapeHtml(world.worldName || "Unknown World");
+      const legendName = escapeHtml(world.characterName || "Hero");
+      const phase = escapeHtml(world.phase || "IDLE");
+      const updatedAt = world.updatedAt
+        ? new Date(world.updatedAt).toLocaleString()
+        : "No timestamp";
+      const safeName = escapeJsSingleQuoted(world.characterName || "Hero");
+      return `
+        <button
+          class="map-world-card ${isActive ? "active" : ""}"
+          onclick="loadGame('${world.characterId}', '${safeName}')"
+        >
+          <div class="map-world-card-top">
+            <div>
+              <div class="map-world-card-title">${worldName}</div>
+              <div class="map-world-card-subtitle">${legendName} • ${escapeHtml(worldPresetLabel(world.worldPreset || "custom"))}</div>
+            </div>
+            <div class="map-world-card-phase">${phase}</div>
+          </div>
+          <div class="map-world-card-meta">Seed ${Number(world.worldSeed) || 0} • ${escapeHtml(updatedAt)}</div>
+          <div class="map-world-card-actions">
+            <span>${isActive ? "Now previewing" : "Load preview"}</span>
+            <span class="map-world-card-link" onclick="event.stopPropagation(); openWorldInAdventure('${world.characterId}', '${safeName}')">Open adventure</span>
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function resetMapPreviewState() {
+  G.characterId = null;
+  G.worldSeed = null;
+  G.gs = null;
+  G.regions = [];
+  G.selectedRegion = null;
+  G.selectedRegionIndex = 0;
+  G.activeCombat = null;
+  toggleMapCombatStage(false);
+}
+
+function renderMapPreviewEmptyState() {
+  resetMapPreviewState();
+  const listEl = document.getElementById("region-list");
+  if (listEl) {
+    listEl.innerHTML = `
+      <div class="map-preview-empty map-preview-empty-stage">
+        <div class="map-preview-empty-title">Map preview is waiting for its first world</div>
+        <div class="map-preview-empty-copy">
+          Once a legend starts an adventure and saves progress, this page will show the live world map here.
+        </div>
+        <div class="map-preview-empty-actions">
+          <button class="btn btn-primary" onclick="startWizard()">⚔️ Start Adventure</button>
+          <button class="btn btn-action" onclick="showScreen('menu')">🏠 Main Menu</button>
+        </div>
+      </div>
+    `;
+  }
+  setMapEventState(
+    "🗺️ Map preview is standing by",
+    "This page is reserved for live world-map progress. Start an adventure to populate it.",
+  );
+  syncMapSelectionState();
+  renderMapPreviewWorldSelector();
+}
+
+async function initializeMapPage(forceReload = false) {
+  if (APP_PAGE !== "map") return;
+
+  showScreen("world");
+  clearAdventureLog();
+  setMapEventState(
+    "🗺️ Loading world map progress",
+    "This page tracks the latest saved world. Pick a recorded world below to inspect its current map state.",
+  );
+  toggleMapCombatStage(false);
+
+  if (!G.createdWorlds.length || forceReload) {
+    await fetchCreatedWorlds();
+  } else {
+    renderMapPreviewWorldSelector();
+  }
+
+  if (!G.createdWorlds.length) {
+    renderMapPreviewEmptyState();
+    return;
+  }
+
+  const previewWorld =
+    (!forceReload &&
+      G.characterId &&
+      G.createdWorlds.find(
+        (world: any) => world.characterId === G.characterId,
+      )) ||
+    sortCreatedWorlds(G.createdWorlds)[0];
+
+  if (!previewWorld) {
+    renderMapPreviewEmptyState();
+    return;
+  }
+
+  renderMapPreviewWorldSelector();
+  if (
+    forceReload ||
+    G.characterId !== previewWorld.characterId ||
+    !G.gs ||
+    !G.regions.length
+  ) {
+    await loadGame(previewWorld.characterId, previewWorld.characterName);
+  } else {
+    syncMapSelectionState();
+  }
+}
+
+function openWorldInAdventure(characterId: string, characterName?: string) {
+  sessionStorage.setItem(
+    PENDING_LOAD_KEY,
+    JSON.stringify({
+      characterId,
+      characterName: characterName || null,
+    }),
+  );
+  navigateToPage("adventure");
 }
 
 function applyWorldRecord(characterId: string) {
@@ -1158,6 +1364,9 @@ async function deleteWorldRecord(characterId: string, worldName: string) {
 
     showToast(`Deleted world: ${worldName}`, "info");
     await Promise.all([fetchCreatedWorlds(), fetchSaveList()]);
+    if (APP_PAGE === "map") {
+      await initializeMapPage(true);
+    }
   } catch (err: any) {
     showToast(err.message || "Could not delete world", "error");
   }
@@ -1858,7 +2067,7 @@ async function deleteLegend(cid: string, name: string) {
 }
 
 async function loadGame(cid: string, charName?: string) {
-  if (APP_PAGE !== "adventure") {
+  if (!IS_GAMEPLAY_PAGE) {
     sessionStorage.setItem(
       PENDING_LOAD_KEY,
       JSON.stringify({
@@ -1906,6 +2115,7 @@ async function loadGame(cid: string, charName?: string) {
   );
   toggleMapCombatStage(false);
   showScreen("world");
+  renderMapPreviewWorldSelector();
   showToast("Loading save...", "info");
 
   // --- Sync in background ---
@@ -1918,6 +2128,7 @@ async function loadGame(cid: string, charName?: string) {
       G.regions = normalizeRegions(j.data.regions);
       renderRegions();
       updateAllStatusBars();
+      renderMapPreviewWorldSelector();
       showToast("Game loaded! ✅", "success");
     } else {
       // Server error — show offline regions so the UI isn't stuck
@@ -1935,6 +2146,7 @@ async function loadGame(cid: string, charName?: string) {
         },
       ]);
       renderRegions();
+      renderMapPreviewWorldSelector();
       showToast(j.error || "Offline mode", "info");
     }
   } catch {
@@ -1952,6 +2164,7 @@ async function loadGame(cid: string, charName?: string) {
       },
     ]);
     renderRegions();
+    renderMapPreviewWorldSelector();
     showToast("Offline mode – syncing failed", "info");
   }
 }

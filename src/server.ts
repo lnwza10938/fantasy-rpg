@@ -40,6 +40,10 @@ app.get("/adventure", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "adventure.html"));
 });
 
+app.get("/map", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "adventure.html"));
+});
+
 export default app;
 
 // Only listen locally if not deployed on Vercel
