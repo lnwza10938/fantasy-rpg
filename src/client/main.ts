@@ -1522,9 +1522,6 @@ function syncMapSelectionState() {
   const headingEl = document.getElementById("map-region-heading");
   const copyEl = document.getElementById("map-region-copy");
   const chipEl = document.getElementById("map-region-chip");
-  const exploreBtn = document.getElementById(
-    "btn-map-explore",
-  ) as HTMLButtonElement | null;
   const currentRegion = getCurrentRegion();
   const currentRegionId = currentRegion?.id || getCurrentRegionId();
   const selectedPathContext = getSelectedPathContext();
@@ -1545,18 +1542,11 @@ function syncMapSelectionState() {
         ? `Current Node • ${currentRegion.name}`
         : "No region selected";
     }
-    if (exploreBtn) {
-      exploreBtn.disabled = true;
-      exploreBtn.textContent = "🧭 Select a Reachable Region";
-    }
+    renderAdventureCommandDeck();
     return;
   }
 
-  const enemyList =
-    Array.isArray(G.selectedRegion.enemyTypes) &&
-    G.selectedRegion.enemyTypes.length > 0
-      ? G.selectedRegion.enemyTypes.join(", ")
-      : "Unknown threats";
+  const enemyList = summarizeEnemyList(G.selectedRegion.enemyTypes || [], 3);
   const landmark = G.selectedRegion.landmark || "Waystation";
   const exitCount = Array.isArray(G.selectedRegion.connections)
     ? G.selectedRegion.connections.length
@@ -1590,23 +1580,202 @@ function syncMapSelectionState() {
         ? `${G.selectedRegion.name} • ${pathKindLabel(selectedPathContext.path.kind)} • Danger ${G.selectedRegion.dangerLevel}`
         : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
-  if (exploreBtn) {
-    exploreBtn.disabled =
-      !!G.activeCombat || (!isSelectedCurrent && !isSelectedReachable);
-    exploreBtn.textContent = G.activeCombat
-      ? "⚔️ Resolve Current Encounter"
-      : isSelectedCurrent
-        ? "🧭 Explore Current Region"
-        : isSelectedReachable
-          ? selectedPathContext?.path.kind === "hazard"
-            ? "🧭 Brave the Hazard Route"
-            : selectedPathContext?.path.kind === "secret"
-              ? "🧭 Take the Secret Route"
-              : "🧭 Travel and Explore"
-          : selectedPathContext
-            ? "🚫 Route Blocked"
-            : "🚫 No Direct Route";
+  renderAdventureCommandDeck();
+}
+
+function focusCurrentRegionSelection() {
+  const currentRegionId = getCurrentRegionId();
+  if (!currentRegionId) return;
+  const currentIndex = G.regions.findIndex(
+    (region: any) => region.id === currentRegionId,
+  );
+  if (currentIndex >= 0) {
+    selectRegion(currentIndex);
   }
+}
+
+function bindCommandDeckAction(id: string, handler: () => void) {
+  document.getElementById(id)?.addEventListener("click", handler);
+}
+
+function renderAdventureCommandDeck() {
+  const titleEl = document.getElementById("command-deck-title");
+  const copyEl = document.getElementById("command-deck-copy");
+  const stateEl = document.getElementById("command-deck-state");
+  const resultBox = document.getElementById("combat-result");
+  const actionBox = document.getElementById("combat-actions");
+  if (!titleEl || !copyEl || !stateEl || !resultBox || !actionBox) return;
+
+  if (G.activeCombat) {
+    renderCombatActions();
+    return;
+  }
+
+  const currentRegion = getCurrentRegion();
+  const selectedPathContext = getSelectedPathContext();
+  const currentRegionId = currentRegion?.id || getCurrentRegionId();
+  const isSelectedCurrent =
+    !!G.selectedRegion && !!currentRegionId && G.selectedRegion.id === currentRegionId;
+  const isSelectedReachable = !!selectedPathContext?.evaluation?.traversable;
+
+  let stateLabel = "Idle";
+  let title = "Choose your next move";
+  let copy =
+    "Select a reachable region to unlock travel, exploration, and combat commands here.";
+  let dialogue =
+    "Select a reachable region to begin exploring, or focus the current node to act in place.";
+  let actions = `
+    <button class="battle-action-btn primary" id="command-focus-current" ${currentRegion ? "" : "disabled"}>
+      <strong>Focus Current Node</strong>
+      <span>${currentRegion ? `Prepare actions for ${escapeHtml(currentRegion.name)}` : "No current node recorded"}</span>
+    </button>
+    <button class="battle-action-btn" id="command-save">
+      <strong>Save</strong>
+      <span>Record your current progress</span>
+    </button>
+    <button class="battle-action-btn" id="command-clear-log">
+      <strong>Clear Log</strong>
+      <span>Reset the action log panel</span>
+    </button>
+    <button class="battle-action-btn" id="command-open-map">
+      <strong>Map Preview</strong>
+      <span>Open the dedicated world map view</span>
+    </button>
+  `;
+
+  if (G.selectedRegion) {
+    const landmark = G.selectedRegion.landmark || "Waystation";
+    if (isSelectedCurrent) {
+      stateLabel = "Explore";
+      title = `Explore ${G.selectedRegion.name}`;
+      copy =
+        "Stay in the current node and trigger the next event, encounter, or discovery from here.";
+      dialogue = `${landmark} awaits. Exploring here can reveal treasure, story scenes, rest points, or monsters.`;
+      actions = `
+        <button class="battle-action-btn primary" id="command-explore-current">
+          <strong>Explore Current Region</strong>
+          <span>Trigger the next event in ${escapeHtml(G.selectedRegion.name)}</span>
+        </button>
+        <button class="battle-action-btn" id="command-save">
+          <strong>Save</strong>
+          <span>Record your current progress</span>
+        </button>
+        <button class="battle-action-btn" id="command-clear-log">
+          <strong>Clear Log</strong>
+          <span>Reset the action log panel</span>
+        </button>
+        <button class="battle-action-btn" id="command-open-map">
+          <strong>Map Preview</strong>
+          <span>Open the dedicated world map view</span>
+        </button>
+      `;
+    } else if (selectedPathContext && isSelectedReachable) {
+      stateLabel = pathKindLabel(selectedPathContext.path.kind);
+      title = `Travel to ${G.selectedRegion.name}`;
+      copy =
+        "The selected route is reachable. Traveling there will resolve the travel step and the next regional event in one flow.";
+      dialogue = `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. ${
+        selectedPathContext.path.requirements?.length
+          ? `Requirements: ${selectedPathContext.path.requirements
+              .map((entry: string) => formatTraversalRequirement(entry))
+              .join(" • ")}.`
+          : "No extra requirements on this path."
+      }`;
+      actions = `
+        <button class="battle-action-btn primary" id="command-travel-explore">
+          <strong>Travel and Explore</strong>
+          <span>Move to ${escapeHtml(G.selectedRegion.name)} and resolve the next event</span>
+        </button>
+        <button class="battle-action-btn" id="command-focus-current">
+          <strong>Stay Here</strong>
+          <span>Return focus to the current node</span>
+        </button>
+        <button class="battle-action-btn" id="command-save">
+          <strong>Save</strong>
+          <span>Record your current progress</span>
+        </button>
+        <button class="battle-action-btn" id="command-clear-log">
+          <strong>Clear Log</strong>
+          <span>Reset the action log panel</span>
+        </button>
+      `;
+    } else if (selectedPathContext) {
+      stateLabel = "Blocked";
+      title = `${G.selectedRegion.name} is blocked`;
+      copy = formatTraversalBlockedReason(
+        selectedPathContext.evaluation.blockedReason,
+      );
+      dialogue = `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. This route cannot be taken yet.`;
+      actions = `
+        <button class="battle-action-btn primary" disabled>
+          <strong>Route Blocked</strong>
+          <span>${escapeHtml(formatTraversalBlockedReason(selectedPathContext.evaluation.blockedReason))}</span>
+        </button>
+        <button class="battle-action-btn" id="command-focus-current">
+          <strong>Back To Current Node</strong>
+          <span>Return focus to the active position</span>
+        </button>
+        <button class="battle-action-btn" id="command-save">
+          <strong>Save</strong>
+          <span>Record your current progress</span>
+        </button>
+        <button class="battle-action-btn" id="command-clear-log">
+          <strong>Clear Log</strong>
+          <span>Reset the action log panel</span>
+        </button>
+      `;
+    } else {
+      stateLabel = "Detached";
+      title = `${G.selectedRegion.name} is out of reach`;
+      copy =
+        "This node is not directly connected to your current position. Choose a reachable route first.";
+      dialogue = `${landmark}. This node belongs to the world, but not to your immediate route options.`;
+      actions = `
+        <button class="battle-action-btn primary" disabled>
+          <strong>No Direct Route</strong>
+          <span>Pick a connected region first</span>
+        </button>
+        <button class="battle-action-btn" id="command-focus-current">
+          <strong>Back To Current Node</strong>
+          <span>Return focus to the active position</span>
+        </button>
+        <button class="battle-action-btn" id="command-save">
+          <strong>Save</strong>
+          <span>Record your current progress</span>
+        </button>
+        <button class="battle-action-btn" id="command-clear-log">
+          <strong>Clear Log</strong>
+          <span>Reset the action log panel</span>
+        </button>
+      `;
+    }
+  } else if (currentRegion) {
+    title = `${currentRegion.name} is your current node`;
+    copy =
+      "Focus the current node to explore in place, or select a connected destination from the map above.";
+    dialogue = `${currentRegion.landmark || "Waystation"} is your anchor point. Choose to act here or chart a reachable route next.`;
+  }
+
+  titleEl.textContent = title;
+  copyEl.textContent = copy;
+  stateEl.textContent = stateLabel;
+  resultBox.textContent = dialogue;
+  actionBox.innerHTML = actions;
+
+  bindCommandDeckAction("command-explore-current", () => exploreRegion());
+  bindCommandDeckAction("command-travel-explore", () => exploreRegion());
+  bindCommandDeckAction("command-focus-current", () => {
+    focusCurrentRegionSelection();
+  });
+  bindCommandDeckAction("command-save", () => {
+    saveGame();
+  });
+  bindCommandDeckAction("command-clear-log", () => {
+    clearAdventureLog();
+  });
+  bindCommandDeckAction("command-open-map", () => {
+    showMapPage();
+  });
 }
 
 function renderNav() {
@@ -4103,6 +4272,9 @@ function syncCombatPanels() {
 }
 
 function renderCombatActions() {
+  const deckTitleEl = document.getElementById("command-deck-title");
+  const deckCopyEl = document.getElementById("command-deck-copy");
+  const deckStateEl = document.getElementById("command-deck-state");
   const resultBox = document.getElementById("combat-result");
   const actionBox = document.getElementById("combat-actions");
   if (!resultBox || !actionBox) return;
@@ -4116,6 +4288,11 @@ function renderCombatActions() {
   }
 
   if (G.activeCombat.isFinished) {
+    if (deckTitleEl) deckTitleEl.textContent = "Encounter complete";
+    if (deckCopyEl)
+      deckCopyEl.textContent =
+        "The encounter is over. Continue exploring from the current node or review your party.";
+    if (deckStateEl) deckStateEl.textContent = "Victory";
     resultBox.textContent = "Battle complete. Choose your next move.";
     actionBox.innerHTML = `
       <button class="battle-action-btn primary" id="btn-post-combat-explore">
@@ -4156,6 +4333,11 @@ function renderCombatActions() {
     return;
   }
 
+  if (deckTitleEl) deckTitleEl.textContent = "Combat commands";
+  if (deckCopyEl)
+    deckCopyEl.textContent =
+      "Resolve the battle from the command deck below while the encounter plays out above.";
+  if (deckStateEl) deckStateEl.textContent = "Combat";
   if (!resultBox.textContent?.trim()) {
     resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
   }

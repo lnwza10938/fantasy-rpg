@@ -1158,14 +1158,6 @@
                 <div id="map-region-chip" class="map-region-chip">
                   No region selected
                 </div>
-                <button
-                  class="btn btn-primary map-explore-btn"
-                  id="btn-map-explore"
-                  onclick="exploreRegion()"
-                  disabled
-                >
-                  🧭 Select a Reachable Region
-                </button>
               </div>
             </div>
 
@@ -1299,18 +1291,36 @@
                       </div>
                     </div>
 
-                    <div class="battle-command-panel">
-                      <div id="combat-result" class="battle-dialogue"></div>
-                      <div
-                        id="combat-actions"
-                        class="battle-actions-grid"
-                      ></div>
-                    </div>
                   </div>
                 </div>
               </div>
 
             </div>
+          </div>
+
+          <!-- ═══ CENTER BOTTOM: Command Deck ═══ -->
+          <div id="gp-center-bot" class="gp command-deck-panel">
+            <div class="command-deck-header">
+              <div>
+                <div class="map-section-kicker">Command Deck</div>
+                <div id="command-deck-title" class="command-deck-title">
+                  Choose your next move
+                </div>
+                <div id="command-deck-copy" class="command-deck-copy">
+                  Select a reachable region to unlock travel, exploration, and combat commands here.
+                </div>
+              </div>
+              <div id="command-deck-state" class="command-deck-state">Idle</div>
+            </div>
+
+            <div id="combat-result" class="battle-dialogue command-deck-dialogue">
+              Select a reachable region to begin exploring, or focus the current node to act in place.
+            </div>
+
+            <div
+              id="combat-actions"
+              class="battle-actions-grid command-actions-grid"
+            ></div>
           </div>
 
           <!-- ═══ RIGHT: Equipment + Inventory ═══ -->

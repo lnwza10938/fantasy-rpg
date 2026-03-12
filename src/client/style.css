@@ -3718,3 +3718,125 @@ html[data-app-page="hub"] .hub-list-card-chip {
     font-size: 11px;
   }
 }
+
+/* Adventure center split: top display, bottom command deck */
+#game-ui-screen {
+  grid-template-rows: minmax(0, 1fr) 238px;
+}
+
+#gp-left {
+  grid-row: 1 / span 2;
+}
+
+#gp-center-top {
+  grid-row: 1;
+  overflow: hidden;
+}
+
+#gp-center-bot {
+  display: flex;
+  grid-column: 2;
+  grid-row: 2;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#gp-right {
+  grid-row: 1 / span 2;
+}
+
+.command-deck-panel {
+  background:
+    linear-gradient(180deg, rgba(55, 67, 81, 0.84), rgba(28, 36, 45, 0.95));
+}
+
+.command-deck-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.command-deck-title {
+  font-family: "Bree Serif", serif;
+  font-size: 22px;
+  line-height: 1.2;
+  color: #f6f3e8;
+}
+
+.command-deck-copy {
+  margin-top: 6px;
+  color: rgba(247, 242, 232, 0.72);
+  font-size: 12px;
+  line-height: 1.65;
+  max-width: 760px;
+}
+
+.command-deck-state {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 245, 216, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e7f0d0;
+  font-family: "Silkscreen", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+}
+
+.command-deck-dialogue {
+  min-height: 78px;
+  align-items: center;
+}
+
+.command-actions-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.command-actions-grid .battle-action-btn {
+  min-height: 78px;
+}
+
+.command-actions-grid .battle-action-btn strong {
+  font-size: 11px;
+}
+
+.command-actions-grid .battle-action-btn span {
+  line-height: 1.45;
+}
+
+@media (max-width: 850px) {
+  #game-ui-screen {
+    grid-template-rows: auto auto auto auto;
+  }
+
+  #gp-left,
+  #gp-center-top,
+  #gp-center-bot,
+  #gp-right {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+
+  .command-deck-header {
+    flex-direction: column;
+  }
+
+  .command-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+body.force-mobile #game-ui-screen {
+  grid-template-rows: auto auto auto auto;
+}
+
+body.force-mobile #gp-center-bot {
+  display: flex;
+}
+
+body.force-mobile .command-actions-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
