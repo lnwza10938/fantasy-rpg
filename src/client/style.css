@@ -3878,10 +3878,14 @@ body.force-mobile .command-actions-grid {
     html[data-app-page="map"]
   ) body::before {
   background:
-    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.34), transparent 7%),
-    radial-gradient(circle at 72% 16%, rgba(255, 255, 255, 0.28), transparent 6%),
-    radial-gradient(circle at 54% 28%, rgba(255, 255, 255, 0.18), transparent 5%),
-    linear-gradient(180deg, #2f87ff 0%, #3e9ef8 42%, #73c6e6 78%, #9ed3c2 100%);
+    radial-gradient(circle at 54% 22%, rgba(255, 255, 255, 0.42), transparent 18%),
+    radial-gradient(circle at 24% 20%, rgba(255, 255, 255, 0.18), transparent 16%),
+    linear-gradient(180deg, rgba(228, 250, 255, 0.16), rgba(34, 87, 76, 0.18)),
+    url("./assets/emerald-realm-backdrop.svg"),
+    linear-gradient(180deg, #66b9f2 0%, #bfeef5 44%, #7ed06e 82%, #2c5442 100%);
+  background-size: auto, auto, auto, cover, cover;
+  background-position: center, center, center, center, center;
+  background-repeat: no-repeat;
 }
 
 :is(
@@ -3895,24 +3899,17 @@ body.force-mobile .command-actions-grid {
   background:
     linear-gradient(
       180deg,
-      transparent 0 58%,
-      rgba(44, 104, 101, 0.16) 58%,
-      rgba(30, 80, 70, 0.22) 100%
+      rgba(255, 255, 255, 0.08) 0 10%,
+      rgba(223, 250, 255, 0.06) 10%,
+      rgba(216, 248, 255, 0.12) 48%,
+      rgba(28, 83, 76, 0.16) 72%,
+      rgba(12, 32, 31, 0.56) 100%
     ),
-    linear-gradient(
-      to top,
-      rgba(28, 67, 58, 0.88) 0 11%,
-      transparent 11% 100%
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(27, 78, 60, 0.82) 0 8px,
-      rgba(19, 61, 46, 0.82) 8px 12px,
-      transparent 12px 30px
-    ),
-    radial-gradient(circle at 50% 120%, rgba(244, 236, 193, 0.18), transparent 34%);
-  background-size: auto, auto, 100% 34%, auto;
-  background-position: center, center, bottom, center;
+    radial-gradient(circle at 50% 58%, rgba(240, 255, 255, 0.24), transparent 26%),
+    radial-gradient(circle at 50% 100%, rgba(17, 58, 45, 0.66), transparent 34%),
+    linear-gradient(180deg, transparent 0 72%, rgba(13, 39, 30, 0.22) 72%, rgba(8, 19, 18, 0.62) 100%);
+  background-size: auto, auto, auto, auto;
+  background-position: center, center, center, center;
   background-repeat: no-repeat;
 }
 
@@ -4719,23 +4716,21 @@ html[data-app-page="map"] .map-camera-panel::-webkit-scrollbar {
 
 html[data-app-page="dev"] body::before {
   background:
-    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.16), transparent 10%),
-    radial-gradient(circle at 80% 14%, rgba(255, 255, 255, 0.12), transparent 8%),
-    linear-gradient(180deg, #246ee7 0%, #4ea0f2 46%, #8fd3dc 100%);
+    linear-gradient(180deg, rgba(9, 22, 21, 0.44), rgba(10, 21, 18, 0.58)),
+    url("./assets/emerald-realm-backdrop.svg"),
+    linear-gradient(180deg, #66b9f2 0%, #bfeef5 44%, #7ed06e 82%, #2c5442 100%);
+  background-size: auto, cover, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat;
 }
 
 html[data-app-page="dev"] body::after {
   background:
-    linear-gradient(180deg, transparent 0 62%, rgba(26, 86, 73, 0.14) 62%, rgba(20, 66, 54, 0.3) 100%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(20, 69, 55, 0.74) 0 9px,
-      rgba(16, 56, 44, 0.74) 9px 14px,
-      transparent 14px 38px
-    ),
-    linear-gradient(to top, rgba(15, 52, 43, 0.92) 0 13%, transparent 13% 100%);
-  background-size: auto, 100% 30%, auto;
-  background-position: center, bottom, center;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0 10%, rgba(14, 34, 30, 0.16) 55%, rgba(6, 17, 15, 0.68) 100%),
+    radial-gradient(circle at 50% 56%, rgba(227, 248, 255, 0.12), transparent 24%),
+    radial-gradient(circle at 50% 108%, rgba(8, 27, 21, 0.72), transparent 32%);
+  background-size: auto, auto, auto;
+  background-position: center, center, center;
   background-repeat: no-repeat;
 }
 
