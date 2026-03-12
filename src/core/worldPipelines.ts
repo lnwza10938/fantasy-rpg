@@ -10,7 +10,27 @@ import {
   inferWorldPresetFromSeed,
   normalizeWorldMetadata,
 } from "../models/worldTypes.js";
-import { worldSystem, type WorldInstance } from "./worldSystem.js";
+import type { WorldInstance } from "./worldSystem.js";
+import {
+  DefaultLoreParser,
+  DefaultTerrainPlanner,
+  DefaultWorldSpecificationBuilder,
+  DefaultWorldStructureGenerator,
+  ExistingCustomWorldBuilder,
+  ExistingWorldRegionGenerator,
+  type CustomWorldBuilder,
+  type CustomWorldSpecification,
+  type LoreParseResult,
+  type LoreParser,
+  type ProceduralGenerationInput,
+  type RegionGenerator,
+  type TerrainPlan,
+  type TerrainPlanner,
+  type WorldInterpretationInput,
+  type WorldSpecificationBuilder,
+  type WorldStructureGenerator,
+  type WorldStructurePlan,
+} from "./worldGenerationStages.js";
 
 export type WorldGenerationMode = "procedural" | "custom";
 
@@ -39,6 +59,10 @@ export interface WorldPipelineContext {
   seed: number;
   metadata: WorldMetadata;
   selection: WorldGenerationSelection;
+  terrainPlan?: TerrainPlan;
+  structurePlan?: WorldStructurePlan;
+  loreParse?: LoreParseResult;
+  worldSpecification?: CustomWorldSpecification;
 }
 
 export interface WorldPipelineResult {
@@ -110,16 +134,33 @@ class ProceduralWorldPipeline
 {
   public readonly mode = "procedural" as const;
 
+  constructor(
+    private readonly terrainPlanner: TerrainPlanner = new DefaultTerrainPlanner(),
+    private readonly structureGenerator: WorldStructureGenerator = new DefaultWorldStructureGenerator(),
+    private readonly regionGenerator: RegionGenerator = new ExistingWorldRegionGenerator(),
+  ) {}
+
   public async generate(
     request: ProceduralWorldPipelineRequest,
   ): Promise<WorldPipelineResult> {
     const selection = normalizeSelection(request.customSelection);
-    const instance = await worldSystem.generateWorld(
-      request.seed,
-      hasSelection(selection) ? selection : undefined,
-    );
     const metadata = buildMetadata(this.mode, request.seed, request, selection);
-    const definition = instance.setMetadata(metadata);
+    const input: ProceduralGenerationInput = {
+      seed: request.seed,
+      metadata,
+      selection,
+    };
+    const terrainPlan = await this.terrainPlanner.plan(input);
+    const structurePlan = await this.structureGenerator.generate(
+      input,
+      terrainPlan,
+    );
+    const instance = await this.regionGenerator.generate(
+      input,
+      terrainPlan,
+      structurePlan,
+    );
+    const definition = instance.definition;
 
     return {
       mode: this.mode,
@@ -130,6 +171,8 @@ class ProceduralWorldPipeline
         seed: request.seed,
         metadata,
         selection,
+        terrainPlan,
+        structurePlan,
       },
     };
   }
@@ -140,16 +183,30 @@ class CustomWorldPipeline
 {
   public readonly mode = "custom" as const;
 
+  constructor(
+    private readonly loreParser: LoreParser = new DefaultLoreParser(),
+    private readonly specificationBuilder: WorldSpecificationBuilder = new DefaultWorldSpecificationBuilder(),
+    private readonly worldBuilder: CustomWorldBuilder = new ExistingCustomWorldBuilder(),
+  ) {}
+
   public async generate(
     request: CustomWorldPipelineRequest,
   ): Promise<WorldPipelineResult> {
     const selection = normalizeSelection(request.customSelection);
-    const instance = await worldSystem.generateWorld(
-      request.seed,
-      hasSelection(selection) ? selection : undefined,
-    );
     const metadata = buildMetadata(this.mode, request.seed, request, selection);
-    const definition = instance.setMetadata(metadata);
+    const input: WorldInterpretationInput = {
+      seed: request.seed,
+      metadata,
+      selection,
+      loreText: request.loreText,
+    };
+    const loreParse = await this.loreParser.parse(input);
+    const worldSpecification = await this.specificationBuilder.build(
+      input,
+      loreParse,
+    );
+    const instance = await this.worldBuilder.build(input, worldSpecification);
+    const definition = instance.definition;
 
     return {
       mode: this.mode,
@@ -160,6 +217,8 @@ class CustomWorldPipeline
         seed: request.seed,
         metadata,
         selection,
+        loreParse,
+        worldSpecification,
       },
     };
   }
