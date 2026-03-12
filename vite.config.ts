@@ -27,6 +27,7 @@ export default defineConfig({
         vault: resolve(__dirname, "vault.html"),
         forge: resolve(__dirname, "forge.html"),
         adventure: resolve(__dirname, "adventure.html"),
+        dev: resolve(__dirname, "dev.html"),
       },
     },
   },

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" data-app-page="dev">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Procedural Fantasy RPG - Dev Panel</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/client/style.css" />
+  </head>
+  <body class="dev-panel-page">
+    <a href="/hub" class="dev-launch-btn dev-launch-btn-inline">← Hub</a>
+
+    <div class="dev-panel-shell">
+      <header class="dev-panel-hero">
+        <div class="dev-panel-kicker">Developer Console</div>
+        <h1 class="dev-panel-title">World Content And Asset Registry</h1>
+        <p class="dev-panel-copy">
+          Browse the database by category, inspect the latest or oldest records,
+          and create story, image, audio, and gameplay entries from one place.
+        </p>
+      </header>
+
+      <section class="dev-panel-topbar">
+        <div class="dev-panel-topbar-card" id="dev-key-card">
+          <div class="dev-panel-card-title">Dev Access</div>
+          <div class="dev-panel-card-copy" id="dev-key-copy">
+            Checking whether this panel requires a key...
+          </div>
+          <div class="dev-inline-form" id="dev-key-form">
+            <input
+              id="dev-key-input"
+              type="password"
+              placeholder="Enter dev key if required"
+            />
+            <button id="dev-key-save" class="btn btn-action" type="button">
+              Save Key
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-panel-topbar-card">
+          <div class="dev-panel-card-title">Browse Order</div>
+          <div class="dev-panel-card-copy">
+            Choose whether each category shows the latest or oldest records
+            first.
+          </div>
+          <div class="dev-inline-form">
+            <select id="dev-sort-order">
+              <option value="latest">Latest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+            <button id="dev-refresh" class="btn btn-primary" type="button">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-panel-topbar-card">
+          <div class="dev-panel-card-title">AI Config</div>
+          <div class="dev-panel-card-copy">
+            Configure the provider used by the in-game AI tooling and content
+            generation flows.
+          </div>
+          <div class="dev-inline-form">
+            <select id="dev-ai-provider">
+              <option value="openai">OpenAI</option>
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+            <input
+              id="dev-ai-model"
+              type="text"
+              placeholder="Model name"
+              value="gpt-4o-mini"
+            />
+            <input
+              id="dev-ai-base-url"
+              type="text"
+              placeholder="Base URL"
+              value="https://api.openai.com/v1"
+            />
+            <input
+              id="dev-ai-key"
+              type="password"
+              placeholder="API key (leave blank to keep current)"
+            />
+            <button id="dev-ai-save" class="btn btn-action" type="button">
+              Save AI
+            </button>
+          </div>
+          <div id="dev-ai-status" class="dev-inline-status"></div>
+        </div>
+      </section>
+
+      <section class="dev-panel-layout">
+        <aside class="dev-panel-sidebar">
+          <div class="dev-panel-card-title">Categories</div>
+          <div class="dev-panel-card-copy">
+            Switch between gameplay data, story, assets, and player-state
+            records.
+          </div>
+          <div id="dev-category-list" class="dev-category-list"></div>
+        </aside>
+
+        <main class="dev-panel-main">
+          <div class="dev-panel-section-header">
+            <div>
+              <div id="dev-section-kicker" class="dev-panel-kicker">
+                Category
+              </div>
+              <h2 id="dev-section-title" class="dev-panel-section-title">
+                Loading category...
+              </h2>
+              <p id="dev-section-copy" class="dev-panel-copy">
+                Pulling current database records...
+              </p>
+            </div>
+            <div id="dev-section-meta" class="dev-panel-section-meta">...</div>
+          </div>
+
+          <div id="dev-source-grid" class="dev-source-grid"></div>
+        </main>
+      </section>
+    </div>
+
+    <div id="dev-editor-overlay" class="dev-editor-overlay">
+      <div class="dev-editor-shell">
+        <div class="dev-editor-header">
+          <div>
+            <div class="dev-panel-kicker">Record Editor</div>
+            <h2 id="dev-editor-title" class="dev-panel-section-title">
+              Edit Record
+            </h2>
+            <p id="dev-editor-copy" class="dev-panel-copy">
+              Review the JSON and save it back into the selected source.
+            </p>
+          </div>
+          <button id="dev-editor-close" class="btn btn-action" type="button">
+            Close
+          </button>
+        </div>
+
+        <div class="dev-editor-tools">
+          <button id="dev-editor-template" class="btn btn-action" type="button">
+            Load Template
+          </button>
+          <label class="btn btn-action dev-file-import-btn">
+            Import File
+            <input id="dev-editor-file" type="file" hidden />
+          </label>
+          <div id="dev-editor-file-meta" class="dev-inline-status"></div>
+        </div>
+
+        <textarea id="dev-editor-json" class="dev-editor-json"></textarea>
+
+        <div class="dev-editor-actions">
+          <button id="dev-editor-delete" class="btn btn-action" type="button">
+            Delete
+          </button>
+          <button id="dev-editor-save" class="btn btn-primary" type="button">
+            Save Record
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/client/dev.ts"></script>
+  </body>
+</html>

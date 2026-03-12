@@ -32,6 +32,10 @@ app.get("/vault", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "vault.html"));
 });
 
+app.get("/dev-panel", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev.html"));
+});
+
 app.get("/hub", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
@@ -55,6 +59,6 @@ if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🎮 RPG Engine Server running at http://localhost:${PORT}`);
     console.log(`🕹  Game UI:   http://localhost:${PORT}/`);
-    console.log(`🛠  Dev Panel: http://localhost:${PORT}/dev`);
+    console.log(`🛠  Dev Panel: http://localhost:${PORT}/dev-panel`);
   });
 }
