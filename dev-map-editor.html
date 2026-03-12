@@ -50,8 +50,9 @@
           <div class="dev-panel-kicker">World Authoring</div>
           <h1 class="dev-panel-title">Map Editor</h1>
           <p class="dev-panel-copy">
-            Edit world topology visually, validate the graph, then save the result as a
-            `world_overrides` draft instead of changing the canonical world directly.
+            Edit world topology visually, review the authored delta, validate the graph,
+            then save the result into <code>world_overrides</code> without mutating the
+            canonical world definition directly.
           </p>
         </div>
         <div class="dev-map-hero-links">
@@ -70,11 +71,15 @@
         </div>
         <div class="dev-map-topbar-actions">
           <select id="map-editor-world-select"></select>
+          <select id="map-editor-override-select"></select>
           <button id="map-editor-preview-btn" class="btn btn-action" type="button">
             Preview World
           </button>
           <button id="map-editor-validate-btn" class="btn btn-action" type="button">
             Validate
+          </button>
+          <button id="map-editor-save-draft-btn" class="btn btn-action" type="button">
+            Save Draft
           </button>
           <button id="map-editor-reset-btn" class="btn btn-action" type="button">
             Reset Draft
@@ -125,6 +130,7 @@
               <label class="dev-topology-check"><input id="map-layer-labels" type="checkbox" checked /> <span>Labels</span></label>
               <label class="dev-topology-check"><input id="map-layer-regions" type="checkbox" checked /> <span>Region Meta</span></label>
               <label class="dev-topology-check"><input id="map-layer-locked" type="checkbox" checked /> <span>Hidden / Fogged</span></label>
+              <label class="dev-topology-check"><input id="map-layer-terrain" type="checkbox" checked /> <span>Terrain Overlay</span></label>
             </div>
           </div>
 
@@ -187,6 +193,18 @@
                 <span>Region</span>
                 <select id="map-editor-node-region"></select>
               </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Name</span>
+                <input id="map-editor-node-name" type="text" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Biome</span>
+                <input id="map-editor-node-biome" type="text" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Danger</span>
+                <input id="map-editor-node-danger" type="number" min="0" step="1" />
+              </label>
               <label class="dev-topology-field">
                 <span>X</span>
                 <input id="map-editor-node-x" type="number" step="1" />
@@ -218,6 +236,10 @@
               <label class="dev-topology-check">
                 <input id="map-editor-node-goal" type="checkbox" />
                 <span>Is Goal</span>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Enemy Pool</span>
+                <input id="map-editor-node-enemies" type="text" placeholder="widow, husk, banshee" />
               </label>
             </div>
           </div>
@@ -256,6 +278,18 @@
               <label class="dev-topology-field dev-topology-field-wide">
                 <span>Requirements</span>
                 <input id="map-editor-path-requirements" type="text" placeholder="level_5, key_crystal" />
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-path-gated" type="checkbox" />
+                <span>Locked / Gated</span>
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-path-one-way" type="checkbox" />
+                <span>One-way</span>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Travel Effects</span>
+                <input id="map-editor-path-effects" type="text" placeholder="hp_cost:8, reveal:widow_crossing" />
               </label>
             </div>
           </div>

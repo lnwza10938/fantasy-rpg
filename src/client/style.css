@@ -1130,17 +1130,22 @@ body.force-mobile .map-node {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--map-node-accent) 28%, transparent),
     0 22px 44px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, calc(-50% - 6px)) scale(1.03);
 }
 
 .map-node.current {
   border-color: rgba(255, 213, 79, 0.72);
   box-shadow:
     0 0 0 1px rgba(255, 213, 79, 0.18),
+    0 0 28px rgba(255, 213, 79, 0.12),
     0 22px 44px rgba(0, 0, 0, 0.34);
 }
 
 .map-node.reachable {
-  border-color: rgba(102, 187, 106, 0.42);
+  border-color: rgba(102, 187, 106, 0.68);
+  box-shadow:
+    0 0 0 1px rgba(102, 187, 106, 0.14),
+    0 18px 38px rgba(0, 0, 0, 0.24);
 }
 
 .map-node.cleared {
@@ -1148,10 +1153,64 @@ body.force-mobile .map-node {
     linear-gradient(180deg, rgba(18, 33, 26, 0.98), rgba(10, 19, 15, 0.98));
 }
 
+.map-node.goal,
+.map-node.boss {
+  border-color: rgba(220, 147, 255, 0.82);
+  box-shadow:
+    0 0 0 1px rgba(220, 147, 255, 0.18),
+    0 0 30px rgba(220, 147, 255, 0.14),
+    0 22px 46px rgba(0, 0, 0, 0.32);
+}
+
+.map-node.start {
+  border-color: rgba(143, 214, 255, 0.72);
+}
+
 .map-node.inactive {
   opacity: 0.58;
   cursor: pointer;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.18);
+}
+
+#game-ui-screen[data-adventure-mode="map"] .command-deck-main {
+  border-color: rgba(233, 245, 216, 0.14);
+}
+
+#game-ui-screen[data-adventure-mode="story"] .command-deck-main,
+#game-ui-screen[data-adventure-mode="event"] .command-deck-main {
+  border-color: rgba(212, 166, 90, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(241, 252, 226, 0.12),
+    0 16px 28px rgba(18, 37, 24, 0.18),
+    0 0 0 1px rgba(212, 166, 90, 0.08);
+}
+
+#game-ui-screen[data-adventure-mode="combat"] .map-scene-overlay.map-combat-stage,
+#game-ui-screen[data-adventure-mode="result"] .map-scene-overlay.map-combat-stage {
+  background:
+    linear-gradient(180deg, rgba(20, 22, 28, 0.76), rgba(10, 12, 18, 0.94));
+  backdrop-filter: blur(10px);
+}
+
+#game-ui-screen[data-adventure-mode="combat"] .map-camera-summary-card,
+#game-ui-screen[data-adventure-mode="result"] .map-camera-summary-card {
+  opacity: 0.62;
+}
+
+#game-ui-screen[data-adventure-mode="combat"] .sidebar-action-log,
+#game-ui-screen[data-adventure-mode="result"] .sidebar-action-log {
+  opacity: 0.54;
+  min-height: 220px;
+}
+
+#game-ui-screen[data-adventure-mode="combat"] .map-log-box,
+#game-ui-screen[data-adventure-mode="result"] .map-log-box {
+  min-height: 132px;
+}
+
+#game-ui-screen[data-adventure-mode="story"] .map-camera-summary-card,
+#game-ui-screen[data-adventure-mode="event"] .map-camera-summary-card {
+  border-color: rgba(212, 166, 90, 0.24);
 }
 
 .map-node.inactive:hover {
@@ -5451,6 +5510,9 @@ html[data-app-page="dev"] body::after {
     radial-gradient(circle at 76% 26%, rgba(240, 248, 255, 0.13), transparent 24%),
     linear-gradient(180deg, rgba(113, 185, 255, 0.92) 0%, rgba(73, 162, 241, 0.86) 44%, rgba(87, 176, 116, 0.9) 44%, rgba(56, 132, 81, 0.95) 100%);
   cursor: default;
+  --dev-map-scale: 1;
+  --dev-map-pan-x: 0px;
+  --dev-map-pan-y: 0px;
 }
 
 .dev-topology-board-sky,
@@ -5492,6 +5554,36 @@ html[data-app-page="dev"] body::after {
   text-transform: uppercase;
 }
 
+.dev-map-canvas {
+  overflow: hidden;
+}
+
+.dev-map-canvas-stage {
+  position: absolute;
+  inset: 0;
+  transform:
+    translate(var(--dev-map-pan-x), var(--dev-map-pan-y))
+    scale(var(--dev-map-scale));
+  transform-origin: top left;
+  transition: transform 0.16s ease;
+}
+
+.dev-map-terrain-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.dev-map-terrain-zone {
+  filter: blur(2px);
+}
+
+.dev-map-terrain-flow {
+  fill: none;
+  stroke-linecap: round;
+  filter: blur(0.4px);
+}
+
 .dev-topology-path-layer {
   position: absolute;
   inset: 0;
@@ -5512,6 +5604,15 @@ html[data-app-page="dev"] body::after {
 .dev-topology-path-line.kind-secret {
   stroke: rgba(192, 171, 255, 0.88);
   stroke-dasharray: 1.4 2.2;
+}
+
+.dev-topology-path-line.gated {
+  stroke-width: 0.9;
+  filter: drop-shadow(0 0 6px rgba(255, 220, 145, 0.18));
+}
+
+.dev-topology-path-line.one-way {
+  stroke-dasharray: 5 2;
 }
 
 .dev-topology-path-line.visibility-hidden {
@@ -5554,6 +5655,17 @@ html[data-app-page="dev"] body::after {
   border-color: rgba(255, 249, 201, 0.96);
   box-shadow:
     0 0 0 4px rgba(255, 248, 214, 0.18),
+    0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.dev-topology-node.is-start {
+  border-color: rgba(170, 233, 131, 0.9);
+}
+
+.dev-topology-node.is-goal {
+  border-color: rgba(255, 229, 124, 0.95);
+  box-shadow:
+    0 0 0 4px rgba(255, 237, 173, 0.14),
     0 12px 24px rgba(0, 0, 0, 0.24);
 }
 

@@ -1378,6 +1378,7 @@ function renderAdventureLandingState() {
   G.selectedRegion = null;
   G.selectedRegionIndex = 0;
   resetMapCameraState();
+  setAdventureMode("map");
   toggleMapCombatStage(false);
   clearAdventureLog();
   setMapEventState(
@@ -1564,6 +1565,7 @@ function onLoginSuccess() {
   fetchCreatedWorlds(); // Fetch saved worlds for world archive / custom reuse
   renderThemeBiomes("balanced"); // Initial biome preview
   renderThemeMonsters("balanced"); // Initial monster preview
+  void renderHubLegendPreview();
   if (APP_PAGE === "menu") {
     navigateToPage("hub");
     return;
@@ -1745,6 +1747,14 @@ function clearAdventureLog() {
   if (combatLog) combatLog.innerHTML = "";
 }
 
+function setAdventureMode(
+  mode: "map" | "story" | "event" | "combat" | "result",
+) {
+  const shell = document.getElementById("game-ui-screen");
+  if (!shell) return;
+  shell.setAttribute("data-adventure-mode", mode);
+}
+
 function appendSharedLog(html: string, targetIds: string[]) {
   Array.from(new Set(targetIds)).forEach((id) => {
     const el = document.getElementById(id);
@@ -1824,6 +1834,7 @@ function syncMapSelectionState() {
   syncMapWorldBoard();
 
   if (!G.selectedRegion) {
+    if (!G.activeCombat) setAdventureMode("map");
     if (headingEl)
       headingEl.textContent = currentRegion
         ? `${currentRegion.name} is your current position`
@@ -1875,6 +1886,7 @@ function syncMapSelectionState() {
         ? `${G.selectedRegion.name} • ${pathKindLabel(selectedPathContext.path.kind)} • Danger ${G.selectedRegion.dangerLevel}`
         : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
+  if (!G.activeCombat) setAdventureMode("map");
   renderAdventureCommandDeck();
   applyMapCamera();
 }
@@ -1944,24 +1956,24 @@ function renderAdventureCommandDeck() {
     commandButtonMarkup({
       id: "command-focus-current",
       icon: "🧭",
-      label: "โหนดปัจจุบัน",
+      label: "Focus",
       primary: true,
       disabled: !currentRegion,
     }),
     commandButtonMarkup({
       id: "command-save",
       icon: "💾",
-      label: "บันทึก",
+      label: "Save",
     }),
     commandButtonMarkup({
       id: "command-clear-log",
       icon: "🧹",
-      label: "ล้างบันทึก",
+      label: "Clear",
     }),
     commandButtonMarkup({
       id: "command-open-map",
       icon: "🗺️",
-      label: "แผนที่",
+      label: "Atlas",
     }),
   ].join("");
 
@@ -1975,23 +1987,23 @@ function renderAdventureCommandDeck() {
         commandButtonMarkup({
           id: "command-explore-current",
           icon: "🔎",
-          label: "สำรวจ",
+          label: "Explore",
           primary: true,
         }),
         commandButtonMarkup({
           id: "command-save",
           icon: "💾",
-          label: "บันทึก",
+          label: "Save",
         }),
         commandButtonMarkup({
           id: "command-clear-log",
           icon: "🧹",
-          label: "ล้างบันทึก",
+          label: "Clear",
         }),
         commandButtonMarkup({
           id: "command-open-map",
           icon: "🗺️",
-          label: "แผนที่",
+          label: "Atlas",
         }),
       ].join("");
     } else if (selectedPathContext && isSelectedReachable) {
@@ -2008,23 +2020,23 @@ function renderAdventureCommandDeck() {
         commandButtonMarkup({
           id: "command-travel-explore",
           icon: "👣",
-          label: "เดินทาง",
+          label: "Travel",
           primary: true,
         }),
         commandButtonMarkup({
           id: "command-focus-current",
           icon: "⛺",
-          label: "อยู่ที่เดิม",
+          label: "Camp",
         }),
         commandButtonMarkup({
           id: "command-save",
           icon: "💾",
-          label: "บันทึก",
+          label: "Save",
         }),
         commandButtonMarkup({
           id: "command-clear-log",
           icon: "🧹",
-          label: "ล้างบันทึก",
+          label: "Clear",
         }),
       ].join("");
     } else if (selectedPathContext) {
@@ -2037,7 +2049,7 @@ function renderAdventureCommandDeck() {
       actions = [
         commandButtonMarkup({
           icon: "⛔",
-          label: "ปิดกั้น",
+          label: "Blocked",
           primary: true,
           disabled: true,
           title: formatTraversalBlockedReason(
@@ -2047,17 +2059,17 @@ function renderAdventureCommandDeck() {
         commandButtonMarkup({
           id: "command-focus-current",
           icon: "↩️",
-          label: "กลับ",
+          label: "Back",
         }),
         commandButtonMarkup({
           id: "command-save",
           icon: "💾",
-          label: "บันทึก",
+          label: "Save",
         }),
         commandButtonMarkup({
           id: "command-clear-log",
           icon: "🧹",
-          label: "ล้างบันทึก",
+          label: "Clear",
         }),
       ].join("");
     } else {
@@ -2067,24 +2079,24 @@ function renderAdventureCommandDeck() {
       actions = [
         commandButtonMarkup({
           icon: "🚫",
-          label: "ไปไม่ได้",
+          label: "Locked",
           primary: true,
           disabled: true,
         }),
         commandButtonMarkup({
           id: "command-focus-current",
           icon: "↩️",
-          label: "กลับ",
+          label: "Back",
         }),
         commandButtonMarkup({
           id: "command-save",
           icon: "💾",
-          label: "บันทึก",
+          label: "Save",
         }),
         commandButtonMarkup({
           id: "command-clear-log",
           icon: "🧹",
-          label: "ล้างบันทึก",
+          label: "Clear",
         }),
       ].join("");
     }
@@ -3956,6 +3968,63 @@ function renderHubRecentJourneys() {
     .join("");
 }
 
+async function renderHubLegendPreview() {
+  const listEl = document.getElementById("hub-legend-preview");
+  if (!listEl) return;
+
+  try {
+    const legends = await fetchLegendCollection();
+    if (legends.length === 0) {
+      listEl.innerHTML = `
+        <div class="hub-list-empty">
+          <div class="hub-list-empty-title">No legends forged yet</div>
+          <div class="hub-list-empty-copy">
+            Create your first legend in Forge, then come back here for a quick shelf view.
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = legends
+      .slice(0, 4)
+      .map((legend: any) => {
+        const updatedAt = legend.updated_at
+          ? new Date(legend.updated_at).toLocaleString()
+          : "No timestamp";
+        const skillName = escapeHtml(
+          legend.skill_data?.name || "Unawakened Signature",
+        );
+        return `
+          <button class="hub-list-card" onclick="showVault()">
+            <div class="hub-list-card-top">
+              <div>
+                <div class="hub-list-card-title">${escapeHtml(legend.name || "Unknown Hero")}</div>
+                <div class="hub-list-card-subtitle">Lv.${Number(legend.level) || 1} • ${skillName}</div>
+              </div>
+              <div class="hub-list-card-chip">${legend.hasSave ? "LIVE" : "NEW"}</div>
+            </div>
+            <div class="hub-list-card-copy">${escapeHtml(truncateText(legend.last_action_log || legend.skill_data?.description || "Ready to enter a realm.", 74))}</div>
+            <div class="hub-list-card-meta">
+              <span>${escapeHtml(updatedAt)}</span>
+              <span>Vault</span>
+            </div>
+          </button>
+        `;
+      })
+      .join("");
+  } catch {
+    listEl.innerHTML = `
+      <div class="hub-list-empty">
+        <div class="hub-list-empty-title">Vault snapshot unavailable</div>
+        <div class="hub-list-empty-copy">
+          The hub could not load your recent legends right now.
+        </div>
+      </div>
+    `;
+  }
+}
+
 function renderHubWorldArchivePreview() {
   const listEl = document.getElementById("hub-world-preview");
   if (!listEl) return;
@@ -4023,11 +4092,13 @@ async function fetchSaveList() {
     );
     renderHubCurrentJourney();
     renderHubRecentJourneys();
+    void renderHubLegendPreview();
   } catch {
     G.recentJourneys = [];
     setHubSummaryValue("hub-save-count", "Unavailable");
     renderHubCurrentJourney();
     renderHubRecentJourneys();
+    void renderHubLegendPreview();
     showToast("Could not fetch saves", "error");
   }
 }
@@ -4338,6 +4409,8 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
         isVisited ? "visited" : "",
         isCleared ? "cleared" : "",
         isLocked ? "locked" : "",
+        node.isStart ? "start" : "",
+        node.isGoal ? "goal boss" : "",
         inactive ? "inactive" : "",
       ]
         .filter(Boolean)
@@ -4469,6 +4542,7 @@ function selectRegion(i: number) {
     `🧭 ${G.selectedRegion.name} is ready`,
     selectionCopy,
   );
+  setAdventureMode("map");
   toggleMapCombatStage(false);
   showScreen("world");
 }
@@ -4673,6 +4747,7 @@ async function exploreRegion() {
   }
 
   showScreen("world");
+  setAdventureMode("event");
   setMapEventState(
     G.selectedRegion.id === currentRegionId
       ? `🧭 Exploring ${G.selectedRegion.name}`
@@ -4735,6 +4810,7 @@ async function exploreRegion() {
       showCombat(ev);
     } else if (ev.type === "treasure_found") {
       G.activeCombat = null;
+      setAdventureMode("event");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("💰 Treasure Found", ev.description);
@@ -4749,6 +4825,7 @@ async function exploreRegion() {
         );
     } else if (ev.type === "rare_event") {
       G.activeCombat = null;
+      setAdventureMode("story");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("✨ Rare Event", ev.description);
@@ -4758,6 +4835,7 @@ async function exploreRegion() {
       );
     } else if (ev.type === "npc_encounter") {
       G.activeCombat = null;
+      setAdventureMode("story");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("💬 Traveler Encounter", ev.description);
@@ -4767,6 +4845,7 @@ async function exploreRegion() {
       );
     } else if (ev.type === "lore_event") {
       G.activeCombat = null;
+      setAdventureMode("story");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState(
@@ -4784,6 +4863,7 @@ async function exploreRegion() {
       );
     } else if (ev.type === "ambient_event") {
       G.activeCombat = null;
+      setAdventureMode("event");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("☁️ Ambient Event", ev.description);
@@ -4793,6 +4873,7 @@ async function exploreRegion() {
       );
     } else if (ev.type === "rest_event") {
       G.activeCombat = null;
+      setAdventureMode("event");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("🧘 Safe Rest", ev.description);
@@ -4807,6 +4888,7 @@ async function exploreRegion() {
         );
     } else {
       G.activeCombat = null;
+      setAdventureMode("event");
       toggleMapCombatStage(false);
       syncMapSelectionState();
       setMapEventState("🗺️ Exploration Update", ev.description);
@@ -4845,6 +4927,7 @@ function showCombat(ev: any) {
     `⚔️ ${ev.enemy?.name || "Enemy"} blocks the path`,
     "Combat now resolves right on the map. Use the battle controls below to finish the encounter.",
   );
+  setAdventureMode("combat");
   toggleMapCombatStage(true);
   syncMapSelectionState();
   syncCombatPanels();
@@ -4958,6 +5041,7 @@ function renderCombatActions() {
   }
 
   if (G.activeCombat.isFinished) {
+    setAdventureMode("result");
     if (deckTitleEl) deckTitleEl.textContent = "Encounter complete";
     if (deckCopyEl) deckCopyEl.textContent = "";
     if (deckStateEl) deckStateEl.textContent = "Victory";
@@ -4966,23 +5050,23 @@ function renderCombatActions() {
       commandButtonMarkup({
         id: "btn-post-combat-explore",
         icon: "➡️",
-        label: "ต่อ",
+        label: "Continue",
         primary: true,
       }),
       commandButtonMarkup({
         id: "btn-post-combat-stats",
         icon: "🧙",
-        label: "ตัวละคร",
+        label: "Status",
       }),
       commandButtonMarkup({
         icon: "🪤",
-        label: "จับ",
+        label: "Catch",
         disabled: true,
         title: "Planned for a future update",
       }),
       commandButtonMarkup({
         icon: "🖼️",
-        label: "ภาพ",
+        label: "Art",
         disabled: true,
         title: "Wire monster art from the dev panel here later",
       }),
@@ -4991,6 +5075,7 @@ function renderCombatActions() {
       .getElementById("btn-post-combat-explore")
       ?.addEventListener("click", () => {
         G.activeCombat = null;
+        setAdventureMode("map");
         toggleMapCombatStage(false);
         syncMapSelectionState();
         setMapEventState(
@@ -5012,6 +5097,7 @@ function renderCombatActions() {
   if (deckTitleEl) deckTitleEl.textContent = "Combat commands";
   if (deckCopyEl) deckCopyEl.textContent = "";
   if (deckStateEl) deckStateEl.textContent = "Combat";
+  setAdventureMode("combat");
   if (!resultBox.textContent?.trim()) {
     resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
   }
@@ -5019,27 +5105,27 @@ function renderCombatActions() {
     commandButtonMarkup({
       id: "btn-combat-attack",
       icon: "⚔️",
-      label: "โจมตี",
+      label: "Fight",
       primary: true,
     }),
     commandButtonMarkup({
       id: "btn-combat-skill",
       icon: "✨",
-      label: "ทักษะ",
+      label: "Skill",
       disabled: true,
       title: "Skill commands are coming soon",
     }),
     commandButtonMarkup({
       id: "btn-combat-bag",
       icon: "🎒",
-      label: "ของ",
+      label: "Item",
       disabled: true,
       title: "Bag support is planned",
     }),
     commandButtonMarkup({
       id: "btn-combat-retreat",
       icon: "🏃",
-      label: "หนี",
+      label: "Run",
       disabled: true,
       title: "Retreat is not enabled yet",
     }),

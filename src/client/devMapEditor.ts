@@ -30,6 +30,9 @@ interface TopologyPathDraft {
   difficulty: number;
   visibility: "visible" | "hidden" | "fogged";
   requirements: string[];
+  gated?: boolean;
+  oneWay?: boolean;
+  travelEffects?: string[];
 }
 
 interface TopologyLayoutDraft {
@@ -48,6 +51,7 @@ interface ValidationResult {
 
 const DEV_PANEL_KEY = "rpg_dev_panel_key";
 const API = "/dev";
+const LOCAL_DRAFT_PREFIX = "rpg_map_editor_draft";
 
 const state = {
   requiresKey: false,
@@ -55,6 +59,9 @@ const state = {
   overrides: [] as Record<string, unknown>[],
   search: "",
   selectedWorldId: "",
+  selectedOverrideId: "new",
+  originalDefinition: null as Record<string, unknown> | null,
+  currentDefinition: null as Record<string, unknown> | null,
   originalLayout: null as TopologyLayoutDraft | null,
   currentLayout: null as TopologyLayoutDraft | null,
   toolMode: "select" as "select" | "move" | "add-node" | "add-path" | "delete" | "pan",
@@ -69,6 +76,15 @@ const state = {
     labels: true,
     regions: true,
     locked: true,
+    terrain: true,
+  },
+  viewport: {
+    scale: 1,
+    panX: 0,
+    panY: 0,
+    dragging: false,
+    lastPointerX: 0,
+    lastPointerY: 0,
   },
 };
 
@@ -82,8 +98,8 @@ function safeObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function safeArray(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
+function safeArray<T = unknown>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
 }
 
 function escapeHtml(value: unknown) {
@@ -102,6 +118,10 @@ function toFiniteNumber(value: unknown, fallback: number) {
 
 function getDevKey() {
   return localStorage.getItem(DEV_PANEL_KEY) || "";
+}
+
+function getLocalDraftKey(worldId: string) {
+  return `${LOCAL_DRAFT_PREFIX}:${worldId}`;
 }
 
 function panelHeaders() {
@@ -127,17 +147,27 @@ function parseWorldDefinitionRecord(
   const definition = safeObject(record.definition_json);
   const metadata = safeObject(record.metadata_json);
   const definitionMetadata = safeObject(definition.metadata);
-  const regions = safeArray(definition.regions).map((entry) => safeObject(entry));
+  const regions = safeArray<Record<string, unknown>>(definition.regions).map((entry) =>
+    safeObject(entry),
+  );
   const mapLayout = safeObject(definition.mapLayout);
 
   return {
     id,
     name:
-      String(record.world_name || metadata.worldName || definitionMetadata.worldName || "Unnamed World").trim() ||
-      "Unnamed World",
+      String(
+        record.world_name ||
+          metadata.worldName ||
+          definitionMetadata.worldName ||
+          "Unnamed World",
+      ).trim() || "Unnamed World",
     preset:
-      String(record.world_preset || metadata.worldPreset || definitionMetadata.worldPreset || "custom").trim() ||
-      "custom",
+      String(
+        record.world_preset ||
+          metadata.worldPreset ||
+          definitionMetadata.worldPreset ||
+          "custom",
+      ).trim() || "custom",
     mode: String(record.generation_mode || "procedural").trim() || "procedural",
     record,
     metadata,
@@ -151,45 +181,95 @@ function getSelectedWorld() {
   return state.worlds.find((world) => world.id === state.selectedWorldId) || null;
 }
 
-function getWorldRegion(world: ParsedWorldDefinitionRecord | null, regionId: string) {
-  if (!world) return null;
-  return world.regions.find((region) => String(region.id || "") === regionId) || null;
+function getSelectedOverrideRecord() {
+  if (!state.selectedOverrideId || state.selectedOverrideId === "new") return null;
+  return (
+    state.overrides.find((record) => String(record.id || "") === state.selectedOverrideId) ||
+    null
+  );
 }
 
-function deriveTopologyLayoutDraft(world: ParsedWorldDefinitionRecord | null): TopologyLayoutDraft | null {
-  if (!world) return null;
+function getWorldRegion(
+  definition: Record<string, unknown> | null,
+  regionId: string,
+) {
+  if (!definition) return null;
+  return (
+    safeArray<Record<string, unknown>>(definition.regions).find(
+      (region) => String(region.id || "") === regionId,
+    ) || null
+  );
+}
 
-  const layout = safeObject(world.mapLayout);
-  const rawNodes = safeArray(layout.nodes);
-  const rawPaths = safeArray(layout.paths);
+function getRegionOptions() {
+  return safeArray<Record<string, unknown>>(state.currentDefinition?.regions).map((region) =>
+    String(region.id || "").trim(),
+  );
+}
+
+function normalizeRequirements(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [] as string[];
+}
+
+function normalizePathEffects(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+  return [] as string[];
+}
+
+function deriveTopologyLayoutDraft(
+  definition: Record<string, unknown> | null,
+): TopologyLayoutDraft | null {
+  if (!definition) return null;
+
+  const layout = safeObject(definition.mapLayout);
+  const regions = safeArray<Record<string, unknown>>(definition.regions);
+  const rawNodes = safeArray<Record<string, unknown>>(layout.nodes);
+  const rawPaths = safeArray<Record<string, unknown>>(layout.paths);
   const nodes: TopologyNodeDraft[] = rawNodes
-    .map((entry) => safeObject(entry))
     .map((entry, index) => {
-      const regionId = String(entry.regionId || world.regions[index]?.id || "").trim();
+      const region = regions[index] || {};
+      const regionId = String(entry.regionId || region.id || "").trim();
       if (!regionId) return null;
       return {
         regionId,
         x: Math.round(toFiniteNumber(entry.x, 120 + index * 120)),
-        y: Math.round(toFiniteNumber(entry.y, 120 + (index % 4) * 90)),
-        tier: Math.max(0, Math.round(toFiniteNumber(entry.tier, index))),
-        icon: String(entry.icon || "🗺️"),
-        landmark: String(entry.landmark || ""),
-        accentColor: String(entry.accentColor || "#d4a65a"),
-        isStart: entry.isStart === true,
-        isGoal: entry.isGoal === true,
+        y: Math.round(toFiniteNumber(entry.y, 120 + (index % 4) * 96)),
+        tier: Math.max(0, Math.round(toFiniteNumber(entry.tier, Number(region.tier || 0)))),
+        icon: String(entry.icon || region.icon || "🗺️"),
+        landmark: String(entry.landmark || region.landmark || ""),
+        accentColor: String(entry.accentColor || region.accentColor || "#d4a65a"),
+        isStart: entry.isStart === true || region.isStart === true,
+        isGoal: entry.isGoal === true || region.isGoal === true,
       } as TopologyNodeDraft;
     })
     .filter((entry): entry is TopologyNodeDraft => !!entry);
 
-  const regionNodeIds = new Set(nodes.map((node) => node.regionId));
-  world.regions.forEach((region, index) => {
+  const existingNodeIds = new Set(nodes.map((node) => node.regionId));
+  regions.forEach((region, index) => {
     const regionId = String(region.id || "").trim();
-    if (!regionId || regionNodeIds.has(regionId)) return;
+    if (!regionId || existingNodeIds.has(regionId)) return;
     nodes.push({
       regionId,
       x: 160 + ((nodes.length + index) % 5) * 120,
-      y: 160 + ((nodes.length + index) % 4) * 110,
-      tier: Math.max(0, Number(region.tier || 0)),
+      y: 160 + ((nodes.length + index) % 4) * 108,
+      tier: Math.max(0, Math.round(toFiniteNumber(region.tier, 0))),
       icon: String(region.icon || "🗺️"),
       landmark: String(region.landmark || ""),
       accentColor: String(region.accentColor || "#d4a65a"),
@@ -199,29 +279,25 @@ function deriveTopologyLayoutDraft(world: ParsedWorldDefinitionRecord | null): T
   });
 
   const paths: TopologyPathDraft[] = rawPaths
-    .map((entry) => safeObject(entry))
     .map((entry, index) => {
       const fromRegionId = String(entry.fromRegionId || "").trim();
       const toRegionId = String(entry.toRegionId || "").trim();
       if (!fromRegionId || !toRegionId) return null;
-      const kind =
-        entry.kind === "hazard" || entry.kind === "secret" ? entry.kind : "road";
-      const visibility =
-        entry.visibility === "hidden" || entry.visibility === "fogged"
-          ? entry.visibility
-          : "visible";
       return {
         id: String(entry.id || `${fromRegionId}::${toRegionId}::${index}`),
         fromRegionId,
         toRegionId,
-        kind,
+        kind:
+          entry.kind === "hazard" || entry.kind === "secret" ? entry.kind : "road",
         difficulty: Math.max(1, Math.round(toFiniteNumber(entry.difficulty, 1))),
-        visibility,
-        requirements: Array.isArray(entry.requirements)
-          ? entry.requirements.map((item) => String(item || "").trim()).filter(Boolean)
-          : typeof entry.requirements === "string"
-            ? entry.requirements.split(",").map((item) => item.trim()).filter(Boolean)
-            : [],
+        visibility:
+          entry.visibility === "hidden" || entry.visibility === "fogged"
+            ? entry.visibility
+            : "visible",
+        requirements: normalizeRequirements(entry.requirements),
+        gated: entry.gated === true,
+        oneWay: entry.oneWay === true,
+        travelEffects: normalizePathEffects(entry.travelEffects),
       } as TopologyPathDraft;
     })
     .filter((entry): entry is TopologyPathDraft => !!entry);
@@ -246,14 +322,157 @@ function deriveTopologyLayoutDraft(world: ParsedWorldDefinitionRecord | null): T
   };
 }
 
+function resetViewport() {
+  state.viewport.scale = 1;
+  state.viewport.panX = 0;
+  state.viewport.panY = 0;
+  state.viewport.dragging = false;
+}
+
+function diffObject(
+  current: Record<string, unknown>,
+  original: Record<string, unknown>,
+) {
+  const changed: Record<string, unknown> = {};
+  const keys = new Set([...Object.keys(current), ...Object.keys(original)]);
+  keys.forEach((key) => {
+    if (JSON.stringify(current[key]) !== JSON.stringify(original[key])) {
+      changed[key] = current[key];
+    }
+  });
+  return changed;
+}
+
+function getChangedRegionRecords() {
+  const originalRegions = new Map(
+    safeArray<Record<string, unknown>>(state.originalDefinition?.regions).map((region) => [
+      String(region.id || ""),
+      region,
+    ]),
+  );
+  return safeArray<Record<string, unknown>>(state.currentDefinition?.regions)
+    .map((region) => {
+      const id = String(region.id || "");
+      const original = originalRegions.get(id) || {};
+      const changes = diffObject(region, original);
+      return {
+        regionId: id,
+        changes,
+      };
+    })
+    .filter((entry) => Object.keys(entry.changes).length > 0);
+}
+
+function getMetadataChanges() {
+  return diffObject(
+    safeObject(state.currentDefinition?.metadata),
+    safeObject(state.originalDefinition?.metadata),
+  );
+}
+
+function applySingleOverrideToDefinition(
+  definition: Record<string, unknown>,
+  overrideRecord: Record<string, unknown>,
+) {
+  const next = cloneRecord(definition);
+  const payload = safeObject(overrideRecord.payload_json);
+  const overrideType = String(overrideRecord.override_type || "");
+  const scopeRef = String(overrideRecord.scope_ref || "");
+
+  if (overrideType === "replace_definition") {
+    return {
+      ...next,
+      ...payload,
+    };
+  }
+
+  if (overrideType === "patch_metadata") {
+    return {
+      ...next,
+      metadata: {
+        ...safeObject(next.metadata),
+        ...payload,
+      },
+    };
+  }
+
+  if (overrideType === "set_map_layout") {
+    return {
+      ...next,
+      mapLayout: {
+        ...safeObject(next.mapLayout),
+        ...payload,
+      },
+    };
+  }
+
+  if (overrideType === "patch_region" && scopeRef) {
+    return {
+      ...next,
+      regions: safeArray<Record<string, unknown>>(next.regions).map((region) =>
+        String(region.id || "") === scopeRef
+          ? {
+              ...region,
+              ...payload,
+            }
+          : region,
+      ),
+    };
+  }
+
+  return next;
+}
+
 function buildOverrideDraft() {
-  if (!state.currentLayout || !state.selectedWorldId) return null;
+  const world = getSelectedWorld();
+  if (!world || !state.currentDefinition || !state.currentLayout || !state.originalDefinition) {
+    return null;
+  }
+
+  const definitionWithLayout = cloneRecord(state.currentDefinition);
+  definitionWithLayout.mapLayout = cloneRecord(state.currentLayout);
+
+  const layoutChanged =
+    JSON.stringify(state.currentLayout) !== JSON.stringify(state.originalLayout);
+  const changedRegions = getChangedRegionRecords();
+  const metadataChanges = getMetadataChanges();
+
+  if (!layoutChanged && changedRegions.length === 1 && !Object.keys(metadataChanges).length) {
+    return {
+      world_definition_id: state.selectedWorldId,
+      override_type: "patch_region",
+      scope_type: "region",
+      scope_ref: changedRegions[0].regionId,
+      payload_json: changedRegions[0].changes,
+    };
+  }
+
+  if (layoutChanged && changedRegions.length === 0 && !Object.keys(metadataChanges).length) {
+    return {
+      world_definition_id: state.selectedWorldId,
+      override_type: "set_map_layout",
+      scope_type: "world",
+      scope_ref: "",
+      payload_json: cloneRecord(state.currentLayout),
+    };
+  }
+
+  if (!layoutChanged && changedRegions.length === 0 && Object.keys(metadataChanges).length) {
+    return {
+      world_definition_id: state.selectedWorldId,
+      override_type: "patch_metadata",
+      scope_type: "world",
+      scope_ref: "",
+      payload_json: metadataChanges,
+    };
+  }
+
   return {
     world_definition_id: state.selectedWorldId,
-    override_type: "set_map_layout",
+    override_type: "replace_definition",
     scope_type: "world",
     scope_ref: "",
-    payload_json: cloneRecord(state.currentLayout),
+    payload_json: definitionWithLayout,
   };
 }
 
@@ -271,12 +490,19 @@ function countWorldOverrides(worldId: string) {
   ).length;
 }
 
+function overridesForSelectedWorld() {
+  return state.overrides.filter(
+    (record) => String(record.world_definition_id || "") === state.selectedWorldId,
+  );
+}
+
 function renderWorldList() {
   const listEl = document.getElementById("map-editor-world-list");
   if (!listEl) return;
   const worlds = filteredWorlds();
   if (!worlds.length) {
-    listEl.innerHTML = '<div class="dev-map-list-empty">No worlds match the current search.</div>';
+    listEl.innerHTML =
+      '<div class="dev-map-list-empty">No worlds match the current search.</div>';
     return;
   }
   listEl.innerHTML = worlds
@@ -298,7 +524,9 @@ function renderWorldList() {
 }
 
 function renderTopbar() {
-  const worldSelect = document.getElementById("map-editor-world-select") as HTMLSelectElement | null;
+  const worldSelect = document.getElementById(
+    "map-editor-world-select",
+  ) as HTMLSelectElement | null;
   if (worldSelect) {
     worldSelect.innerHTML = state.worlds
       .map(
@@ -308,13 +536,45 @@ function renderTopbar() {
       .join("");
   }
 
+  const overrideSelect = document.getElementById(
+    "map-editor-override-select",
+  ) as HTMLSelectElement | null;
+  if (overrideSelect) {
+    const localDraftExists =
+      !!state.selectedWorldId && !!localStorage.getItem(getLocalDraftKey(state.selectedWorldId));
+    overrideSelect.innerHTML = [
+      `<option value="new"${state.selectedOverrideId === "new" ? " selected" : ""}>New Draft</option>`,
+      localDraftExists
+        ? `<option value="local-draft"${state.selectedOverrideId === "local-draft" ? " selected" : ""}>Local Draft</option>`
+        : "",
+      ...overridesForSelectedWorld().map((record, index) => {
+        const id = String(record.id || "");
+        const type = String(record.override_type || "override");
+        const scopeRef = String(record.scope_ref || "").trim();
+        const label = `${index + 1}. ${type}${scopeRef ? ` • ${scopeRef}` : ""}`;
+        return `<option value="${escapeHtml(id)}"${state.selectedOverrideId === id ? " selected" : ""}>${escapeHtml(label)}</option>`;
+      }),
+    ].join("");
+  }
+
   const world = getSelectedWorld();
   const nameEl = document.getElementById("map-editor-world-name");
   const metaEl = document.getElementById("map-editor-world-meta");
   if (nameEl) nameEl.textContent = world?.name || "No world selected";
   if (metaEl) {
+    const overrideRecord = getSelectedOverrideRecord();
+    const localDraftExists =
+      !!state.selectedWorldId && !!localStorage.getItem(getLocalDraftKey(state.selectedWorldId));
+    const overrideLabel =
+      state.selectedOverrideId === "local-draft"
+        ? "Local draft"
+        : overrideRecord
+          ? `Override ${String(overrideRecord.override_type || "draft")}`
+          : localDraftExists
+            ? "New draft (local draft available)"
+            : "New draft";
     metaEl.textContent = world
-      ? `${world.mode} • ${world.preset} • ${world.regions.length} regions • ${countWorldOverrides(world.id)} overrides`
+      ? `${world.mode} • ${world.preset} • ${world.regions.length} regions • ${countWorldOverrides(world.id)} overrides • ${overrideLabel}`
       : "Choose a canonical world to begin.";
   }
 }
@@ -322,6 +582,7 @@ function renderTopbar() {
 function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[] {
   if (!layout) return [];
   const results: ValidationResult[] = [];
+  const regionIds = new Set(getRegionOptions());
   const nodeIds = layout.nodes.map((node) => node.regionId);
   const nodeIdSet = new Set(nodeIds);
 
@@ -337,21 +598,39 @@ function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[]
     results.push({ severity: "error", message: "Goal node is missing." });
   }
 
-  const duplicates = nodeIds.filter((nodeId, index) => nodeIds.indexOf(nodeId) !== index);
-  if (duplicates.length) {
+  const duplicateIds = nodeIds.filter((nodeId, index) => nodeIds.indexOf(nodeId) !== index);
+  if (duplicateIds.length) {
     results.push({
       severity: "error",
-      message: `Duplicate region IDs detected: ${Array.from(new Set(duplicates)).join(", ")}.`,
+      message: `Duplicate region IDs detected: ${Array.from(new Set(duplicateIds)).join(", ")}.`,
     });
   } else {
     results.push({ severity: "ok", message: "All nodes have unique region IDs." });
+  }
+
+  const unknownRegions = layout.nodes
+    .map((node) => node.regionId)
+    .filter((regionId) => !regionIds.has(regionId));
+  if (unknownRegions.length) {
+    results.push({
+      severity: "error",
+      message: `Unknown region references: ${Array.from(new Set(unknownRegions)).join(", ")}.`,
+    });
+  } else {
+    results.push({ severity: "ok", message: "All node region IDs resolve." });
   }
 
   layout.paths.forEach((path) => {
     if (!nodeIdSet.has(path.fromRegionId) || !nodeIdSet.has(path.toRegionId)) {
       results.push({
         severity: "error",
-        message: `Path ${path.id} references a missing node.`,
+        message: `Path ${path.id} references a missing endpoint.`,
+      });
+    }
+    if (path.gated && path.requirements.length === 0) {
+      results.push({
+        severity: "warn",
+        message: `Path ${path.id} is gated but has no requirements.`,
       });
     }
     if (path.kind === "secret" && path.visibility === "visible") {
@@ -382,6 +661,7 @@ function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[]
     adjacency.get(path.fromRegionId)?.push(path.toRegionId);
     adjacency.get(path.toRegionId)?.push(path.fromRegionId);
   });
+
   const visited = new Set<string>();
   const startNode = layout.startRegionId || layout.nodes[0]?.regionId;
   if (startNode && adjacency.has(startNode)) {
@@ -408,6 +688,16 @@ function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[]
     results.push({ severity: "ok", message: "The topology graph is connected." });
   }
 
+  const draft = buildOverrideDraft();
+  if (!draft || typeof draft.payload_json !== "object" || !draft.payload_json) {
+    results.push({
+      severity: "error",
+      message: "Override payload is not in a valid object shape.",
+    });
+  } else {
+    results.push({ severity: "ok", message: "Override payload shape is valid." });
+  }
+
   return results;
 }
 
@@ -424,40 +714,37 @@ function renderValidation() {
 }
 
 function draftSummaryRows() {
-  if (!state.currentLayout || !state.originalLayout) return [];
   const rows: string[] = [];
-  const originalNodes = new Map(state.originalLayout.nodes.map((node) => [node.regionId, node] as const));
-  const currentNodes = new Map(state.currentLayout.nodes.map((node) => [node.regionId, node] as const));
-  const addedNodes = state.currentLayout.nodes.filter((node) => !originalNodes.has(node.regionId));
-  const removedNodes = state.originalLayout.nodes.filter((node) => !currentNodes.has(node.regionId));
-  const movedNodes = state.currentLayout.nodes.filter((node) => {
-    const original = originalNodes.get(node.regionId);
-    return original && (original.x !== node.x || original.y !== node.y);
-  });
-  const addedPaths = state.currentLayout.paths.filter(
-    (path) => !state.originalLayout!.paths.some((original) => original.id === path.id),
-  );
-  const removedPaths = state.originalLayout.paths.filter(
-    (path) => !state.currentLayout!.paths.some((current) => current.id === path.id),
-  );
+  const draft = buildOverrideDraft();
+  if (!draft) return ["No draft loaded yet."];
 
-  if (addedNodes.length) rows.push(`+ ${addedNodes.length} node(s) added`);
-  if (removedNodes.length) rows.push(`− ${removedNodes.length} node(s) removed`);
-  if (movedNodes.length) rows.push(`↔ ${movedNodes.length} node(s) moved`);
-  if (addedPaths.length) rows.push(`+ ${addedPaths.length} path(s) added`);
-  if (removedPaths.length) rows.push(`− ${removedPaths.length} path(s) removed`);
-  if (!rows.length) rows.push("No layout changes yet.");
+  rows.push(`Type: ${String(draft.override_type || "override")}`);
+  if (draft.scope_ref) rows.push(`Target: ${String(draft.scope_ref)}`);
+
+  const changedRegions = getChangedRegionRecords();
+  const metadataChanges = getMetadataChanges();
+  const layoutChanged =
+    JSON.stringify(state.currentLayout) !== JSON.stringify(state.originalLayout);
+
+  if (layoutChanged) rows.push("Topology layout changed");
+  if (changedRegions.length) rows.push(`${changedRegions.length} region record(s) changed`);
+  if (Object.keys(metadataChanges).length) {
+    rows.push(`${Object.keys(metadataChanges).length} metadata field(s) changed`);
+  }
+  if (rows.length === 1) rows.push("No layout changes yet.");
   return rows;
 }
 
 function renderDraftPanel() {
   const draftMetaEl = document.getElementById("map-editor-draft-meta");
   const summaryEl = document.getElementById("map-editor-draft-summary");
-  const jsonEl = document.getElementById("map-editor-draft-json") as HTMLTextAreaElement | null;
+  const jsonEl = document.getElementById(
+    "map-editor-draft-json",
+  ) as HTMLTextAreaElement | null;
   const draft = buildOverrideDraft();
   if (draftMetaEl) {
     draftMetaEl.textContent = draft
-      ? `Type: ${draft.override_type} • Scope: ${draft.scope_type} • Target world: ${state.selectedWorldId}`
+      ? `Type: ${String(draft.override_type)} • Scope: ${String(draft.scope_type || "world")} • World: ${state.selectedWorldId}`
       : "No world selected.";
   }
   if (summaryEl) {
@@ -471,8 +758,8 @@ function renderDraftPanel() {
 }
 
 function renderInspector() {
-  const world = getSelectedWorld();
   const layout = state.currentLayout;
+  const definition = state.currentDefinition;
   const selectionTitleEl = document.getElementById("map-editor-selection-title");
   const selectionCopyEl = document.getElementById("map-editor-selection-copy");
   const nodeCardEl = document.getElementById("map-editor-node-card");
@@ -480,22 +767,25 @@ function renderInspector() {
 
   const selectedNode = layout?.nodes.find((node) => node.regionId === state.selectedNodeId) || null;
   const selectedPath = layout?.paths.find((path) => path.id === state.selectedPathId) || null;
+  const selectedRegion = selectedNode
+    ? getWorldRegion(definition, selectedNode.regionId)
+    : null;
 
   if (selectionTitleEl) {
     selectionTitleEl.textContent = selectedNode
-      ? selectedNode.regionId
+      ? String(selectedRegion?.name || selectedNode.regionId)
       : selectedPath
         ? selectedPath.id
         : "World Layout";
   }
   if (selectionCopyEl) {
     if (selectedNode) {
-      const region = getWorldRegion(world, selectedNode.regionId);
-      selectionCopyEl.textContent = `${String(region?.name || selectedNode.regionId)} • ${String(region?.biome || "unknown biome")} • danger ${String(region?.dangerLevel || 0)}`;
+      selectionCopyEl.textContent = `${String(selectedRegion?.biome || "unknown biome")} • danger ${String(selectedRegion?.dangerLevel || 0)} • tier ${String(selectedNode.tier)}`;
     } else if (selectedPath) {
       selectionCopyEl.textContent = `${selectedPath.kind} path • difficulty ${selectedPath.difficulty} • ${selectedPath.visibility}`;
     } else {
-      selectionCopyEl.textContent = "Select a node or path to edit it. Layout fields below affect the full map.";
+      selectionCopyEl.textContent =
+        "Select a node or path to edit it. All visual edits update an override draft, not the canonical world directly.";
     }
   }
 
@@ -506,16 +796,20 @@ function renderInspector() {
     const el = document.getElementById(id) as HTMLSelectElement | null;
     if (!el) return;
     el.innerHTML = options
-      .map((option) => `<option value="${escapeHtml(option)}" ${option === selected ? "selected" : ""}>${escapeHtml(option)}</option>`)
+      .map(
+        (option) =>
+          `<option value="${escapeHtml(option)}" ${option === selected ? "selected" : ""}>${escapeHtml(option)}</option>`,
+      )
       .join("");
   };
 
-  const regionIds = layout?.nodes.map((node) => node.regionId) || [];
-  bindSelect("map-editor-start-region", regionIds, layout?.startRegionId || "");
-  bindSelect("map-editor-goal-region", regionIds, layout?.goalRegionId || "");
-  bindSelect("map-editor-node-region", regionIds, selectedNode?.regionId || "");
-  bindSelect("map-editor-path-from", regionIds, selectedPath?.fromRegionId || "");
-  bindSelect("map-editor-path-to", regionIds, selectedPath?.toRegionId || "");
+  const layoutNodeIds = layout?.nodes.map((node) => node.regionId) || [];
+  const allRegionIds = getRegionOptions();
+  bindSelect("map-editor-start-region", layoutNodeIds, layout?.startRegionId || "");
+  bindSelect("map-editor-goal-region", layoutNodeIds, layout?.goalRegionId || "");
+  bindSelect("map-editor-node-region", allRegionIds, selectedNode?.regionId || "");
+  bindSelect("map-editor-path-from", layoutNodeIds, selectedPath?.fromRegionId || "");
+  bindSelect("map-editor-path-to", layoutNodeIds, selectedPath?.toRegionId || "");
 
   const setInput = (id: string, value: unknown, disabled = false) => {
     const el = document.getElementById(id) as HTMLInputElement | HTMLSelectElement | null;
@@ -530,37 +824,121 @@ function renderInspector() {
 
   setInput("map-editor-width", layout?.width || 0, !layout);
   setInput("map-editor-height", layout?.height || 0, !layout);
+  setInput("map-editor-node-name", selectedRegion?.name || "", !selectedNode);
+  setInput("map-editor-node-biome", selectedRegion?.biome || "", !selectedNode);
+  setInput("map-editor-node-danger", selectedRegion?.dangerLevel || 0, !selectedNode);
   setInput("map-editor-node-x", selectedNode?.x || 0, !selectedNode);
   setInput("map-editor-node-y", selectedNode?.y || 0, !selectedNode);
   setInput("map-editor-node-tier", selectedNode?.tier || 0, !selectedNode);
-  setInput("map-editor-node-icon", selectedNode?.icon || "", !selectedNode);
-  setInput("map-editor-node-landmark", selectedNode?.landmark || "", !selectedNode);
-  setInput("map-editor-node-accent", selectedNode?.accentColor || "", !selectedNode);
+  setInput("map-editor-node-icon", selectedNode?.icon || selectedRegion?.icon || "", !selectedNode);
+  setInput("map-editor-node-landmark", selectedNode?.landmark || selectedRegion?.landmark || "", !selectedNode);
+  setInput("map-editor-node-accent", selectedNode?.accentColor || selectedRegion?.accentColor || "", !selectedNode);
   setInput("map-editor-node-start", selectedNode?.isStart || false, !selectedNode);
   setInput("map-editor-node-goal", selectedNode?.isGoal || false, !selectedNode);
+  setInput(
+    "map-editor-node-enemies",
+    safeArray(selectedRegion?.enemyPool || selectedRegion?.enemyTypes).join(", "),
+    !selectedNode,
+  );
+
+  setInput("map-editor-path-difficulty", selectedPath?.difficulty || 1, !selectedPath);
+  setInput("map-editor-path-requirements", selectedPath?.requirements.join(", ") || "", !selectedPath);
+  setInput("map-editor-path-gated", selectedPath?.gated === true, !selectedPath);
+  setInput("map-editor-path-one-way", selectedPath?.oneWay === true, !selectedPath);
+  setInput("map-editor-path-effects", selectedPath?.travelEffects?.join(", ") || "", !selectedPath);
 
   const pathKindEl = document.getElementById("map-editor-path-kind") as HTMLSelectElement | null;
   if (pathKindEl) {
     pathKindEl.value = selectedPath?.kind || "road";
     pathKindEl.disabled = !selectedPath;
   }
-  const pathVisibilityEl = document.getElementById("map-editor-path-visibility") as HTMLSelectElement | null;
+  const pathVisibilityEl = document.getElementById(
+    "map-editor-path-visibility",
+  ) as HTMLSelectElement | null;
   if (pathVisibilityEl) {
     pathVisibilityEl.value = selectedPath?.visibility || "visible";
     pathVisibilityEl.disabled = !selectedPath;
   }
-  setInput("map-editor-path-difficulty", selectedPath?.difficulty || 1, !selectedPath);
-  setInput(
-    "map-editor-path-requirements",
-    selectedPath?.requirements.join(", ") || "",
-    !selectedPath,
-  );
 }
 
-function syncLayoutSelectors() {
-  renderInspector();
-  renderDraftPanel();
-  renderValidation();
+function renderTerrainOverlay(definition: Record<string, unknown> | null) {
+  if (!state.layers.terrain || !definition) return "";
+  const geography = safeObject(definition.geography);
+  const zones = safeArray<Record<string, unknown>>(geography.zones)
+    .map((zone) => {
+      const color = String(zone.color || "rgba(95, 168, 211, 0.74)");
+      return `
+        <ellipse
+          cx="${toFiniteNumber(zone.x, 0)}"
+          cy="${toFiniteNumber(zone.y, 0)}"
+          rx="${Math.max(20, Math.round(toFiniteNumber(zone.width, 180) / 2))}"
+          ry="${Math.max(20, Math.round(toFiniteNumber(zone.height, 120) / 2))}"
+          transform="rotate(${toFiniteNumber(zone.rotation, 0)} ${toFiniteNumber(zone.x, 0)} ${toFiniteNumber(zone.y, 0)})"
+          fill="${escapeHtml(color)}"
+          fill-opacity="${Math.max(0.05, Math.min(1, toFiniteNumber(zone.opacity, 0.24)))}"
+          class="dev-map-terrain-zone"
+        />
+      `;
+    })
+    .join("");
+  const flows = safeArray<Record<string, unknown>>(geography.flows)
+    .map((flow) => {
+      const points = safeArray<Record<string, unknown>>(flow.points);
+      if (points.length < 2) return "";
+      const first = points[0];
+      const rest = points.slice(1);
+      const curve = rest
+        .map((point, index) => {
+          const previous = points[index];
+          const controlX = Math.round((toFiniteNumber(previous.x, 0) + toFiniteNumber(point.x, 0)) / 2);
+          const controlY = Math.round((toFiniteNumber(previous.y, 0) + toFiniteNumber(point.y, 0)) / 2);
+          return `Q ${controlX} ${controlY} ${toFiniteNumber(point.x, 0)} ${toFiniteNumber(point.y, 0)}`;
+        })
+        .join(" ");
+      return `
+        <path
+          d="M ${toFiniteNumber(first.x, 0)} ${toFiniteNumber(first.y, 0)} ${curve}"
+          class="dev-map-terrain-flow"
+          stroke="${escapeHtml(String(flow.color || "rgba(184, 239, 255, 0.8)"))}"
+          stroke-width="${Math.max(2, toFiniteNumber(flow.width, 10))}"
+          stroke-opacity="${Math.max(0.05, Math.min(1, toFiniteNumber(flow.opacity, 0.32)))}"
+        />
+      `;
+    })
+    .join("");
+
+  if (!zones && !flows) return "";
+
+  return `
+    <svg class="dev-map-terrain-layer" viewBox="0 0 ${state.currentLayout?.width || 1040} ${state.currentLayout?.height || 620}" preserveAspectRatio="none">
+      ${zones}
+      ${flows}
+    </svg>
+  `;
+}
+
+function applyCanvasView(boardEl: HTMLElement) {
+  boardEl.style.setProperty("--dev-map-pan-x", `${state.viewport.panX}px`);
+  boardEl.style.setProperty("--dev-map-pan-y", `${state.viewport.panY}px`);
+  boardEl.style.setProperty("--dev-map-scale", String(state.viewport.scale));
+}
+
+function screenPointToLayoutPoint(
+  event: PointerEvent | MouseEvent,
+  boardEl: HTMLElement,
+) {
+  if (!state.currentLayout) return { x: 0, y: 0 };
+  const rect = boardEl.getBoundingClientRect();
+  const normX =
+    (event.clientX - rect.left - state.viewport.panX) /
+    (rect.width * state.viewport.scale);
+  const normY =
+    (event.clientY - rect.top - state.viewport.panY) /
+    (rect.height * state.viewport.scale);
+  return {
+    x: Math.round(normX * state.currentLayout.width),
+    y: Math.round(normY * state.currentLayout.height),
+  };
 }
 
 function renderCanvas() {
@@ -569,16 +947,18 @@ function renderCanvas() {
   const world = getSelectedWorld();
   const layout = state.currentLayout;
   if (!world || !layout) {
-    boardEl.innerHTML = '<div class="dev-topology-empty">Select a canonical world to begin editing.</div>';
+    boardEl.innerHTML =
+      '<div class="dev-topology-empty">Select a canonical world to begin editing.</div>';
     return;
   }
 
-  const regionMap = new Map(world.regions.map((region) => [String(region.id || ""), region] as const));
-  const layoutWidth = Math.max(320, layout.width);
-  const layoutHeight = Math.max(240, layout.height);
-  const scaleX = 100 / layoutWidth;
-  const scaleY = 100 / layoutHeight;
-
+  const regionMap = new Map(
+    safeArray<Record<string, unknown>>(state.currentDefinition?.regions).map((region) => [
+      String(region.id || ""),
+      region,
+    ]),
+  );
+  const terrainOverlay = renderTerrainOverlay(state.currentDefinition);
   const pathMarkup = state.layers.paths
     ? layout.paths
         .map((path) => {
@@ -588,19 +968,19 @@ function renderCanvas() {
           return `
             <g class="dev-topology-path-group">
               <line
-                class="dev-topology-path-line kind-${escapeHtml(path.kind)} visibility-${escapeHtml(path.visibility)} ${path.id === state.selectedPathId ? "selected" : ""}"
-                x1="${((fromNode.x / layoutWidth) * 100).toFixed(2)}%"
-                y1="${((fromNode.y / layoutHeight) * 100).toFixed(2)}%"
-                x2="${((toNode.x / layoutWidth) * 100).toFixed(2)}%"
-                y2="${((toNode.y / layoutHeight) * 100).toFixed(2)}%"
+                class="dev-topology-path-line kind-${escapeHtml(path.kind)} visibility-${escapeHtml(path.visibility)} ${path.id === state.selectedPathId ? "selected" : ""} ${path.gated ? "gated" : ""} ${path.oneWay ? "one-way" : ""}"
+                x1="${((fromNode.x / layout.width) * 100).toFixed(2)}%"
+                y1="${((fromNode.y / layout.height) * 100).toFixed(2)}%"
+                x2="${((toNode.x / layout.width) * 100).toFixed(2)}%"
+                y2="${((toNode.y / layout.height) * 100).toFixed(2)}%"
               />
               <line
                 class="dev-topology-path-hit"
                 data-path-id="${escapeHtml(path.id)}"
-                x1="${((fromNode.x / layoutWidth) * 100).toFixed(2)}%"
-                y1="${((fromNode.y / layoutHeight) * 100).toFixed(2)}%"
-                x2="${((toNode.x / layoutWidth) * 100).toFixed(2)}%"
-                y2="${((toNode.y / layoutHeight) * 100).toFixed(2)}%"
+                x1="${((fromNode.x / layout.width) * 100).toFixed(2)}%"
+                y1="${((fromNode.y / layout.height) * 100).toFixed(2)}%"
+                x2="${((toNode.x / layout.width) * 100).toFixed(2)}%"
+                y2="${((toNode.y / layout.height) * 100).toFixed(2)}%"
               />
             </g>
           `;
@@ -615,14 +995,22 @@ function renderCanvas() {
           const pending = state.pendingPathFrom === node.regionId;
           const label = String(region.name || node.landmark || node.regionId);
           const meta = state.layers.regions
-            ? `danger ${String(region.dangerLevel || 0)}`
+            ? `${String(region.biome || "unknown")} • danger ${String(region.dangerLevel || 0)}`
             : `tier ${String(node.tier)}`;
+          const nodeClasses = [
+            node.regionId === state.selectedNodeId ? "selected" : "",
+            pending ? "pending" : "",
+            node.isStart ? "is-start" : "",
+            node.isGoal ? "is-goal" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
           return `
             <button
               type="button"
-              class="dev-topology-node ${node.regionId === state.selectedNodeId ? "selected" : ""} ${pending ? "pending" : ""}"
+              class="dev-topology-node ${nodeClasses}"
               data-node-id="${escapeHtml(node.regionId)}"
-              style="left: calc(${(node.x * scaleX).toFixed(4)}% - 28px); top: calc(${(node.y * scaleY).toFixed(4)}% - 28px); --node-accent: ${escapeHtml(node.accentColor)};"
+              style="left: calc(${((node.x / layout.width) * 100).toFixed(4)}% - 28px); top: calc(${((node.y / layout.height) * 100).toFixed(4)}% - 28px); --node-accent: ${escapeHtml(node.accentColor)};"
             >
               <span class="dev-topology-node-icon">${escapeHtml(node.icon || "🗺️")}</span>
               ${state.layers.labels ? `<span class="dev-topology-node-name">${escapeHtml(label)}</span>` : ""}
@@ -638,17 +1026,23 @@ function renderCanvas() {
     <div class="dev-topology-board-land"></div>
     <div class="dev-topology-board-water"></div>
     <div class="dev-topology-board-label">${escapeHtml(world.name)}</div>
-    <svg class="dev-topology-path-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
-      ${pathMarkup}
-    </svg>
-    ${nodeMarkup}
+    <div class="dev-map-canvas-stage">
+      ${terrainOverlay}
+      <svg class="dev-topology-path-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+        ${pathMarkup}
+      </svg>
+      ${nodeMarkup}
+    </div>
   `;
+  applyCanvasView(boardEl);
 
   boardEl.querySelectorAll<HTMLElement>("[data-path-id]").forEach((pathEl) => {
-    pathEl.addEventListener("click", () => {
+    pathEl.addEventListener("click", (event) => {
+      event.stopPropagation();
       const pathId = pathEl.dataset.pathId || "";
+      if (!state.currentLayout) return;
       if (state.toolMode === "delete") {
-        state.currentLayout!.paths = state.currentLayout!.paths.filter((path) => path.id !== pathId);
+        state.currentLayout.paths = state.currentLayout.paths.filter((path) => path.id !== pathId);
         state.selectedPathId = null;
       } else {
         state.selectedPathId = pathId;
@@ -689,9 +1083,13 @@ function renderCanvas() {
             difficulty: 1,
             visibility: "visible",
             requirements: [],
+            gated: false,
+            oneWay: false,
+            travelEffects: [],
           });
           state.pendingPathFrom = null;
           state.selectedNodeId = nodeId;
+          state.selectedPathId = null;
           state.toolMode = "select";
           renderAll();
         }
@@ -709,34 +1107,60 @@ function renderCanvas() {
     });
   });
 
-  boardEl.addEventListener("click", (event) => {
-    if (!(event.target instanceof HTMLElement) || event.target.closest("[data-node-id],[data-path-id]")) return;
-    if (state.toolMode !== "add-node" || !state.currentLayout || !world) return;
-    const unusedRegion = world.regions.find(
-      (region) => !state.currentLayout!.nodes.some((node) => node.regionId === String(region.id || "")),
-    );
-    if (!unusedRegion) {
-      setStatus("No unused canonical region is available for a new node.", true);
+  boardEl.onwheel = (event) => {
+    event.preventDefault();
+    const direction = event.deltaY > 0 ? -0.08 : 0.08;
+    state.viewport.scale = Math.max(0.55, Math.min(1.85, state.viewport.scale + direction));
+    applyCanvasView(boardEl);
+  };
+
+  boardEl.onpointerdown = (event) => {
+    const target = event.target as HTMLElement;
+    const clickedInteractive = !!target.closest("[data-node-id],[data-path-id]");
+    if (clickedInteractive) return;
+    if (!state.currentLayout) return;
+
+    if (state.toolMode === "pan") {
+      state.viewport.dragging = true;
+      state.viewport.lastPointerX = event.clientX;
+      state.viewport.lastPointerY = event.clientY;
       return;
     }
-    const rect = boardEl.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * state.currentLayout.width;
-    const y = ((event.clientY - rect.top) / rect.height) * state.currentLayout.height;
-    state.currentLayout.nodes.push({
-      regionId: String(unusedRegion.id || ""),
-      x: Math.round(x),
-      y: Math.round(y),
-      tier: Math.max(0, Number(unusedRegion.tier || 0)),
-      icon: String(unusedRegion.icon || "🗺️"),
-      landmark: String(unusedRegion.landmark || ""),
-      accentColor: String(unusedRegion.accentColor || "#d4a65a"),
-      isStart: false,
-      isGoal: false,
-    });
-    state.selectedNodeId = String(unusedRegion.id || "");
-    state.toolMode = "select";
+
+    if (state.toolMode === "add-node") {
+      const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
+        (region) =>
+          !state.currentLayout!.nodes.some(
+            (node) => node.regionId === String(region.id || ""),
+          ),
+      );
+      if (!unusedRegion) {
+        setStatus("No unused canonical region is available for a new node.", true);
+        return;
+      }
+      const point = screenPointToLayoutPoint(event, boardEl);
+      state.currentLayout.nodes.push({
+        regionId: String(unusedRegion.id || ""),
+        x: Math.max(32, Math.min(state.currentLayout.width - 32, point.x)),
+        y: Math.max(32, Math.min(state.currentLayout.height - 32, point.y)),
+        tier: Math.max(0, Math.round(toFiniteNumber(unusedRegion.tier, 0))),
+        icon: String(unusedRegion.icon || "🗺️"),
+        landmark: String(unusedRegion.landmark || ""),
+        accentColor: String(unusedRegion.accentColor || "#d4a65a"),
+        isStart: false,
+        isGoal: false,
+      });
+      state.selectedNodeId = String(unusedRegion.id || "");
+      state.selectedPathId = null;
+      state.toolMode = "select";
+      renderAll();
+      return;
+    }
+
+    state.selectedNodeId = null;
+    state.selectedPathId = null;
     renderAll();
-  });
+  };
 }
 
 function renderAll() {
@@ -751,14 +1175,82 @@ function renderAll() {
   });
 }
 
+function applyWorkingDefinition(definition: Record<string, unknown>) {
+  state.currentDefinition = cloneRecord(definition);
+  state.originalDefinition = cloneRecord(definition);
+  state.currentLayout = deriveTopologyLayoutDraft(state.currentDefinition);
+  state.originalLayout = state.currentLayout ? cloneRecord(state.currentLayout) : null;
+}
+
+function loadLocalDraft(worldId: string) {
+  const raw = localStorage.getItem(getLocalDraftKey(worldId));
+  if (!raw) return false;
+  try {
+    const draft = JSON.parse(raw);
+    const baseDefinition = cloneRecord(getSelectedWorld()?.definition || {});
+    const nextDefinition = applySingleOverrideToDefinition(baseDefinition, draft);
+    state.currentDefinition = nextDefinition;
+    state.currentLayout = deriveTopologyLayoutDraft(nextDefinition);
+    state.selectedOverrideId = "local-draft";
+    return true;
+  } catch {
+    localStorage.removeItem(getLocalDraftKey(worldId));
+    return false;
+  }
+}
+
+function loadPersistedOverride(overrideId: string) {
+  const overrideRecord =
+    state.overrides.find((record) => String(record.id || "") === overrideId) || null;
+  const world = getSelectedWorld();
+  if (!overrideRecord || !world) return false;
+  const nextDefinition = applySingleOverrideToDefinition(
+    cloneRecord(world.definition),
+    overrideRecord,
+  );
+  state.currentDefinition = nextDefinition;
+  state.currentLayout = deriveTopologyLayoutDraft(nextDefinition);
+  state.selectedOverrideId = overrideId;
+  return true;
+}
+
 function selectWorld(worldId: string) {
   state.selectedWorldId = worldId;
   state.selectedNodeId = null;
   state.selectedPathId = null;
   state.pendingPathFrom = null;
+  resetViewport();
   const world = getSelectedWorld();
-  state.originalLayout = deriveTopologyLayoutDraft(world);
-  state.currentLayout = state.originalLayout ? cloneRecord(state.originalLayout) : null;
+  if (!world) {
+    state.originalDefinition = null;
+    state.currentDefinition = null;
+    state.originalLayout = null;
+    state.currentLayout = null;
+    renderAll();
+    return;
+  }
+  applyWorkingDefinition(world.definition);
+  state.selectedOverrideId = "new";
+  renderAll();
+}
+
+function loadSelectedDraftSelection(nextValue: string) {
+  const world = getSelectedWorld();
+  if (!world) return;
+  applyWorkingDefinition(world.definition);
+  state.selectedOverrideId = "new";
+  if (nextValue === "local-draft") {
+    if (!loadLocalDraft(world.id)) {
+      setStatus("No local draft was available for this world.", true);
+    }
+  } else if (nextValue && nextValue !== "new") {
+    if (!loadPersistedOverride(nextValue)) {
+      setStatus("Could not load the selected override draft.", true);
+    }
+  }
+  state.selectedNodeId = null;
+  state.selectedPathId = null;
+  state.pendingPathFrom = null;
   renderAll();
 }
 
@@ -766,9 +1258,9 @@ function autoLayout() {
   if (!state.currentLayout) return;
   const tiers = new Map<number, TopologyNodeDraft[]>();
   state.currentLayout.nodes.forEach((node) => {
-    const group = tiers.get(node.tier) || [];
-    group.push(node);
-    tiers.set(node.tier, group);
+    const bucket = tiers.get(node.tier) || [];
+    bucket.push(node);
+    tiers.set(node.tier, bucket);
   });
   const tierKeys = Array.from(tiers.keys()).sort((a, b) => a - b);
   const colWidth = state.currentLayout.width / Math.max(1, tierKeys.length + 1);
@@ -785,12 +1277,13 @@ function autoLayout() {
 
 function duplicateNode() {
   if (!state.currentLayout || !state.selectedNodeId) return;
-  const world = getSelectedWorld();
-  if (!world) return;
   const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
   if (!sourceNode) return;
-  const unusedRegion = world.regions.find(
-    (region) => !state.currentLayout!.nodes.some((node) => node.regionId === String(region.id || "")),
+  const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
+    (region) =>
+      !state.currentLayout!.nodes.some(
+        (node) => node.regionId === String(region.id || ""),
+      ),
   );
   if (!unusedRegion) {
     setStatus("No unused canonical region is available to duplicate into.", true);
@@ -813,19 +1306,43 @@ function duplicateNode() {
 
 function createBranch() {
   if (!state.currentLayout || !state.selectedNodeId) return;
-  const beforeNodeCount = state.currentLayout.nodes.length;
-  duplicateNode();
-  if (state.currentLayout.nodes.length === beforeNodeCount || !state.selectedNodeId) return;
+  const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
+  if (!sourceNode) return;
+  const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
+    (region) =>
+      !state.currentLayout!.nodes.some(
+        (node) => node.regionId === String(region.id || ""),
+      ),
+  );
+  if (!unusedRegion) {
+    setStatus("No unused canonical region is available to branch into.", true);
+    return;
+  }
+  const branchRegionId = String(unusedRegion.id || "");
+  state.currentLayout.nodes.push({
+    regionId: branchRegionId,
+    x: sourceNode.x + 128,
+    y: sourceNode.y + 72,
+    tier: sourceNode.tier + 1,
+    icon: String(unusedRegion.icon || sourceNode.icon),
+    landmark: String(unusedRegion.landmark || sourceNode.landmark),
+    accentColor: String(unusedRegion.accentColor || sourceNode.accentColor),
+    isStart: false,
+    isGoal: false,
+  });
   state.currentLayout.paths.push({
-    id: `${state.selectedNodeId}::branch::${Date.now()}`,
-    fromRegionId:
-      state.currentLayout.nodes[beforeNodeCount - 1]?.regionId || state.currentLayout.startRegionId,
-    toRegionId: state.selectedNodeId,
+    id: `${sourceNode.regionId}::${branchRegionId}::${Date.now()}`,
+    fromRegionId: sourceNode.regionId,
+    toRegionId: branchRegionId,
     kind: "road",
     difficulty: 1,
     visibility: "visible",
     requirements: [],
+    gated: false,
+    oneWay: false,
+    travelEffects: [],
   });
+  state.selectedNodeId = branchRegionId;
   renderAll();
 }
 
@@ -843,19 +1360,36 @@ function bindControls() {
     (event) => selectWorld((event.target as HTMLSelectElement).value),
   );
 
+  (document.getElementById("map-editor-override-select") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => loadSelectedDraftSelection((event.target as HTMLSelectElement).value),
+  );
+
   document.getElementById("map-editor-validate-btn")?.addEventListener("click", () => {
     renderValidation();
     setStatus("Validation refreshed.");
   });
 
   document.getElementById("map-editor-reset-btn")?.addEventListener("click", () => {
-    if (!state.originalLayout) return;
-    state.currentLayout = cloneRecord(state.originalLayout);
+    const world = getSelectedWorld();
+    if (!world) return;
+    applyWorkingDefinition(world.definition);
     state.selectedNodeId = null;
     state.selectedPathId = null;
     state.pendingPathFrom = null;
+    state.selectedOverrideId = "new";
+    resetViewport();
     renderAll();
     setStatus("Draft reset to the canonical world layout.");
+  });
+
+  document.getElementById("map-editor-save-draft-btn")?.addEventListener("click", () => {
+    const draft = buildOverrideDraft();
+    if (!draft || !state.selectedWorldId) return;
+    localStorage.setItem(getLocalDraftKey(state.selectedWorldId), JSON.stringify(draft));
+    state.selectedOverrideId = "local-draft";
+    renderTopbar();
+    setStatus("Saved local override draft.");
   });
 
   document.getElementById("map-editor-save-key")?.addEventListener("click", () => {
@@ -886,8 +1420,15 @@ function bindControls() {
       return;
     }
     setStatus("Override saved to world_overrides.");
+    if (state.selectedWorldId) {
+      localStorage.removeItem(getLocalDraftKey(state.selectedWorldId));
+    }
     await loadOverrides();
-    state.originalLayout = state.currentLayout ? cloneRecord(state.currentLayout) : null;
+    const world = getSelectedWorld();
+    if (world) {
+      applyWorkingDefinition(cloneRecord(state.currentDefinition || world.definition));
+    }
+    state.selectedOverrideId = String(payload.data?.id || "new");
     renderAll();
   });
 
@@ -912,8 +1453,10 @@ function bindControls() {
     setStatus("Auto layout applied.");
   });
   document.getElementById("map-editor-center")?.addEventListener("click", () => {
-    setStatus("The board recenters automatically to the current layout.");
-    renderCanvas();
+    resetViewport();
+    const boardEl = document.getElementById("map-editor-canvas");
+    if (boardEl) applyCanvasView(boardEl);
+    setStatus("Map centered.");
   });
   document.getElementById("map-editor-duplicate")?.addEventListener("click", () => {
     duplicateNode();
@@ -922,47 +1465,47 @@ function bindControls() {
     createBranch();
   });
 
-  (document.getElementById("map-layer-paths") as HTMLInputElement | null)?.addEventListener(
-    "change",
-    (event) => {
-      state.layers.paths = (event.target as HTMLInputElement).checked;
-      renderCanvas();
-    },
-  );
-  (document.getElementById("map-layer-nodes") as HTMLInputElement | null)?.addEventListener(
-    "change",
-    (event) => {
-      state.layers.nodes = (event.target as HTMLInputElement).checked;
-      renderCanvas();
-    },
-  );
-  (document.getElementById("map-layer-labels") as HTMLInputElement | null)?.addEventListener(
-    "change",
-    (event) => {
-      state.layers.labels = (event.target as HTMLInputElement).checked;
-      renderCanvas();
-    },
-  );
-  (document.getElementById("map-layer-regions") as HTMLInputElement | null)?.addEventListener(
-    "change",
-    (event) => {
-      state.layers.regions = (event.target as HTMLInputElement).checked;
-      renderCanvas();
-    },
-  );
-  (document.getElementById("map-layer-locked") as HTMLInputElement | null)?.addEventListener(
-    "change",
-    (event) => {
-      state.layers.locked = (event.target as HTMLInputElement).checked;
-      renderCanvas();
-    },
-  );
+  [
+    ["map-layer-paths", "paths"],
+    ["map-layer-nodes", "nodes"],
+    ["map-layer-labels", "labels"],
+    ["map-layer-regions", "regions"],
+    ["map-layer-locked", "locked"],
+    ["map-layer-terrain", "terrain"],
+  ].forEach(([id, key]) => {
+    (document.getElementById(id) as HTMLInputElement | null)?.addEventListener(
+      "change",
+      (event) => {
+        (state.layers as Record<string, boolean>)[key] = (event.target as HTMLInputElement).checked;
+        renderCanvas();
+      },
+    );
+  });
+
+  const updateRegion = (mutator: (region: Record<string, unknown>) => void) => {
+    if (!state.currentDefinition || !state.selectedNodeId) return;
+    const regions = safeArray<Record<string, unknown>>(state.currentDefinition.regions);
+    const region = regions.find((entry) => String(entry.id || "") === state.selectedNodeId);
+    if (!region) return;
+    mutator(region);
+    renderAll();
+  };
 
   const updateNode = (mutator: (node: TopologyNodeDraft) => void) => {
     if (!state.currentLayout || !state.selectedNodeId) return;
     const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.selectedNodeId);
     if (!node) return;
+    const previousId = node.regionId;
     mutator(node);
+    if (node.regionId !== previousId) {
+      state.currentLayout.paths.forEach((path) => {
+        if (path.fromRegionId === previousId) path.fromRegionId = node.regionId;
+        if (path.toRegionId === previousId) path.toRegionId = node.regionId;
+      });
+      if (state.currentLayout.startRegionId === previousId) state.currentLayout.startRegionId = node.regionId;
+      if (state.currentLayout.goalRegionId === previousId) state.currentLayout.goalRegionId = node.regionId;
+      state.selectedNodeId = node.regionId;
+    }
     if (node.isStart) {
       state.currentLayout.startRegionId = node.regionId;
       state.currentLayout.nodes.forEach((entry) => {
@@ -990,7 +1533,10 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
-      state.currentLayout.width = Math.max(320, Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.width)));
+      state.currentLayout.width = Math.max(
+        320,
+        Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.width)),
+      );
       renderAll();
     },
   );
@@ -998,7 +1544,10 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
-      state.currentLayout.height = Math.max(240, Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.height)));
+      state.currentLayout.height = Math.max(
+        240,
+        Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.height)),
+      );
       renderAll();
     },
   );
@@ -1031,103 +1580,231 @@ function bindControls() {
       const nextRegionId = (event.target as HTMLSelectElement).value;
       updateNode((node) => {
         node.regionId = nextRegionId;
-        state.selectedNodeId = nextRegionId;
       });
     },
   );
-  (document.getElementById("map-editor-node-x") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updateNode((node) => {
-      node.x = Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.x));
-    });
-  });
-  (document.getElementById("map-editor-node-y") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updateNode((node) => {
-      node.y = Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.y));
-    });
-  });
-  (document.getElementById("map-editor-node-tier") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updateNode((node) => {
-      node.tier = Math.max(0, Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.tier)));
-    });
-  });
-  (document.getElementById("map-editor-node-icon") as HTMLInputElement | null)?.addEventListener("input", (event) => {
-    updateNode((node) => {
-      node.icon = (event.target as HTMLInputElement).value || node.icon;
-    });
-  });
-  (document.getElementById("map-editor-node-landmark") as HTMLInputElement | null)?.addEventListener("input", (event) => {
-    updateNode((node) => {
-      node.landmark = (event.target as HTMLInputElement).value || "";
-    });
-  });
-  (document.getElementById("map-editor-node-accent") as HTMLInputElement | null)?.addEventListener("input", (event) => {
-    updateNode((node) => {
-      node.accentColor = (event.target as HTMLInputElement).value || node.accentColor;
-    });
-  });
-  (document.getElementById("map-editor-node-start") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updateNode((node) => {
-      node.isStart = (event.target as HTMLInputElement).checked;
-    });
-  });
-  (document.getElementById("map-editor-node-goal") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updateNode((node) => {
-      node.isGoal = (event.target as HTMLInputElement).checked;
-    });
-  });
+  (document.getElementById("map-editor-node-name") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateRegion((region) => {
+        region.name = (event.target as HTMLInputElement).value || region.name;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-biome") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateRegion((region) => {
+        region.biome = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-danger") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateRegion((region) => {
+        region.dangerLevel = Math.max(
+          0,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, toFiniteNumber(region.dangerLevel, 0))),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-x") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateNode((node) => {
+        node.x = Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.x));
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-y") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateNode((node) => {
+        node.y = Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.y));
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-tier") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateNode((node) => {
+        node.tier = Math.max(
+          0,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, node.tier)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-icon") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      const nextValue = (event.target as HTMLInputElement).value || "";
+      updateNode((node) => {
+        node.icon = nextValue || node.icon;
+      });
+      updateRegion((region) => {
+        region.icon = nextValue;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-landmark") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      const nextValue = (event.target as HTMLInputElement).value || "";
+      updateNode((node) => {
+        node.landmark = nextValue;
+      });
+      updateRegion((region) => {
+        region.landmark = nextValue;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-accent") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      const nextValue = (event.target as HTMLInputElement).value || "";
+      updateNode((node) => {
+        node.accentColor = nextValue || node.accentColor;
+      });
+      updateRegion((region) => {
+        region.accentColor = nextValue;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-start") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateNode((node) => {
+        node.isStart = (event.target as HTMLInputElement).checked;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-goal") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateNode((node) => {
+        node.isGoal = (event.target as HTMLInputElement).checked;
+      });
+    },
+  );
+  (document.getElementById("map-editor-node-enemies") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateRegion((region) => {
+        region.enemyPool = (event.target as HTMLInputElement).value
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean);
+      });
+    },
+  );
 
-  (document.getElementById("map-editor-path-from") as HTMLSelectElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      path.fromRegionId = (event.target as HTMLSelectElement).value;
-    });
-  });
-  (document.getElementById("map-editor-path-to") as HTMLSelectElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      path.toRegionId = (event.target as HTMLSelectElement).value;
-    });
-  });
-  (document.getElementById("map-editor-path-kind") as HTMLSelectElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      const next = (event.target as HTMLSelectElement).value;
-      path.kind = next === "hazard" || next === "secret" ? next : "road";
-    });
-  });
-  (document.getElementById("map-editor-path-difficulty") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      path.difficulty = Math.max(1, Math.round(toFiniteNumber((event.target as HTMLInputElement).value, path.difficulty)));
-    });
-  });
-  (document.getElementById("map-editor-path-visibility") as HTMLSelectElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      const next = (event.target as HTMLSelectElement).value;
-      path.visibility = next === "hidden" || next === "fogged" ? next : "visible";
-    });
-  });
-  (document.getElementById("map-editor-path-requirements") as HTMLInputElement | null)?.addEventListener("change", (event) => {
-    updatePath((path) => {
-      path.requirements = (event.target as HTMLInputElement).value
-        .split(",")
-        .map((entry) => entry.trim())
-        .filter(Boolean);
-    });
-  });
+  (document.getElementById("map-editor-path-from") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.fromRegionId = (event.target as HTMLSelectElement).value;
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-to") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.toRegionId = (event.target as HTMLSelectElement).value;
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-kind") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        const next = (event.target as HTMLSelectElement).value;
+        path.kind = next === "hazard" || next === "secret" ? next : "road";
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-difficulty") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.difficulty = Math.max(
+          1,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, path.difficulty)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-visibility") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        const next = (event.target as HTMLSelectElement).value;
+        path.visibility = next === "hidden" || next === "fogged" ? next : "visible";
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-requirements") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.requirements = normalizeRequirements((event.target as HTMLInputElement).value);
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-gated") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.gated = (event.target as HTMLInputElement).checked;
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-one-way") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.oneWay = (event.target as HTMLInputElement).checked;
+      });
+    },
+  );
+  (document.getElementById("map-editor-path-effects") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updatePath((path) => {
+        path.travelEffects = normalizePathEffects((event.target as HTMLInputElement).value);
+      });
+    },
+  );
 
   window.addEventListener("pointermove", (event) => {
-    if (!state.dragNodeId || state.toolMode !== "move" || !state.currentLayout) return;
-    const boardEl = document.getElementById("map-editor-canvas");
-    if (!boardEl) return;
-    const rect = boardEl.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * state.currentLayout.width;
-    const y = ((event.clientY - rect.top) / rect.height) * state.currentLayout.height;
-    const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.dragNodeId);
-    if (!node) return;
-    node.x = Math.round(Math.max(36, Math.min(state.currentLayout.width - 36, x)));
-    node.y = Math.round(Math.max(36, Math.min(state.currentLayout.height - 36, y)));
-    renderAll();
+    if (state.dragNodeId && state.toolMode === "move" && state.currentLayout) {
+      const boardEl = document.getElementById("map-editor-canvas");
+      if (!boardEl) return;
+      const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.dragNodeId);
+      if (!node) return;
+      const point = screenPointToLayoutPoint(event, boardEl);
+      node.x = Math.round(Math.max(36, Math.min(state.currentLayout.width - 36, point.x)));
+      node.y = Math.round(Math.max(36, Math.min(state.currentLayout.height - 36, point.y)));
+      renderAll();
+      return;
+    }
+
+    if (state.viewport.dragging && state.toolMode === "pan") {
+      state.viewport.panX += event.clientX - state.viewport.lastPointerX;
+      state.viewport.panY += event.clientY - state.viewport.lastPointerY;
+      state.viewport.lastPointerX = event.clientX;
+      state.viewport.lastPointerY = event.clientY;
+      const boardEl = document.getElementById("map-editor-canvas");
+      if (boardEl) applyCanvasView(boardEl);
+    }
   });
 
   window.addEventListener("pointerup", () => {
     state.dragNodeId = null;
+    state.viewport.dragging = false;
   });
 }
 
@@ -1151,7 +1828,10 @@ async function loadWorlds() {
   if (!payload.success) throw new Error(payload.error || "Could not load world definitions");
   state.worlds = (payload.data?.records || [])
     .map((record: Record<string, unknown>) => parseWorldDefinitionRecord(record))
-    .filter((record: ParsedWorldDefinitionRecord | null): record is ParsedWorldDefinitionRecord => !!record);
+    .filter(
+      (record: ParsedWorldDefinitionRecord | null): record is ParsedWorldDefinitionRecord =>
+        !!record,
+    );
 }
 
 async function loadOverrides() {
