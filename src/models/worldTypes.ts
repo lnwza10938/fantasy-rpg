@@ -20,6 +20,47 @@ export interface WorldLocationState {
   combatId: string | null;
 }
 
+export interface WorldMapPosition {
+  x: number;
+  y: number;
+}
+
+export interface WorldMapNode {
+  regionId: string;
+  x: number;
+  y: number;
+  tier: number;
+  icon: string;
+  landmark: string;
+  accentColor: string;
+  isStart: boolean;
+  isGoal: boolean;
+}
+
+export interface WorldMapPath {
+  id: string;
+  fromRegionId: string;
+  toRegionId: string;
+  kind: "road" | "hazard" | "secret";
+}
+
+export interface WorldMapLayout {
+  width: number;
+  height: number;
+  startRegionId: string;
+  goalRegionId: string;
+  nodes: WorldMapNode[];
+  paths: WorldMapPath[];
+}
+
+export interface WorldMapGenerationHints {
+  regionBudget?: number;
+  laneCount?: number;
+  routeDensity?: number;
+  preferredBiomes?: string[];
+  narrativeTone?: string[];
+}
+
 export interface WorldRegion {
   id: string;
   name: string;
@@ -27,12 +68,22 @@ export interface WorldRegion {
   dangerLevel: number;
   description: string;
   enemyPool: string[];
+  imageUrl?: string;
+  icon?: string;
+  landmark?: string;
+  accentColor?: string;
+  tier?: number;
+  mapPosition?: WorldMapPosition;
+  connections?: string[];
+  isStart?: boolean;
+  isGoal?: boolean;
 }
 
 export interface WorldDefinition {
   seed: number;
   metadata: WorldMetadata;
   regions: WorldRegion[];
+  mapLayout: WorldMapLayout;
 }
 
 export const WORLD_META_PREFIX = "world_meta:";

@@ -2,6 +2,7 @@
 // Stage contracts for procedural generation and custom-world interpretation.
 
 import type {
+  WorldMapGenerationHints,
   WorldGenerationSelection,
   WorldMetadata,
 } from "../models/worldTypes.js";
@@ -25,6 +26,8 @@ export interface WorldStructurePlan {
   seed: number;
   metadata: WorldMetadata;
   regionBudget: number;
+  laneCount: number;
+  routeDensity: number;
   preferredBiomes: string[];
   constrainedMonsterPool: string[];
 }
@@ -138,6 +141,13 @@ export class DefaultWorldStructureGenerator
       seed: input.seed,
       metadata: input.metadata,
       regionBudget,
+      laneCount: Math.min(5, Math.max(3, Math.ceil(regionBudget / 3))),
+      routeDensity:
+        input.metadata.worldPreset === "custom"
+          ? 0.72
+          : input.metadata.worldPreset === "balanced"
+            ? 0.62
+            : 0.56,
       preferredBiomes: [...terrainPlan.primaryBiomes],
       constrainedMonsterPool: [...terrainPlan.requestedMonsters],
     };
@@ -148,11 +158,18 @@ export class ExistingWorldRegionGenerator implements RegionGenerator {
   public async generate(
     input: ProceduralGenerationInput,
     _terrainPlan: TerrainPlan,
-    _structurePlan: WorldStructurePlan,
+    structurePlan: WorldStructurePlan,
   ): Promise<WorldInstance> {
+    const hints: WorldMapGenerationHints = {
+      regionBudget: structurePlan.regionBudget,
+      laneCount: structurePlan.laneCount,
+      routeDensity: structurePlan.routeDensity,
+      preferredBiomes: structurePlan.preferredBiomes,
+    };
     const instance = await worldSystem.generateWorld(
       input.seed,
       hasSelection(input.selection) ? input.selection : undefined,
+      hints,
     );
     instance.setMetadata(input.metadata);
     return instance;
@@ -260,6 +277,13 @@ export class ExistingCustomWorldBuilder implements CustomWorldBuilder {
     const instance = await worldSystem.generateWorld(
       input.seed,
       hasSelection(selection) ? selection : undefined,
+      {
+        regionBudget: Math.max(5, specification.geography.length * 2 || 6),
+        laneCount: Math.min(5, Math.max(3, Math.ceil(specification.geography.length / 2) + 1)),
+        routeDensity: specification.narrativeHooks.length > 4 ? 0.74 : 0.66,
+        preferredBiomes: specification.geography,
+        narrativeTone: specification.tone,
+      },
     );
     instance.setMetadata(specification.metadata);
     return instance;

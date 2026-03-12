@@ -1,10 +1,14 @@
 // src/core/worldSystem.ts
-// Procedural world generation using deterministic seed-based RNG and DB content
+// Procedural world generation using deterministic seed-based RNG and DB content.
 
 import type { CharacterStats } from "../models/combatTypes.js";
 import type {
   WorldDefinition,
   WorldGenerationSelection,
+  WorldMapGenerationHints,
+  WorldMapLayout,
+  WorldMapNode,
+  WorldMapPath,
   WorldMetadata,
   WorldRegion,
 } from "../models/worldTypes.js";
@@ -14,16 +18,131 @@ import {
   normalizeWorldMetadata,
 } from "../models/worldTypes.js";
 import {
-  getMaps,
-  getMonsters,
   getFactions,
   getLoreSnippets,
+  getMaps,
+  getMonsters,
+  getSpawnPoints,
 } from "../db/contentRepositories.js";
 
-// --- Seeded PRNG (Deterministic) ---
-// Uses a simple mulberry32 algorithm for fast, reproducible randomness.
-// No external dependencies. Pure math.
+interface MapRecord {
+  id: string;
+  name: string;
+  biome?: string;
+  danger_level: number;
+  description?: string;
+  image_url?: string;
+}
 
+interface SpawnPointRecord {
+  map_id: string;
+  monster_pool?: string[];
+  spawn_rate?: number;
+}
+
+interface BiomeVisualStyle {
+  icon: string;
+  accentColor: string;
+  landmarks: string[];
+}
+
+const DEFAULT_MAP_WIDTH = 1040;
+const DEFAULT_MAP_HEIGHT = 560;
+const DEFAULT_BIOME_STYLE: BiomeVisualStyle = {
+  icon: "🗺️",
+  accentColor: "#4fc3f7",
+  landmarks: ["Outpost", "Crossing", "Frontier"],
+};
+
+const BIOME_VISUALS: Record<string, BiomeVisualStyle> = {
+  forest: {
+    icon: "🌲",
+    accentColor: "#6cc56c",
+    landmarks: ["Whispergrove", "Old Hollow", "Verdant Gate"],
+  },
+  coast: {
+    icon: "🌊",
+    accentColor: "#4fc3f7",
+    landmarks: ["Tidewatch", "Foamreach", "Salt Beacon"],
+  },
+  mountain: {
+    icon: "⛰️",
+    accentColor: "#9fb3c8",
+    landmarks: ["High Pass", "Stone Crown", "Sky Gate"],
+  },
+  desert: {
+    icon: "🏜️",
+    accentColor: "#f5c16c",
+    landmarks: ["Sunspire", "Dune Gate", "Mirage Camp"],
+  },
+  volcanic: {
+    icon: "🌋",
+    accentColor: "#ff875f",
+    landmarks: ["Ash Spire", "Cinder Gate", "Magma Scar"],
+  },
+  ruins: {
+    icon: "🏛️",
+    accentColor: "#b9a9ff",
+    landmarks: ["Fallen Archive", "Broken Forum", "Pale Reliquary"],
+  },
+  swamp: {
+    icon: "🪷",
+    accentColor: "#7abf88",
+    landmarks: ["Bog Lantern", "Mire Fork", "Fen Shrine"],
+  },
+  cursed_land: {
+    icon: "💀",
+    accentColor: "#d47cff",
+    landmarks: ["Grief Gate", "Woe Hollow", "Black Reliquary"],
+  },
+};
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeBiomeKey(value: string | null | undefined): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function deterministicShuffle<T>(values: T[], rng: SeededRNG): T[] {
+  const next = [...values];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = rng.nextInt(0, i);
+    [next[i], next[j]] = [next[j]!, next[i]!];
+  }
+  return next;
+}
+
+function biomeStyleFor(biome: string): BiomeVisualStyle {
+  return BIOME_VISUALS[normalizeBiomeKey(biome)] || DEFAULT_BIOME_STYLE;
+}
+
+function pathKey(a: string, b: string): string {
+  return [a, b].sort().join("::");
+}
+
+function pickNearestByY<T extends { mapPosition?: { y: number } }>(
+  origin: T,
+  pool: T[],
+): T[] {
+  return [...pool].sort((a, b) => {
+    const aY = a.mapPosition?.y ?? 0;
+    const bY = b.mapPosition?.y ?? 0;
+    const originY = origin.mapPosition?.y ?? 0;
+    return Math.abs(aY - originY) - Math.abs(bY - originY);
+  });
+}
+
+// --- Seeded PRNG (Deterministic) ---
 export class SeededRNG {
   private state: number;
 
@@ -31,7 +150,6 @@ export class SeededRNG {
     this.state = seed;
   }
 
-  /** Returns a deterministic float between 0 and 1 */
   public next(): number {
     this.state |= 0;
     this.state = (this.state + 0x6d2b79f5) | 0;
@@ -40,12 +158,10 @@ export class SeededRNG {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
-  /** Returns a deterministic integer between min (inclusive) and max (inclusive) */
   public nextInt(min: number, max: number): number {
     return min + Math.floor(this.next() * (max - min + 1));
   }
 
-  /** Picks a random element from an array */
   public pick<T>(arr: T[]): T {
     return arr[this.nextInt(0, arr.length - 1)]!;
   }
@@ -72,6 +188,10 @@ export class WorldInstance {
     return this.definition.metadata;
   }
 
+  public get mapLayout(): WorldMapLayout {
+    return this.definition.mapLayout;
+  }
+
   public setMetadata(metadata: Partial<WorldMetadata>): WorldDefinition {
     this.definition = {
       ...this.definition,
@@ -86,100 +206,319 @@ export class WorldInstance {
 }
 
 // --- World System ---
-
 export class WorldSystem {
   private rng!: SeededRNG;
   private worldInstance: WorldInstance | null = null;
 
-  /**
-   * Generates or retrieves a full deterministic world from a numeric seed.
-   * Caches all content-heavy data in a WorldInstance.
-   */
+  private matchesBiomeSelection(
+    map: MapRecord,
+    selection: WorldGenerationSelection,
+    hints?: WorldMapGenerationHints,
+  ): boolean {
+    const wanted = uniqueStrings([
+      ...selection.biomes,
+      ...(hints?.preferredBiomes || []),
+    ]).map(normalizeBiomeKey);
+
+    if (wanted.length === 0) return true;
+
+    const biomeKey = normalizeBiomeKey(map.biome);
+    const nameKey = normalizeBiomeKey(map.name);
+    return wanted.includes(biomeKey) || wanted.includes(nameKey);
+  }
+
+  private buildEnemyPool(
+    map: MapRecord,
+    spawnPointRows: SpawnPointRecord[],
+    allMonsters: any[],
+    selection: WorldGenerationSelection,
+  ): string[] {
+    const dbPool = uniqueStrings(
+      spawnPointRows
+        .filter((row) => row.map_id === map.id)
+        .flatMap((row) => row.monster_pool || []),
+    );
+
+    let candidates =
+      dbPool.length > 0
+        ? allMonsters.filter((monster) => dbPool.includes(monster.name))
+        : allMonsters.filter((monster) => {
+            const monsterBiome = normalizeBiomeKey(monster.biome || monster.type);
+            const regionBiome = normalizeBiomeKey(map.biome);
+            return !regionBiome || monsterBiome === regionBiome;
+          });
+
+    if (selection.monsters.length > 0) {
+      const picked = candidates.filter((monster) =>
+        selection.monsters.includes(monster.name),
+      );
+      if (picked.length > 0) candidates = picked;
+    }
+
+    if (candidates.length === 0) {
+      candidates = allMonsters.filter((monster) =>
+        dbPool.includes(monster.name) ||
+        selection.monsters.includes(monster.name),
+      );
+    }
+
+    if (candidates.length === 0) {
+      candidates = allMonsters;
+    }
+
+    return uniqueStrings(
+      deterministicShuffle(candidates, this.rng)
+        .slice(0, clamp(candidates.length > 4 ? 4 : candidates.length, 2, 4))
+        .map((monster) => monster.name),
+    );
+  }
+
+  private buildRegionList(
+    maps: MapRecord[],
+    spawnPointRows: SpawnPointRecord[],
+    allMonsters: any[],
+    selection: WorldGenerationSelection,
+  ): WorldRegion[] {
+    return maps.map((map) => {
+      const biome = normalizeBiomeKey(map.biome) || "unknown";
+      const style = biomeStyleFor(biome);
+      const landmark =
+        style.landmarks[this.rng.nextInt(0, style.landmarks.length - 1)] ||
+        "Waystation";
+
+      return {
+        id: map.id,
+        name: map.name,
+        biome,
+        dangerLevel: map.danger_level || 1,
+        description: map.description || "",
+        enemyPool: this.buildEnemyPool(map, spawnPointRows, allMonsters, selection),
+        imageUrl: map.image_url || "",
+        icon: style.icon,
+        landmark,
+        accentColor: style.accentColor,
+        connections: [],
+      };
+    });
+  }
+
+  private buildMapLayout(
+    seed: number,
+    regions: WorldRegion[],
+    hints?: WorldMapGenerationHints,
+  ): WorldMapLayout {
+    const topologyRng = new SeededRNG(seed ^ 0x51f15e);
+    const laneCount = clamp(
+      hints?.laneCount ||
+        (regions.length >= 10 ? 5 : regions.length >= 7 ? 4 : 3),
+      3,
+      5,
+    );
+    const routeDensity = clamp(hints?.routeDensity ?? 0.62, 0.4, 0.9);
+    const width = DEFAULT_MAP_WIDTH;
+    const height = DEFAULT_MAP_HEIGHT;
+
+    const sortedRegions = [...regions].sort((a, b) => {
+      if (a.dangerLevel !== b.dangerLevel) {
+        return a.dangerLevel - b.dangerLevel;
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+    const startRegionId = sortedRegions[0]?.id || "";
+    const goalRegionId = sortedRegions[sortedRegions.length - 1]?.id || "";
+
+    const regionsByTier = new Map<number, WorldRegion[]>();
+    sortedRegions.forEach((region, index) => {
+      const tier =
+        sortedRegions.length === 1
+          ? 0
+          : Math.round((index / (sortedRegions.length - 1)) * (laneCount - 1));
+      region.tier = tier;
+      region.isStart = region.id === startRegionId;
+      region.isGoal = region.id === goalRegionId;
+      if (!regionsByTier.has(tier)) regionsByTier.set(tier, []);
+      regionsByTier.get(tier)!.push(region);
+    });
+
+    for (let tier = 0; tier < laneCount; tier += 1) {
+      const tierRegions = regionsByTier.get(tier) || [];
+      const xBase =
+        laneCount === 1
+          ? width / 2
+          : 120 + tier * ((width - 240) / Math.max(1, laneCount - 1));
+
+      tierRegions.forEach((region, index) => {
+        const total = tierRegions.length;
+        const yBase =
+          total === 1
+            ? height / 2
+            : 85 + index * ((height - 170) / Math.max(1, total - 1));
+        const jitterX = topologyRng.nextInt(-22, 22);
+        const jitterY = topologyRng.nextInt(-26, 26);
+        region.mapPosition = {
+          x: clamp(Math.round(xBase + jitterX), 90, width - 90),
+          y: clamp(Math.round(yBase + jitterY), 70, height - 70),
+        };
+      });
+    }
+
+    const pathSet = new Set<string>();
+    const paths: WorldMapPath[] = [];
+    const connectRegions = (
+      fromRegion: WorldRegion,
+      toRegion: WorldRegion,
+      kind: WorldMapPath["kind"] = "road",
+    ) => {
+      const key = pathKey(fromRegion.id, toRegion.id);
+      if (fromRegion.id === toRegion.id || pathSet.has(key)) return;
+
+      pathSet.add(key);
+      fromRegion.connections = uniqueStrings([...(fromRegion.connections || []), toRegion.id]);
+      toRegion.connections = uniqueStrings([...(toRegion.connections || []), fromRegion.id]);
+      paths.push({
+        id: key,
+        fromRegionId: fromRegion.id,
+        toRegionId: toRegion.id,
+        kind,
+      });
+    };
+
+    for (let tier = 0; tier < laneCount - 1; tier += 1) {
+      const currentTier = regionsByTier.get(tier) || [];
+      const nextTier = regionsByTier.get(tier + 1) || [];
+      if (currentTier.length === 0 || nextTier.length === 0) continue;
+
+      currentTier.forEach((region) => {
+        const closest = pickNearestByY(region, nextTier);
+        connectRegions(
+          region,
+          closest[0]!,
+          closest[0]?.isGoal ? "hazard" : "road",
+        );
+        if (
+          closest[1] &&
+          nextTier.length > 1 &&
+          topologyRng.next() < routeDensity - 0.25
+        ) {
+          connectRegions(region, closest[1]!, "road");
+        }
+      });
+
+      nextTier.forEach((region) => {
+        const hasIncoming = paths.some((path) => path.toRegionId === region.id);
+        if (!hasIncoming) {
+          const previous = pickNearestByY(region, currentTier)[0];
+          if (previous) connectRegions(previous, region, "road");
+        }
+      });
+    }
+
+    if (routeDensity > 0.68) {
+      for (let tier = 1; tier < laneCount - 1; tier += 1) {
+        const tierRegions = regionsByTier.get(tier) || [];
+        if (tierRegions.length < 2) continue;
+        for (let i = 0; i < tierRegions.length - 1; i += 1) {
+          if (topologyRng.next() < 0.32) {
+            connectRegions(tierRegions[i]!, tierRegions[i + 1]!, "secret");
+          }
+        }
+      }
+    }
+
+    const nodes: WorldMapNode[] = sortedRegions.map((region) => ({
+      regionId: region.id,
+      x: region.mapPosition?.x || 0,
+      y: region.mapPosition?.y || 0,
+      tier: region.tier || 0,
+      icon: region.icon || DEFAULT_BIOME_STYLE.icon,
+      landmark: region.landmark || "Waystation",
+      accentColor: region.accentColor || DEFAULT_BIOME_STYLE.accentColor,
+      isStart: !!region.isStart,
+      isGoal: !!region.isGoal,
+    }));
+
+    return {
+      width,
+      height,
+      startRegionId,
+      goalRegionId,
+      nodes,
+      paths,
+    };
+  }
+
   public async generateWorld(
     seed: number,
     customSelection?: WorldGenerationSelection,
+    hints?: WorldMapGenerationHints,
   ): Promise<WorldInstance> {
     console.log(`[WorldSystem] Loading world instance for seed ${seed}...`);
     this.rng = new SeededRNG(seed);
 
-    // Fetch all possible maps, monsters, factions, and lore from DB ONCE
-    let [allMaps, allMonsters, allFactions, allLore] = await Promise.all([
-      getMaps(),
-      getMonsters(),
-      getFactions(),
-      getLoreSnippets(),
-    ]);
+    let [allMaps, allMonsters, allFactions, allLore, allSpawnPoints] =
+      await Promise.all([
+        getMaps(),
+        getMonsters(),
+        getFactions(),
+        getLoreSnippets(),
+        getSpawnPoints(),
+      ]);
 
     if (allMaps.length === 0) throw new Error("No maps found in database.");
 
-    // Filter maps/monsters if custom selection exists
-    if (customSelection) {
-      if (customSelection.biomes && customSelection.biomes.length > 0) {
-        const filteredMaps = allMaps.filter(
-          (m) =>
-            customSelection.biomes.includes(m.name) ||
-            (m.biome && customSelection.biomes.includes(m.biome)),
-        );
-        if (filteredMaps.length > 0) allMaps = filteredMaps;
-      }
-      if (customSelection.monsters && customSelection.monsters.length > 0) {
-        const filteredMonsters = allMonsters.filter((m) =>
-          customSelection.monsters.includes(m.name),
-        );
-        if (filteredMonsters.length > 0) allMonsters = filteredMonsters;
-      }
+    const selection: WorldGenerationSelection = {
+      biomes: Array.isArray(customSelection?.biomes)
+        ? customSelection.biomes
+        : [],
+      monsters: Array.isArray(customSelection?.monsters)
+        ? customSelection.monsters
+        : [],
+    };
+
+    let candidateMaps = (allMaps as MapRecord[]).filter((map) =>
+      this.matchesBiomeSelection(map, selection, hints),
+    );
+    if (candidateMaps.length === 0) {
+      candidateMaps = allMaps as MapRecord[];
     }
 
-    const regionCount = Math.min(allMaps.length, this.rng.nextInt(8, 12));
-    const selectedMaps = [...allMaps]
-      .sort(() => this.rng.next() - 0.5)
-      .slice(0, regionCount);
-
-    const regions: WorldRegion[] = selectedMaps.map((m) => {
-      // Pick monsters that match the map's biome
-      let biomeMonsters = allMonsters.filter(
-        (mon: any) => !m.biome || mon.biome === m.biome,
-      );
-
-      // If we have custom monsters, prefer them even if they don't strictly match the biome for Custom Worlds
-      if (customSelection?.monsters?.length) {
-        const customInBiome = biomeMonsters.filter((mon) =>
-          customSelection.monsters.includes(mon.name),
-        );
-        if (customInBiome.length > 0) biomeMonsters = customInBiome;
+    const regionBudget = clamp(
+      hints?.regionBudget || this.rng.nextInt(6, 9),
+      4,
+      Math.min(12, candidateMaps.length),
+    );
+    const selectedMaps = deterministicShuffle(candidateMaps, this.rng).slice(
+      0,
+      regionBudget,
+    );
+    const sortedMaps = [...selectedMaps].sort((a, b) => {
+      if (a.danger_level !== b.danger_level) {
+        return a.danger_level - b.danger_level;
       }
-
-      const poolSize = this.rng.nextInt(3, 5);
-      const pool = (biomeMonsters.length > 0 ? biomeMonsters : allMonsters)
-        .sort(() => this.rng.next() - 0.5)
-        .slice(0, poolSize)
-        .map((mon: any) => mon.name);
-
-      return {
-        id: m.id,
-        name: m.name,
-        biome: m.biome || "unknown",
-        dangerLevel: m.danger_level,
-        description: m.description || "",
-        enemyPool: pool,
-      };
+      return a.name.localeCompare(b.name);
     });
+
+    const regions = this.buildRegionList(
+      sortedMaps,
+      allSpawnPoints as SpawnPointRecord[],
+      allMonsters,
+      selection,
+    );
+    const mapLayout = this.buildMapLayout(seed, regions, hints);
 
     const metadata: WorldMetadata = {
       worldName: defaultWorldNameFromPreset(inferWorldPresetFromSeed(seed), seed),
       worldPreset: inferWorldPresetFromSeed(seed),
-      customBiomes: Array.isArray(customSelection?.biomes)
-        ? customSelection.biomes
-        : [],
-      customMonsters: Array.isArray(customSelection?.monsters)
-        ? customSelection.monsters
-        : [],
+      customBiomes: selection.biomes,
+      customMonsters: selection.monsters,
     };
 
     const definition: WorldDefinition = {
       seed,
       metadata,
       regions,
+      mapLayout,
     };
 
     this.worldInstance = new WorldInstance(
@@ -191,23 +530,18 @@ export class WorldSystem {
     return this.worldInstance;
   }
 
-  /**
-   * Spawns a CharacterStats enemy scaled to the given level based on DB data.
-   */
   public spawnEnemy(name: string, level: number): CharacterStats {
     if (!this.worldInstance) throw new Error("World not generated.");
     const baseMonster = this.worldInstance.monsterPool.find(
-      (m) => m.name === name,
+      (monster) => monster.name === name,
     );
 
-    // Mini-seed for stat variance
     let nameSeed = 0;
-    for (let i = 0; i < name.length; i++) {
+    for (let i = 0; i < name.length; i += 1) {
       nameSeed = ((nameSeed << 5) - nameSeed + name.charCodeAt(i)) | 0;
     }
     const rng = new SeededRNG(nameSeed + level);
 
-    // Default or DB-sourced base stats
     const baseHP = baseMonster?.base_hp || 30 + level * 8;
     const baseAttack = baseMonster?.base_attack || 5 + Math.floor(level * 1.5);
     const baseDefense =
@@ -216,7 +550,6 @@ export class WorldSystem {
     const skillMain =
       baseMonster?.skill_id || rng.nextInt(100000000, 999999999);
 
-    // Scale based on level
     const scaleFactor = 1 + (level - 1) * 0.15;
 
     return {

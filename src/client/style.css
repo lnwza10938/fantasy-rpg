@@ -153,6 +153,16 @@ body {
     font-size: 18px;
   }
 
+  .map-topology-canvas {
+    min-height: 680px;
+    overflow: auto;
+  }
+
+  .map-node {
+    width: 200px;
+    min-width: 200px;
+  }
+
   .map-log-box {
     min-height: 150px;
     max-height: none;
@@ -193,6 +203,16 @@ body.force-mobile .map-preview-empty-actions {
 body.force-mobile .map-explore-btn {
   min-width: 0;
   width: 100%;
+}
+
+body.force-mobile .map-topology-canvas {
+  min-height: 680px;
+  overflow: auto;
+}
+
+body.force-mobile .map-node {
+  width: 200px;
+  min-width: 200px;
 }
 
 /* Panel base */
@@ -512,6 +532,156 @@ body.force-mobile .map-explore-btn {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.map-topology-board {
+  margin-bottom: 16px;
+}
+
+.map-topology-canvas {
+  position: relative;
+  min-height: 560px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(79, 195, 247, 0.14);
+  background:
+    radial-gradient(circle at 20% 18%, rgba(79, 195, 247, 0.16), transparent 26%),
+    radial-gradient(circle at 82% 74%, rgba(124, 77, 255, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 36, 0.98), rgba(9, 14, 24, 0.98));
+}
+
+.map-topology-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 84px 84px;
+  pointer-events: none;
+}
+
+.map-topology-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.map-route {
+  fill: none;
+  stroke: rgba(200, 211, 224, 0.26);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 8 10;
+}
+
+.map-route.hazard {
+  stroke: rgba(255, 135, 95, 0.55);
+}
+
+.map-route.secret {
+  stroke: rgba(124, 77, 255, 0.48);
+  stroke-dasharray: 5 12;
+}
+
+.map-route.selected {
+  stroke: rgba(79, 195, 247, 0.92);
+  stroke-width: 5;
+}
+
+.map-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: min(210px, 24vw);
+  min-width: 170px;
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--map-node-accent) 28%, rgba(255, 255, 255, 0.08));
+  background:
+    linear-gradient(180deg, rgba(20, 29, 44, 0.98), rgba(11, 16, 26, 0.98));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+  z-index: 2;
+}
+
+.map-node:hover {
+  transform: translate(-50%, calc(-50% - 4px));
+  border-color: color-mix(in srgb, var(--map-node-accent) 60%, rgba(255, 255, 255, 0.18));
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.28);
+}
+
+.map-node.selected {
+  border-color: color-mix(in srgb, var(--map-node-accent) 82%, rgba(255, 255, 255, 0.25));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--map-node-accent) 28%, transparent),
+    0 22px 44px rgba(0, 0, 0, 0.32);
+}
+
+.map-node-head,
+.map-node-meta,
+.map-node-flags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-node-icon {
+  font-size: 18px;
+}
+
+.map-node-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 800;
+  color: #f5f8ff;
+}
+
+.map-node-meta {
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.map-node-enemies {
+  margin-top: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--text);
+  opacity: 0.82;
+}
+
+.map-node-flags {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.map-flag {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.map-flag.start {
+  background: rgba(102, 187, 106, 0.14);
+  color: var(--green);
+}
+
+.map-flag.goal {
+  background: rgba(255, 213, 79, 0.14);
+  color: var(--gold);
 }
 
 .map-event-stage {

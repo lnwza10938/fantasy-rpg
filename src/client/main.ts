@@ -19,6 +19,7 @@ let G: any = {
   user: null,
   gs: null,
   activeCombat: null,
+  worldDefinition: null as any,
   selectedLegend: null as any,
   createdWorlds: [] as any[],
   allContent: { biomes: [], monsters: [], factions: [], maps: [] },
@@ -123,7 +124,42 @@ function normalizeRegions(regions: any[] | null | undefined) {
       : Array.isArray(region?.enemyPool)
         ? region.enemyPool
         : [],
+    icon: region?.icon || "🗺️",
+    landmark: region?.landmark || "Waystation",
+    accentColor: region?.accentColor || region?.accent_color || "var(--accent)",
+    tier: Number.isFinite(region?.tier) ? Number(region.tier) : 0,
+    mapPosition:
+      typeof region?.mapPosition?.x === "number" &&
+      typeof region?.mapPosition?.y === "number"
+        ? {
+            x: Number(region.mapPosition.x),
+            y: Number(region.mapPosition.y),
+          }
+        : null,
+    connections: Array.isArray(region?.connections)
+      ? region.connections
+      : [],
+    isStart: !!region?.isStart,
+    isGoal: !!region?.isGoal,
   }));
+}
+
+function normalizeWorldDefinition(definition: any, fallbackRegions?: any[]) {
+  if (!definition && !fallbackRegions) return null;
+  const normalizedRegions = normalizeRegions(
+    definition?.regions || fallbackRegions || [],
+  );
+  const fallbackLayout =
+    normalizedRegions.length > 0 ? buildFallbackMapLayout(normalizedRegions) : null;
+
+  return {
+    ...(definition || {}),
+    regions: normalizedRegions,
+    mapLayout:
+      definition?.mapLayout && Array.isArray(definition.mapLayout.nodes)
+        ? definition.mapLayout
+        : fallbackLayout,
+  };
 }
 
 function getBiomeLabel(biomeId: string) {
@@ -172,6 +208,69 @@ function escapeJsSingleQuoted(value: unknown) {
     .replace(/'/g, "\\'")
     .replace(/\n/g, "\\n")
     .replace(/\r/g, "");
+}
+
+function buildFallbackMapLayout(regions: any[]) {
+  if (!regions.length) return null;
+  const width = 1040;
+  const height = 560;
+  const columns =
+    regions.length <= 1 ? 1 : regions.length >= 10 ? 5 : regions.length >= 7 ? 4 : 3;
+  const nodes = regions.map((region: any, index: number) => {
+    const col =
+      columns === 1
+        ? 0
+        : Math.round((index / Math.max(1, regions.length - 1)) * (columns - 1));
+    const tierMembers = regions.filter((candidate: any, candidateIndex: number) => {
+      const candidateCol =
+        columns === 1
+          ? 0
+          : Math.round(
+              (candidateIndex / Math.max(1, regions.length - 1)) * (columns - 1),
+            );
+      return candidateCol === col;
+    });
+    const row = tierMembers.findIndex((entry: any) => entry.id === region.id);
+    const x =
+      columns === 1 ? width / 2 : 120 + col * ((width - 240) / (columns - 1));
+    const y =
+      tierMembers.length === 1
+        ? height / 2
+        : 90 + row * ((height - 180) / Math.max(1, tierMembers.length - 1));
+    return {
+      regionId: region.id,
+      x,
+      y,
+      tier: col,
+      icon: region.icon || "🗺️",
+      landmark: region.landmark || "Waystation",
+      accentColor: region.accentColor || "var(--accent)",
+      isStart: index === 0,
+      isGoal: index === regions.length - 1,
+    };
+  });
+  const paths = nodes.slice(0, -1).map((node: any, index: number) => ({
+    id: `${node.regionId}::${nodes[index + 1].regionId}`,
+    fromRegionId: node.regionId,
+    toRegionId: nodes[index + 1].regionId,
+    kind: "road",
+  }));
+
+  return {
+    width,
+    height,
+    startRegionId: nodes[0].regionId,
+    goalRegionId: nodes[nodes.length - 1].regionId,
+    nodes,
+    paths,
+  };
+}
+
+function getActiveMapLayout() {
+  return (
+    G.worldDefinition?.mapLayout ||
+    buildFallbackMapLayout(normalizeRegions(G.regions))
+  );
 }
 
 function navigateToPage(page: string, params?: Record<string, string>) {
@@ -566,12 +665,16 @@ function syncMapSelectionState() {
     G.selectedRegion.enemyTypes.length > 0
       ? G.selectedRegion.enemyTypes.join(", ")
       : "Unknown threats";
+  const landmark = G.selectedRegion.landmark || "Waystation";
+  const exitCount = Array.isArray(G.selectedRegion.connections)
+    ? G.selectedRegion.connections.length
+    : 0;
   if (headingEl) headingEl.textContent = G.selectedRegion.name;
   if (copyEl) {
-    copyEl.textContent = `Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Explore this region to trigger events, discoveries, or combat.`;
+    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. Explore this region to trigger events, discoveries, or combat.`;
   }
   if (chipEl) {
-    chipEl.textContent = `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel}`;
+    chipEl.textContent = `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
   if (exploreBtn) {
     exploreBtn.disabled = !!G.activeCombat;
@@ -1195,6 +1298,7 @@ function resetMapPreviewState() {
   G.characterId = null;
   G.worldSeed = null;
   G.gs = null;
+  G.worldDefinition = null;
   G.regions = [];
   G.selectedRegion = null;
   G.selectedRegionIndex = 0;
@@ -1357,6 +1461,7 @@ async function deleteWorldRecord(characterId: string, worldName: string) {
     if (G.characterId === characterId) {
       G.characterId = null;
       G.gs = null;
+      G.worldDefinition = null;
       G.regions = [];
       G.selectedRegion = null;
       G.selectedRegionIndex = 0;
@@ -1900,6 +2005,19 @@ async function submitNewGame() {
     customMonsters: activeCustomMonsters,
     signatureSkill: G.selectedLegend.skill_data,
   };
+  G.worldDefinition = normalizeWorldDefinition(
+    {
+      seed,
+      metadata: {
+        worldName: finalWorldName,
+        worldPreset: presetId,
+        customBiomes: activeCustomBiomes,
+        customMonsters: activeCustomMonsters,
+      },
+      regions: [],
+    },
+    [],
+  );
 
   updateAllStatusBars();
   clearAdventureLog();
@@ -1942,7 +2060,13 @@ async function submitNewGame() {
         G.characterId = j.data.characterId;
         G.worldSeed = j.data.worldSeed;
         G.gs = j.data.gameState || j.data.state || G.gs;
-        G.regions = normalizeRegions(j.data.regions);
+        G.worldDefinition = normalizeWorldDefinition(
+          j.data.worldDefinition,
+          j.data.regions,
+        );
+        G.regions = normalizeRegions(
+          G.worldDefinition?.regions || j.data.regions,
+        );
         renderRegions();
         updateAllStatusBars();
         fetchCreatedWorlds();
@@ -2083,6 +2207,7 @@ async function loadGame(cid: string, charName?: string) {
   G.characterId = cid;
   G.selectedRegion = null;
   G.selectedRegionIndex = 0;
+  G.worldDefinition = null;
   G.gs = G.gs || {
     characterName: charName || "Hero",
     level: 1,
@@ -2125,7 +2250,13 @@ async function loadGame(cid: string, charName?: string) {
     if (j.success) {
       G.gs = j.data.gameState;
       G.worldSeed = j.data.gameState.worldSeed;
-      G.regions = normalizeRegions(j.data.regions);
+      G.worldDefinition = normalizeWorldDefinition(
+        j.data.worldDefinition,
+        j.data.regions,
+      );
+      G.regions = normalizeRegions(
+        G.worldDefinition?.regions || j.data.regions,
+      );
       renderRegions();
       updateAllStatusBars();
       renderMapPreviewWorldSelector();
@@ -2145,6 +2276,7 @@ async function loadGame(cid: string, charName?: string) {
           enemyTypes: ["Skeleton", "Ghost"],
         },
       ]);
+      G.worldDefinition = normalizeWorldDefinition(null, G.regions);
       renderRegions();
       renderMapPreviewWorldSelector();
       showToast(j.error || "Offline mode", "info");
@@ -2163,6 +2295,7 @@ async function loadGame(cid: string, charName?: string) {
         enemyTypes: ["Skeleton", "Ghost"],
       },
     ]);
+    G.worldDefinition = normalizeWorldDefinition(null, G.regions);
     renderRegions();
     renderMapPreviewWorldSelector();
     showToast("Offline mode – syncing failed", "info");
@@ -2186,6 +2319,95 @@ async function saveGame() {
 }
 
 // --- REGIONS ---
+function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
+  const layout: any = getActiveMapLayout();
+  if (!layout || !Array.isArray(layout.nodes) || layout.nodes.length === 0) {
+    return false;
+  }
+
+  const nodeById = new Map<string, any>(
+    layout.nodes.map((node: any) => [node.regionId, node]),
+  );
+  const renderedRegions = regions.filter((region: any) =>
+    nodeById.has(region.id),
+  );
+  if (renderedRegions.length === 0) return false;
+
+  listEl.className = "map-topology-board";
+
+  const routeMarkup = (layout.paths || [])
+    .map((path: any) => {
+      const from = nodeById.get(path.fromRegionId);
+      const to = nodeById.get(path.toRegionId);
+      if (!from || !to) return "";
+      const isSelected =
+        G.selectedRegion &&
+        (G.selectedRegion.id === path.fromRegionId ||
+          G.selectedRegion.id === path.toRegionId);
+      return `
+        <line
+          x1="${from.x}"
+          y1="${from.y}"
+          x2="${to.x}"
+          y2="${to.y}"
+          class="map-route ${path.kind || "road"} ${isSelected ? "selected" : ""}"
+        />
+      `;
+    })
+    .join("");
+
+  const nodeMarkup = renderedRegions
+    .map((region: any) => {
+      const node = nodeById.get(region.id);
+      if (!node) return "";
+      const regionIndex = regions.findIndex((entry: any) => entry.id === region.id);
+      const enemyList =
+        Array.isArray(region.enemyTypes) && region.enemyTypes.length > 0
+          ? region.enemyTypes.join(", ")
+          : "Unknown threats";
+      const left = ((node.x || 0) / Math.max(1, layout.width || 1)) * 100;
+      const top = ((node.y || 0) / Math.max(1, layout.height || 1)) * 100;
+      const selected =
+        G.selectedRegion && G.selectedRegion.id === region.id ? "selected" : "";
+      return `
+        <button
+          class="map-node ${selected}"
+          style="left:${left}%; top:${top}%; --map-node-accent:${escapeHtml(node.accentColor || region.accentColor || "#4fc3f7")}"
+          onclick="selectRegion(${regionIndex})"
+        >
+          <div class="map-node-head">
+            <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
+            <span class="map-node-title">${escapeHtml(region.name)}</span>
+          </div>
+          <div class="map-node-meta">
+            <span>${escapeHtml(node.landmark || region.landmark || "Waystation")}</span>
+            <span>Danger ${escapeHtml(region.dangerLevel)}</span>
+          </div>
+          <div class="map-node-enemies">${escapeHtml(enemyList)}</div>
+          <div class="map-node-flags">
+            ${node.isStart ? '<span class="map-flag start">Start</span>' : ""}
+            ${node.isGoal ? '<span class="map-flag goal">Goal</span>' : ""}
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+
+  listEl.innerHTML = `
+    <div class="map-topology-canvas">
+      <svg
+        class="map-topology-lines"
+        viewBox="0 0 ${layout.width || 1040} ${layout.height || 560}"
+        preserveAspectRatio="none"
+      >
+        ${routeMarkup}
+      </svg>
+      ${nodeMarkup}
+    </div>
+  `;
+  return true;
+}
+
 function renderRegions() {
   const listEl = document.getElementById("region-list");
   if (!listEl) return;
@@ -2194,6 +2416,7 @@ function renderRegions() {
   G.regions = regions;
 
   if (regions.length === 0) {
+    listEl.className = "region-grid map-region-grid";
     listEl.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:26px 18px;color:var(--muted)">
         <div style="font-size:34px;margin-bottom:10px">🗺️</div>
@@ -2204,6 +2427,13 @@ function renderRegions() {
     syncMapSelectionState();
     return;
   }
+
+  if (renderTopologyMap(listEl, regions)) {
+    syncMapSelectionState();
+    return;
+  }
+
+  listEl.className = "region-grid map-region-grid";
 
   regions.forEach((r: any, i: number) => {
     const enemyList =
@@ -2234,7 +2464,7 @@ function selectRegion(i: number) {
   updateAllStatusBars();
   setMapEventState(
     `🧭 ${G.selectedRegion.name} is ready`,
-    `Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`,
+    `${G.selectedRegion.landmark || "Waystation"} • Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`,
   );
   toggleMapCombatStage(false);
   showScreen("world");
