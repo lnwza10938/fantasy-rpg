@@ -1,5 +1,11 @@
 /// <reference types="vite/client" />
 import { createClient } from "@supabase/supabase-js";
+import {
+  getReachableRegionIds,
+  getRegionIndexById,
+  getVisiblePathIds,
+  hydrateTraversalRuntimeState,
+} from "../models/worldTraversal.js";
 
 // @ts-ignore - Vite handles import.meta.env at build time, bypassing strict IDE module checks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
@@ -157,7 +163,24 @@ function normalizeWorldDefinition(definition: any, fallbackRegions?: any[]) {
     regions: normalizedRegions,
     mapLayout:
       definition?.mapLayout && Array.isArray(definition.mapLayout.nodes)
-        ? definition.mapLayout
+        ? {
+            ...definition.mapLayout,
+            paths: Array.isArray(definition.mapLayout.paths)
+              ? definition.mapLayout.paths.map((path: any) => ({
+                  ...path,
+                  difficulty: Number.isFinite(path?.difficulty)
+                    ? Number(path.difficulty)
+                    : 1,
+                  visibility:
+                    path?.visibility === "hidden" || path?.visibility === "fogged"
+                      ? path.visibility
+                      : "visible",
+                  requirements: Array.isArray(path?.requirements)
+                    ? path.requirements.filter((entry: any) => typeof entry === "string")
+                    : [],
+                }))
+              : [],
+          }
         : fallbackLayout,
   };
 }
@@ -271,6 +294,81 @@ function getActiveMapLayout() {
     G.worldDefinition?.mapLayout ||
     buildFallbackMapLayout(normalizeRegions(G.regions))
   );
+}
+
+function getActiveWorldDefinition() {
+  if (
+    G.worldDefinition?.mapLayout &&
+    Array.isArray(G.worldDefinition.mapLayout.nodes)
+  ) {
+    return G.worldDefinition;
+  }
+  if (!Array.isArray(G.regions) || G.regions.length === 0) return null;
+  return normalizeWorldDefinition(null, G.regions);
+}
+
+function getTraversalState() {
+  const definition = getActiveWorldDefinition();
+  const baseState = {
+    currentRegionId: G.gs?.currentRegionId || G.gs?.regionId || null,
+    discoveredRegionIds: Array.isArray(G.gs?.discoveredRegionIds)
+      ? G.gs.discoveredRegionIds
+      : [],
+    visitedRegionIds: Array.isArray(G.gs?.visitedRegionIds)
+      ? G.gs.visitedRegionIds
+      : [],
+    clearedRegionIds: Array.isArray(G.gs?.clearedRegionIds)
+      ? G.gs.clearedRegionIds
+      : [],
+    lockedRegionIds: Array.isArray(G.gs?.lockedRegionIds)
+      ? G.gs.lockedRegionIds
+      : [],
+  };
+  return definition
+    ? hydrateTraversalRuntimeState(definition, baseState, baseState.currentRegionId)
+    : baseState;
+}
+
+function getCurrentRegionId() {
+  return getTraversalState().currentRegionId;
+}
+
+function getCurrentRegion() {
+  const currentRegionId = getCurrentRegionId();
+  return G.regions.find((region: any) => region.id === currentRegionId) || null;
+}
+
+function getReachableRegionIdsForUI() {
+  const definition = getActiveWorldDefinition();
+  if (!definition || !G.gs) return [];
+  return getReachableRegionIds(definition, getTraversalState(), G.gs.level || 1);
+}
+
+function syncSelectedRegionFromSession(preferCurrent = false) {
+  const regions = normalizeRegions(G.regions);
+  G.regions = regions;
+  if (!regions.length) {
+    G.selectedRegion = null;
+    G.selectedRegionIndex = 0;
+    return;
+  }
+
+  const currentRegionId = getCurrentRegionId();
+  const currentIndex =
+    currentRegionId && G.worldDefinition
+      ? getRegionIndexById(G.worldDefinition, currentRegionId)
+      : regions.findIndex((region: any) => region.id === currentRegionId);
+  const selectedIndex = regions.findIndex(
+    (region: any) => region.id === G.selectedRegion?.id,
+  );
+
+  let nextIndex = selectedIndex;
+  if (preferCurrent || nextIndex < 0) {
+    nextIndex = currentIndex >= 0 ? currentIndex : 0;
+  }
+
+  G.selectedRegionIndex = Math.max(0, nextIndex);
+  G.selectedRegion = regions[G.selectedRegionIndex] || null;
 }
 
 function navigateToPage(page: string, params?: Record<string, string>) {
@@ -646,16 +744,30 @@ function syncMapSelectionState() {
   const exploreBtn = document.getElementById(
     "btn-map-explore",
   ) as HTMLButtonElement | null;
+  const currentRegion = getCurrentRegion();
+  const currentRegionId = currentRegion?.id || getCurrentRegionId();
+  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
+  const isSelectedCurrent =
+    !!G.selectedRegion && !!currentRegionId && G.selectedRegion.id === currentRegionId;
+  const isSelectedReachable =
+    !!G.selectedRegion && reachableRegionIds.has(G.selectedRegion.id);
 
   if (!G.selectedRegion) {
-    if (headingEl) headingEl.textContent = "Pick a region to explore";
+    if (headingEl)
+      headingEl.textContent = currentRegion
+        ? `${currentRegion.name} is your current position`
+        : "Choose your next route";
     if (copyEl)
       copyEl.textContent =
-        "Choose a region, then explore it directly from this map. If a monster appears, combat will unfold here immediately.";
-    if (chipEl) chipEl.textContent = "No region selected";
+        "Move along connected routes from your current node. Selecting a reachable region will travel there and immediately trigger the next exploration event.";
+    if (chipEl) {
+      chipEl.textContent = currentRegion
+        ? `Current Node • ${currentRegion.name}`
+        : "No region selected";
+    }
     if (exploreBtn) {
       exploreBtn.disabled = true;
-      exploreBtn.textContent = "🧭 Explore Selected Region";
+      exploreBtn.textContent = "🧭 Select a Reachable Region";
     }
     return;
   }
@@ -671,16 +783,28 @@ function syncMapSelectionState() {
     : 0;
   if (headingEl) headingEl.textContent = G.selectedRegion.name;
   if (copyEl) {
-    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. Explore this region to trigger events, discoveries, or combat.`;
+    const routeState = isSelectedCurrent
+      ? "You are already here. Explore this node to trigger the next event."
+      : isSelectedReachable
+        ? "This route is reachable from your current node. Traveling there will immediately continue the adventure."
+        : "This node is not reachable yet. Advance through connected routes first.";
+    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. ${routeState}`;
   }
   if (chipEl) {
-    chipEl.textContent = `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
+    chipEl.textContent = isSelectedCurrent
+      ? `Current Node • ${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel}`
+      : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
   if (exploreBtn) {
-    exploreBtn.disabled = !!G.activeCombat;
+    exploreBtn.disabled =
+      !!G.activeCombat || (!isSelectedCurrent && !isSelectedReachable);
     exploreBtn.textContent = G.activeCombat
       ? "⚔️ Resolve Current Encounter"
-      : "🧭 Explore Selected Region";
+      : isSelectedCurrent
+        ? "🧭 Explore Current Region"
+        : isSelectedReachable
+          ? "🧭 Travel and Explore"
+          : "🚫 Route Not Reachable";
   }
 }
 
@@ -719,6 +843,7 @@ function renderNav() {
 function updateAllStatusBars() {
   const s = G.gs;
   if (!s) return;
+  const currentRegion = getCurrentRegion() || G.selectedRegion;
   const html = `
         <div class="stat">🗺️ Seed<span class="val-accent">${G.worldSeed}</span></div>
         <div class="stat">⭐ Lv.<span class="val-accent">${s.level}</span></div>
@@ -726,7 +851,7 @@ function updateAllStatusBars() {
         <div class="stat">🔷 MP<span class="val-accent">${s.mana}/${s.maxMana}</span></div>
         <div class="stat">💰<span class="val-gold">${s.gold}</span></div>
         <div class="stat">✨ EXP<span class="val-accent">${s.exp}/${s.level * 100}</span></div>
-        ${G.selectedRegion ? `<div class="stat">📍<span class="val-accent">${G.selectedRegion.name}</span></div>` : ""}
+        ${currentRegion ? `<div class="stat">📍<span class="val-accent">${currentRegion.name}</span></div>` : ""}
     `;
   [
     "status-bar",
@@ -2022,8 +2147,8 @@ async function submitNewGame() {
   updateAllStatusBars();
   clearAdventureLog();
   setMapEventState(
-    "🧭 Select a region first",
-    "Your journey begins on the world map. Pick a region and explore it from here.",
+    "🧭 Choose your opening route",
+    "Your journey begins from the start node. Select a reachable route on the map to travel and trigger the first event.",
   );
   toggleMapCombatStage(false);
   showScreen("world");
@@ -2067,6 +2192,7 @@ async function submitNewGame() {
         G.regions = normalizeRegions(
           G.worldDefinition?.regions || j.data.regions,
         );
+        syncSelectedRegionFromSession(true);
         renderRegions();
         updateAllStatusBars();
         fetchCreatedWorlds();
@@ -2235,8 +2361,8 @@ async function loadGame(cid: string, charName?: string) {
   updateAllStatusBars();
   clearAdventureLog();
   setMapEventState(
-    "🧭 Select a region first",
-    "Load complete. Pick a region on the map and continue the adventure from there.",
+    "🧭 Syncing traversal state",
+    "Load complete. Your current node and reachable routes will repopulate on the map in a moment.",
   );
   toggleMapCombatStage(false);
   showScreen("world");
@@ -2257,6 +2383,7 @@ async function loadGame(cid: string, charName?: string) {
       G.regions = normalizeRegions(
         G.worldDefinition?.regions || j.data.regions,
       );
+      syncSelectedRegionFromSession(true);
       renderRegions();
       updateAllStatusBars();
       renderMapPreviewWorldSelector();
@@ -2277,6 +2404,7 @@ async function loadGame(cid: string, charName?: string) {
         },
       ]);
       G.worldDefinition = normalizeWorldDefinition(null, G.regions);
+      syncSelectedRegionFromSession(true);
       renderRegions();
       renderMapPreviewWorldSelector();
       showToast(j.error || "Offline mode", "info");
@@ -2296,6 +2424,7 @@ async function loadGame(cid: string, charName?: string) {
       },
     ]);
     G.worldDefinition = normalizeWorldDefinition(null, G.regions);
+    syncSelectedRegionFromSession(true);
     renderRegions();
     renderMapPreviewWorldSelector();
     showToast("Offline mode – syncing failed", "info");
@@ -2324,6 +2453,17 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
   if (!layout || !Array.isArray(layout.nodes) || layout.nodes.length === 0) {
     return false;
   }
+  const definition = getActiveWorldDefinition();
+  const traversal = getTraversalState();
+  const currentRegionId = traversal.currentRegionId;
+  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
+  const discoveredRegionIds = new Set(traversal.discoveredRegionIds || []);
+  const visitedRegionIds = new Set(traversal.visitedRegionIds || []);
+  const clearedRegionIds = new Set(traversal.clearedRegionIds || []);
+  const lockedRegionIds = new Set(traversal.lockedRegionIds || []);
+  const visiblePathIds = new Set(
+    definition ? getVisiblePathIds(definition, traversal) : (layout.paths || []).map((path: any) => path.id),
+  );
 
   const nodeById = new Map<string, any>(
     layout.nodes.map((node: any) => [node.regionId, node]),
@@ -2337,6 +2477,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
 
   const routeMarkup = (layout.paths || [])
     .map((path: any) => {
+      if (!visiblePathIds.has(path.id)) return "";
       const from = nodeById.get(path.fromRegionId);
       const to = nodeById.get(path.toRegionId);
       if (!from || !to) return "";
@@ -2344,13 +2485,22 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
         G.selectedRegion &&
         (G.selectedRegion.id === path.fromRegionId ||
           G.selectedRegion.id === path.toRegionId);
+      const isCurrentPath =
+        currentRegionId &&
+        (path.fromRegionId === currentRegionId || path.toRegionId === currentRegionId);
+      const isReachablePath =
+        isCurrentPath &&
+        ((path.fromRegionId === currentRegionId &&
+          reachableRegionIds.has(path.toRegionId)) ||
+          (path.toRegionId === currentRegionId &&
+            reachableRegionIds.has(path.fromRegionId)));
       return `
         <line
           x1="${from.x}"
           y1="${from.y}"
           x2="${to.x}"
           y2="${to.y}"
-          class="map-route ${path.kind || "road"} ${isSelected ? "selected" : ""}"
+          class="map-route ${path.kind || "road"} ${isSelected ? "selected" : ""} ${isCurrentPath ? "current" : ""} ${isReachablePath ? "reachable" : ""}"
         />
       `;
     })
@@ -2369,11 +2519,32 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       const top = ((node.y || 0) / Math.max(1, layout.height || 1)) * 100;
       const selected =
         G.selectedRegion && G.selectedRegion.id === region.id ? "selected" : "";
+      const isCurrent = currentRegionId === region.id;
+      const isReachable = reachableRegionIds.has(region.id);
+      const isDiscovered = discoveredRegionIds.has(region.id);
+      const isVisited = visitedRegionIds.has(region.id);
+      const isCleared = clearedRegionIds.has(region.id);
+      const isLocked = lockedRegionIds.has(region.id);
+      const disabled = !isCurrent && !isReachable;
+      const nodeStateClasses = [
+        selected,
+        isCurrent ? "current" : "",
+        isReachable ? "reachable" : "",
+        isDiscovered ? "discovered" : "",
+        isVisited ? "visited" : "",
+        isCleared ? "cleared" : "",
+        isLocked ? "locked" : "",
+        disabled ? "disabled" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
       return `
         <button
-          class="map-node ${selected}"
+          class="map-node ${nodeStateClasses}"
           style="left:${left}%; top:${top}%; --map-node-accent:${escapeHtml(node.accentColor || region.accentColor || "#4fc3f7")}"
           onclick="selectRegion(${regionIndex})"
+          ${disabled || isLocked ? "disabled" : ""}
+          ${isLocked ? "data-node-state=\"locked\"" : disabled ? "data-node-state=\"disabled\"" : ""}
         >
           <div class="map-node-head">
             <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
@@ -2387,6 +2558,9 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           <div class="map-node-flags">
             ${node.isStart ? '<span class="map-flag start">Start</span>' : ""}
             ${node.isGoal ? '<span class="map-flag goal">Goal</span>' : ""}
+            ${isCurrent ? '<span class="map-flag current">Current</span>' : ""}
+            ${isReachable ? '<span class="map-flag reachable">Reachable</span>' : ""}
+            ${isCleared ? '<span class="map-flag cleared">Cleared</span>' : ""}
           </div>
         </button>
       `;
@@ -2414,6 +2588,7 @@ function renderRegions() {
   listEl.innerHTML = "";
   const regions = normalizeRegions(G.regions);
   G.regions = regions;
+  syncSelectedRegionFromSession();
 
   if (regions.length === 0) {
     listEl.className = "region-grid map-region-grid";
@@ -2441,7 +2616,9 @@ function renderRegions() {
         ? r.enemyTypes.join(", ")
         : "Unknown threats";
     const card = document.createElement("div");
-    card.className = `region-card ${G.selectedRegion && G.selectedRegionIndex === i ? "selected" : ""}`;
+    const isCurrent = getCurrentRegionId() === r.id;
+    const isReachable = getReachableRegionIdsForUI().includes(r.id);
+    card.className = `region-card ${G.selectedRegion && G.selectedRegionIndex === i ? "selected" : ""} ${isCurrent ? "current" : ""} ${isReachable ? "reachable" : ""}`;
     card.innerHTML = `
             <div class="name">${r.name}</div>
             <div class="danger">⚠️ Danger: ${r.dangerLevel}</div>
@@ -2458,7 +2635,19 @@ function selectRegion(i: number) {
     showToast("Finish the current encounter before switching regions.", "info");
     return;
   }
-  G.selectedRegion = G.regions[i];
+  const region = G.regions[i];
+  const currentRegionId = getCurrentRegionId();
+  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
+  if (
+    region &&
+    currentRegionId &&
+    region.id !== currentRegionId &&
+    !reachableRegionIds.has(region.id)
+  ) {
+    showToast("That route is not reachable yet.", "info");
+    return;
+  }
+  G.selectedRegion = region;
   G.selectedRegionIndex = i;
   renderRegions();
   updateAllStatusBars();
@@ -2658,11 +2847,25 @@ async function exploreRegion() {
     showToast("Resolve the current encounter first.", "info");
     return;
   }
+  const currentRegionId = getCurrentRegionId();
+  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
+  if (
+    currentRegionId &&
+    G.selectedRegion.id !== currentRegionId &&
+    !reachableRegionIds.has(G.selectedRegion.id)
+  ) {
+    showToast("That route is not reachable yet.", "info");
+    return;
+  }
 
   showScreen("world");
   setMapEventState(
-    `🧭 Exploring ${G.selectedRegion.name}`,
-    "The party moves deeper into the region. Any discovery or enemy encounter will appear here immediately.",
+    G.selectedRegion.id === currentRegionId
+      ? `🧭 Exploring ${G.selectedRegion.name}`
+      : `🧭 Traveling to ${G.selectedRegion.name}`,
+    G.selectedRegion.id === currentRegionId
+      ? "The party moves deeper into the current region. Any discovery or enemy encounter will appear here immediately."
+      : "The party follows a reachable route into the selected node. Travel and the next event resolve directly on this map.",
   );
   appendSharedLog(
     '<div class="log-info">───────────────────</div>',
@@ -2675,6 +2878,7 @@ async function exploreRegion() {
       body: JSON.stringify({
         characterId: G.characterId,
         regionIndex: G.selectedRegionIndex,
+        regionId: G.selectedRegion.id,
       }),
     });
     const j = await res.json();
@@ -2689,6 +2893,8 @@ async function exploreRegion() {
     const ev = j.data;
     if (ev.gameState) {
       G.gs = ev.gameState;
+      syncSelectedRegionFromSession(true);
+      renderRegions();
       updateAllStatusBars();
     }
 
@@ -3013,6 +3219,8 @@ async function executeCombatTurn() {
     G.activeCombat.enemy = j.data.enemy;
     G.activeCombat.isFinished = j.data.isFinished;
 
+    syncSelectedRegionFromSession(true);
+    renderRegions();
     updateAllStatusBars();
     syncCombatPanels();
     (j.data.logs || []).forEach((line: string) => appendCombatLog(line));

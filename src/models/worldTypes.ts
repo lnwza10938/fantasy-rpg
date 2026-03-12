@@ -15,6 +15,7 @@ export interface WorldGenerationSelection {
 
 export interface WorldLocationState {
   regionIndex: number;
+  regionId: string | null;
   mapId: string | null;
   eventId: string | null;
   combatId: string | null;
@@ -42,6 +43,9 @@ export interface WorldMapPath {
   fromRegionId: string;
   toRegionId: string;
   kind: "road" | "hazard" | "secret";
+  difficulty: number;
+  visibility: "visible" | "hidden" | "fogged";
+  requirements: string[];
 }
 
 export interface WorldMapLayout {
@@ -106,6 +110,12 @@ function normalizePosition(value: unknown): WorldMapPosition | undefined {
 
 function normalizeBoolean(value: unknown): boolean {
   return value === true;
+}
+
+function normalizePathVisibility(
+  value: unknown,
+): "visible" | "hidden" | "fogged" {
+  return value === "hidden" || value === "fogged" ? value : "visible";
 }
 
 export function inferWorldPresetFromSeed(seed: number): string {
@@ -283,6 +293,9 @@ export function buildFallbackWorldMapLayout(
     fromRegionId: node.regionId,
     toRegionId: nodes[index + 1]!.regionId,
     kind: "road" as const,
+    difficulty: 1,
+    visibility: "visible" as const,
+    requirements: [],
   }));
 
   return {
@@ -358,6 +371,13 @@ export function normalizeWorldMapLayout(
             path.kind === "hazard" || path.kind === "secret"
               ? path.kind
               : "road",
+          difficulty:
+            typeof path.difficulty === "number" &&
+            Number.isFinite(path.difficulty)
+              ? Math.max(1, Math.round(path.difficulty))
+              : 1,
+          visibility: normalizePathVisibility(path.visibility),
+          requirements: normalizeStringArray(path.requirements),
         }))
     : buildFallbackWorldMapLayout(regions, input).paths;
 
@@ -395,10 +415,49 @@ export function normalizeWorldDefinitionShape(
     ? input.regions.map((region, index) => normalizeWorldRegion(region, index))
     : [];
 
+  const mapLayout = normalizeWorldMapLayout(input?.mapLayout, regions);
+  const nodeById = new Map(
+    mapLayout.nodes.map((node) => [node.regionId, node] as const),
+  );
+  const connectionMap = new Map<string, Set<string>>();
+  mapLayout.paths.forEach((path) => {
+    if (!connectionMap.has(path.fromRegionId)) {
+      connectionMap.set(path.fromRegionId, new Set());
+    }
+    if (!connectionMap.has(path.toRegionId)) {
+      connectionMap.set(path.toRegionId, new Set());
+    }
+    connectionMap.get(path.fromRegionId)!.add(path.toRegionId);
+    connectionMap.get(path.toRegionId)!.add(path.fromRegionId);
+  });
+
+  const normalizedRegions = regions.map((region) => {
+    const node = nodeById.get(region.id);
+    return {
+      ...region,
+      tier: node?.tier ?? region.tier ?? 0,
+      mapPosition: node
+        ? { x: node.x, y: node.y }
+        : region.mapPosition,
+      connections: Array.from(connectionMap.get(region.id) || []),
+      isStart:
+        typeof node?.isStart === "boolean"
+          ? node.isStart
+          : !!region.isStart || region.id === mapLayout.startRegionId,
+      isGoal:
+        typeof node?.isGoal === "boolean"
+          ? node.isGoal
+          : !!region.isGoal || region.id === mapLayout.goalRegionId,
+      icon: node?.icon || region.icon,
+      landmark: node?.landmark || region.landmark,
+      accentColor: node?.accentColor || region.accentColor,
+    };
+  });
+
   return {
     seed: safeSeed,
     metadata: normalizeWorldMetadata(input?.metadata, safeSeed),
-    regions,
-    mapLayout: normalizeWorldMapLayout(input?.mapLayout, regions),
+    regions: normalizedRegions,
+    mapLayout,
   };
 }

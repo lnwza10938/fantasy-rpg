@@ -13,6 +13,7 @@ The project is now a deployed multi-page web RPG with:
 - a persistent legend vault
 - world archive management
 - a dedicated `/map` progress page
+- node-based map traversal
 - turn-based combat
 - choice-driven exploration
 
@@ -116,7 +117,29 @@ Generated worlds now include:
 
 This means the map UI is now driven by real world-topology data rather than treating the map as a visual wrapper around region cards.
 
-### 7. Canonical World Definition Persistence
+### 7. Traversal Engine - Phase 1
+
+The adventure flow is no longer pure free-pick region selection.
+
+Current traversal behavior now includes:
+
+- a canonical graph of map nodes and paths
+- start-node initialization when a world begins
+- persistent current-region tracking in session state
+- persistent discovered, visited, and cleared node state in saves
+- route validation on the backend before travel/event resolution
+- map UI feedback for current node, reachable nodes, and cleared nodes
+
+The current interaction model is:
+
+- select the current node or a reachable adjacent node
+- if the selected node is adjacent, travel and exploration resolve in one action
+- if the selected node is the current node, the player explores in place
+- combat victory can mark the current node as cleared
+
+This is the first real traversal layer and it moves the project closer to route-based progression instead of region-card browsing.
+
+### 8. Canonical World Definition Persistence
 
 The project now persists canonical world data in `world_definitions` and reads it back during restore flows.
 
@@ -134,7 +157,7 @@ Compatibility behavior remains in place:
 
 This is a major milestone because the backend is no longer forced to reconstruct the world from partial metadata alone.
 
-### 8. Verified SQL / DB Alignment
+### 9. Verified SQL / DB Alignment
 
 The recommended schema work for world persistence has been applied and verified in the project environment.
 
@@ -157,6 +180,7 @@ The following are already in place and functioning together:
 - resume/start flows
 - world archive listing and deletion
 - map preview page
+- traversal-aware map interaction
 - turn-based combat
 - procedural event handling
 - map-first world topology generation
@@ -166,16 +190,16 @@ The following are already in place and functioning together:
 
 These systems now have a solid base, but are not finished yet:
 
-### 1. True Node-Based World Traversal
+### 1. Traversal Engine - Phase 2
 
-The world generator now creates map topology, but player movement is still region-selection driven rather than route-progression driven.
+Traversal now exists, but it is still an early layer rather than a full progression system.
 
-The next logical step is to make traversal respect:
+Still to do:
 
-- adjacent routes
-- discovered nodes
-- gated progression
-- start-to-goal path logic
+- richer path rules such as difficulty, visibility, and requirements with meaningful gameplay impact
+- hidden routes and reveal mechanics
+- stronger start-to-goal progression logic
+- travel-specific events that are distinct from in-region exploration
 
 ### 2. Override-Driven Authoring
 
@@ -203,7 +227,7 @@ The architecture now supports this direction much better than before, but the UI
 
 The most sensible next implementation order is:
 
-1. Move adventure progression from free region picking to node/path traversal.
+1. Deepen the traversal engine with path rules, gating, and hidden routes.
 2. Add `world_overrides` authoring support for region and map edits.
 3. Build the dev panel flow for monster/world/story/media uploads.
 4. Bind story/lore content directly to canonical world definitions.
@@ -228,6 +252,7 @@ It now has:
 - a coherent multi-page interface
 - a real world-generation pipeline
 - deterministic map topology output
+- a first traversal layer on top of that topology
 - persistent world definitions in the database
 
-That puts the project in a strong position for the next phase: turning the current map and world architecture into a fully navigable progression system and then layering authoring tools on top of it.
+That puts the project in a strong position for the next phase: deepening traversal rules, then layering authoring tools and content pipelines on top of the now more coherent world graph.

@@ -9,11 +9,22 @@ import {
   type StructuredGameStateData,
 } from "./gameState.js";
 import type { WorldMetadata } from "../models/worldTypes.js";
+import type { TraversalRuntimeState } from "../models/worldTraversal.js";
 import {
   normalizeWorldMetadata,
   parseWorldMeta,
-  serializeWorldMeta,
 } from "../models/worldTypes.js";
+import { normalizeTraversalRuntimeState } from "../models/worldTraversal.js";
+
+const WORLD_SESSION_PREFIX = "world_session:";
+
+interface PersistedWorldSessionEnvelope {
+  metadata?: Partial<WorldMetadata>;
+  location?: {
+    regionId?: string | null;
+  };
+  traversal?: Partial<TraversalRuntimeState>;
+}
 
 export interface PersistedPlayerStateRecord {
   character_id: string;
@@ -108,12 +119,69 @@ function parseEquipment(raw: unknown): EquipmentSlots {
   };
 }
 
+function parseStoredWorldSession(
+  raw: unknown,
+  seed: number,
+): {
+  metadata: WorldMetadata;
+  location: { regionId: string | null };
+  traversal: TraversalRuntimeState;
+} {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return {
+      metadata: normalizeWorldMetadata(undefined, seed),
+      location: { regionId: null },
+      traversal: normalizeTraversalRuntimeState(undefined),
+    };
+  }
+
+  if (raw.startsWith(WORLD_SESSION_PREFIX)) {
+    try {
+      const parsed = JSON.parse(
+        raw.slice(WORLD_SESSION_PREFIX.length),
+      ) as PersistedWorldSessionEnvelope;
+      return {
+        metadata: normalizeWorldMetadata(parsed.metadata, seed),
+        location: {
+          regionId:
+            typeof parsed.location?.regionId === "string" &&
+            parsed.location.regionId.trim()
+              ? parsed.location.regionId.trim()
+              : null,
+        },
+        traversal: normalizeTraversalRuntimeState(parsed.traversal),
+      };
+    } catch {
+      /* fall through */
+    }
+  }
+
+  return {
+    metadata: parseWorldMeta(raw, seed),
+    location: { regionId: null },
+    traversal: normalizeTraversalRuntimeState(undefined),
+  };
+}
+
+function serializeStoredWorldSession(
+  world: StructuredGameStateData["world"],
+): string {
+  return `${WORLD_SESSION_PREFIX}${JSON.stringify({
+    metadata: world.metadata,
+    location: {
+      regionId: world.location.regionId,
+    },
+    traversal: world.traversal,
+  })}`;
+}
+
 export function hydrateGameStateFromSave(
   save: PersistedPlayerStateRecord,
   worldMetadata?: Partial<WorldMetadata> | null,
 ): GameStateManager {
   const seed = Number(save.world_seed || 0);
   const gsm = new GameStateManager(save.character_id, save.character_id, seed);
+  const storedWorld = parseStoredWorldSession(save.last_event, seed);
 
   gsm.setPhase(normalizePhase(save.phase));
   gsm.updateCharacter({
@@ -129,13 +197,15 @@ export function hydrateGameStateFromSave(
   gsm.setLocation(
     Number(save.current_region ?? 0),
     typeof save.current_map === "string" ? save.current_map : undefined,
+    storedWorld.location.regionId,
   );
   gsm.setWorldMeta(
     normalizeWorldMetadata(
-      worldMetadata || parseWorldMeta(save.last_event, seed),
+      worldMetadata || storedWorld.metadata,
       seed,
     ),
   );
+  gsm.setTraversalState(storedWorld.traversal);
   gsm.setInventory(parseInventory(save.inventory_json));
   gsm.setEquipment(parseEquipment(save.equipment_json));
 
@@ -162,7 +232,7 @@ export function serializeSessionForSave(
     world_seed: session.world.seed,
     phase: session.phase,
     character_name: session.runtime.characterName,
-    last_event: serializeWorldMeta(session.world.metadata, session.world.seed),
+    last_event: serializeStoredWorldSession(session.world),
     last_action_log: lastLog || null,
     updated_at: new Date().toISOString(),
   };
@@ -184,8 +254,9 @@ export function mapSaveToWorldArchive(
   worldMetadata?: Partial<WorldMetadata> | null,
 ): WorldArchiveRecord {
   const worldSeed = Number(save.world_seed || 0);
+  const storedWorld = parseStoredWorldSession(save.last_event, worldSeed);
   const meta = normalizeWorldMetadata(
-    worldMetadata || parseWorldMeta(save.last_event, worldSeed),
+    worldMetadata || storedWorld.metadata,
     worldSeed,
   );
 

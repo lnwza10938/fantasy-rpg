@@ -18,7 +18,7 @@ import {
   listWorldDefinitionSummaries,
   upsertWorldDefinition,
 } from "../db/worldDefinitionRepositories.js";
-import { worldSystem, SeededRNG } from "../core/worldSystem.js";
+import { worldSystem } from "../core/worldSystem.js";
 import { eventSystem } from "../core/eventSystem.js";
 import { combatSystem } from "../core/combatSystem.js";
 import { legendSystem } from "../core/legendSystem.js";
@@ -29,6 +29,12 @@ import {
   mapSaveToWorldArchive,
   serializeSessionForSave,
 } from "../core/sessionPersistence.js";
+import {
+  getReachableRegionIds,
+  getRegionById,
+  getRegionIndexById,
+  hydrateTraversalRuntimeState,
+} from "../models/worldTraversal.js";
 import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 import type { CharacterStats } from "../models/combatTypes.js";
@@ -250,6 +256,9 @@ async function finalizeCombat(
     }
 
     gsm.transition(GamePhase.EXPLORING);
+    if (gsm.getWorldState().traversal.currentRegionId) {
+      gsm.markRegionCleared(gsm.getWorldState().traversal.currentRegionId!);
+    }
 
     if (combat.regionDangerLevel >= 7) {
       const legendText = legendSystem.formatLegend(
@@ -378,6 +387,35 @@ async function restoreCanonicalWorldForCharacter(
   };
 }
 
+function syncSessionTraversalToDefinition(
+  gsm: GameStateManager,
+  definition: any,
+) {
+  const worldState = gsm.getWorldState();
+  const fallbackRegionId =
+    worldState.location.regionId ||
+    definition.regions[worldState.location.regionIndex]?.id ||
+    definition.mapLayout.startRegionId ||
+    definition.regions[0]?.id ||
+    null;
+  const traversal = hydrateTraversalRuntimeState(
+    definition,
+    worldState.traversal,
+    fallbackRegionId,
+  );
+  const currentRegionIndex = Math.max(
+    0,
+    getRegionIndexById(definition, traversal.currentRegionId),
+  );
+  gsm.setTraversalState(traversal);
+  gsm.setLocation(
+    currentRegionIndex,
+    worldState.location.mapId || undefined,
+    traversal.currentRegionId,
+  );
+  return traversal;
+}
+
 router.post("/invite/login", async (req, res) => {
   try {
     const { inviteCode } = req.body;
@@ -484,6 +522,15 @@ router.post("/start", async (req, res) => {
     });
     gsm.setWorldMeta(pipeline.context.metadata);
     instance.setMetadata(gsm.getWorldState().metadata);
+    const startRegionId =
+      instance.definition.mapLayout.startRegionId || instance.regions[0]?.id || null;
+    const startRegionIndex = Math.max(
+      0,
+      getRegionIndexById(instance.definition, startRegionId),
+    );
+    if (startRegionId) {
+      gsm.visitRegion(startRegionId, startRegionIndex);
+    }
     sessions.set(character.id, gsm);
 
     const canonicalWorld = await persistCanonicalWorldForCharacter({
@@ -631,7 +678,7 @@ router.get("/content", async (_req, res) => {
 // --- /event ---
 router.post("/event", async (req, res) => {
   try {
-    const { characterId, regionIndex } = req.body;
+    const { characterId, regionIndex, regionId } = req.body;
     if (!characterId) {
       res.status(400).json({ success: false, error: "characterId required" });
       return;
@@ -670,11 +717,44 @@ router.post("/event", async (req, res) => {
       throw new Error("World instance could not be restored for this session.");
     }
 
+    const traversal = syncSessionTraversalToDefinition(gsm, instance.definition);
+    const currentRegionId =
+      traversal.currentRegionId || instance.definition.mapLayout.startRegionId;
+    const currentRegion =
+      getRegionById(instance.definition, currentRegionId) ||
+      instance.regions[Math.max(0, gsm.getWorldState().location.regionIndex)] ||
+      instance.regions[0];
+
     const region =
-      typeof regionIndex === "number"
-        ? (instance.regions[regionIndex] ??
-          instance.getRandomRegion(new SeededRNG(Date.now())))
-        : instance.getRandomRegion(new SeededRNG(Date.now()));
+      getRegionById(instance.definition, regionId) ||
+      (typeof regionIndex === "number" ? instance.regions[regionIndex] : null) ||
+      currentRegion;
+
+    if (!region) {
+      res.status(400).json({ success: false, error: "No region available" });
+      return;
+    }
+
+    if (currentRegion && region.id !== currentRegion.id) {
+      const reachableRegionIds = getReachableRegionIds(
+        instance.definition,
+        traversal,
+        gsm.getState().level,
+      );
+      if (!reachableRegionIds.includes(region.id)) {
+        res.status(400).json({
+          success: false,
+          error: "That region is not reachable from your current position.",
+        });
+        return;
+      }
+    }
+
+    const targetRegionIndex = Math.max(
+      0,
+      getRegionIndexById(instance.definition, region.id),
+    );
+    gsm.visitRegion(region.id, targetRegionIndex);
 
     const event = await eventSystem.generateEvent(stats, region);
 
@@ -994,6 +1074,7 @@ router.get("/load/:characterId", async (req, res) => {
       gsm.getWorldState(),
     );
     const world = restoredWorld.instance;
+    syncSessionTraversalToDefinition(gsm, restoredWorld.definition);
 
     res.json({
       success: true,

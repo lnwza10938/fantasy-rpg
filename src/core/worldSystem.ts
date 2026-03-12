@@ -195,6 +195,10 @@ export class WorldInstance {
     return this.definition.mapLayout;
   }
 
+  public getRegionById(regionId: string): WorldRegion | null {
+    return this.definition.regions.find((region) => region.id === regionId) || null;
+  }
+
   public setMetadata(metadata: Partial<WorldMetadata>): WorldDefinition {
     this.definition = {
       ...this.definition,
@@ -396,13 +400,18 @@ export class WorldSystem {
       if (fromRegion.id === toRegion.id || pathSet.has(key)) return;
 
       pathSet.add(key);
-      fromRegion.connections = uniqueStrings([...(fromRegion.connections || []), toRegion.id]);
-      toRegion.connections = uniqueStrings([...(toRegion.connections || []), fromRegion.id]);
+      const baseDifficulty = Math.max(
+        1,
+        Math.round((fromRegion.dangerLevel + toRegion.dangerLevel) / 2),
+      );
       paths.push({
         id: key,
         fromRegionId: fromRegion.id,
         toRegionId: toRegion.id,
         kind,
+        difficulty: kind === "hazard" ? baseDifficulty + 2 : baseDifficulty,
+        visibility: kind === "secret" ? "hidden" : "visible",
+        requirements: [],
       });
     };
 
@@ -535,12 +544,12 @@ export class WorldSystem {
       customMonsters: selection.monsters,
     };
 
-    const definition: WorldDefinition = {
+    const definition = normalizeWorldDefinitionShape({
       seed,
       metadata,
       regions,
       mapLayout,
-    };
+    });
 
     this.worldInstance = new WorldInstance(
       definition,

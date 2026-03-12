@@ -8,6 +8,10 @@ import type {
   WorldMetadata,
 } from "../models/worldTypes.js";
 import { normalizeWorldMetadata } from "../models/worldTypes.js";
+import {
+  normalizeTraversalRuntimeState,
+  type TraversalRuntimeState,
+} from "../models/worldTraversal.js";
 
 export enum GamePhase {
   IDLE = "IDLE",
@@ -30,9 +34,15 @@ export interface GameStateData {
   customBiomes: string[];
   customMonsters: string[];
   regionIndex: number;
+  regionId: string | null;
   mapId: string | null;
   eventId: string | null;
   combatId: string | null;
+  currentRegionId: string | null;
+  discoveredRegionIds: string[];
+  visitedRegionIds: string[];
+  clearedRegionIds: string[];
+  lockedRegionIds: string[];
 
   // Live character state
   hp: number;
@@ -70,6 +80,7 @@ export interface WorldSessionState {
   seed: number;
   metadata: WorldMetadata;
   location: WorldLocationState;
+  traversal: TraversalRuntimeState;
 }
 
 export interface RuntimeCharacterState {
@@ -133,10 +144,12 @@ export class GameStateManager {
       metadata: normalizeWorldMetadata(undefined, worldSeed),
       location: {
         regionIndex: 0,
+        regionId: null,
         mapId: null,
         eventId: null,
         combatId: null,
       },
+      traversal: normalizeTraversalRuntimeState(undefined),
     };
     this.runtimeState = {
       hp: 100,
@@ -195,9 +208,15 @@ export class GameStateManager {
       customBiomes: [...this.worldState.metadata.customBiomes],
       customMonsters: [...this.worldState.metadata.customMonsters],
       regionIndex: this.worldState.location.regionIndex,
+      regionId: this.worldState.location.regionId,
       mapId: this.worldState.location.mapId,
       eventId: this.worldState.location.eventId,
       combatId: this.worldState.location.combatId,
+      currentRegionId: this.worldState.traversal.currentRegionId,
+      discoveredRegionIds: [...this.worldState.traversal.discoveredRegionIds],
+      visitedRegionIds: [...this.worldState.traversal.visitedRegionIds],
+      clearedRegionIds: [...this.worldState.traversal.clearedRegionIds],
+      lockedRegionIds: [...this.worldState.traversal.lockedRegionIds],
       hp: this.runtimeState.hp,
       maxHP: this.runtimeState.maxHP,
       mana: this.runtimeState.mana,
@@ -223,6 +242,13 @@ export class GameStateManager {
         customMonsters: [...this.worldState.metadata.customMonsters],
       },
       location: { ...this.worldState.location },
+      traversal: {
+        currentRegionId: this.worldState.traversal.currentRegionId,
+        discoveredRegionIds: [...this.worldState.traversal.discoveredRegionIds],
+        visitedRegionIds: [...this.worldState.traversal.visitedRegionIds],
+        clearedRegionIds: [...this.worldState.traversal.clearedRegionIds],
+        lockedRegionIds: [...this.worldState.traversal.lockedRegionIds],
+      },
     };
   }
 
@@ -292,9 +318,57 @@ export class GameStateManager {
   }
 
   /** Set region and map */
-  public setLocation(regionIndex: number, mapId?: string) {
+  public setLocation(regionIndex: number, mapId?: string, regionId?: string | null) {
     this.worldState.location.regionIndex = regionIndex;
     this.worldState.location.mapId = mapId ?? null;
+    this.worldState.location.regionId = regionId ?? null;
+    if (typeof regionId === "string" && regionId.trim()) {
+      this.worldState.traversal.currentRegionId = regionId;
+    }
+  }
+
+  public setTraversalState(traversal: Partial<TraversalRuntimeState>) {
+    this.worldState.traversal = normalizeTraversalRuntimeState({
+      ...this.worldState.traversal,
+      ...traversal,
+    });
+    if (
+      typeof this.worldState.traversal.currentRegionId === "string" &&
+      this.worldState.traversal.currentRegionId.trim()
+    ) {
+      this.worldState.location.regionId = this.worldState.traversal.currentRegionId;
+    }
+  }
+
+  public visitRegion(regionId: string, regionIndex: number) {
+    this.worldState.location.regionIndex = regionIndex;
+    this.worldState.location.regionId = regionId;
+    this.worldState.traversal = normalizeTraversalRuntimeState({
+      ...this.worldState.traversal,
+      currentRegionId: regionId,
+      discoveredRegionIds: [
+        ...this.worldState.traversal.discoveredRegionIds,
+        regionId,
+      ],
+      visitedRegionIds: [...this.worldState.traversal.visitedRegionIds, regionId],
+    });
+  }
+
+  public markRegionDiscovered(regionId: string) {
+    this.worldState.traversal = normalizeTraversalRuntimeState({
+      ...this.worldState.traversal,
+      discoveredRegionIds: [
+        ...this.worldState.traversal.discoveredRegionIds,
+        regionId,
+      ],
+    });
+  }
+
+  public markRegionCleared(regionId: string) {
+    this.worldState.traversal = normalizeTraversalRuntimeState({
+      ...this.worldState.traversal,
+      clearedRegionIds: [...this.worldState.traversal.clearedRegionIds, regionId],
+    });
   }
 
   public setWorldMeta(
@@ -476,10 +550,18 @@ export class GameStateManager {
     });
     mgr.worldState.location = {
       regionIndex: data.regionIndex,
+      regionId: data.regionId,
       mapId: data.mapId,
       eventId: data.eventId,
       combatId: data.combatId,
     };
+    mgr.worldState.traversal = normalizeTraversalRuntimeState({
+      currentRegionId: data.currentRegionId || data.regionId || null,
+      discoveredRegionIds: data.discoveredRegionIds || [],
+      visitedRegionIds: data.visitedRegionIds || [],
+      clearedRegionIds: data.clearedRegionIds || [],
+      lockedRegionIds: data.lockedRegionIds || [],
+    });
     mgr.runtimeState = {
       hp: data.hp,
       maxHP: data.maxHP,
