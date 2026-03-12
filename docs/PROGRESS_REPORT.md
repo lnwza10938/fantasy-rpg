@@ -262,6 +262,7 @@ The dev-side media workflow is no longer just planned.
 It now has:
 
 - `/dev-assets` for terrain / structure / effect / background intake
+- `/dev-map-editor` for dedicated visual world-topology editing
 - `/dev-assets/slices` for grid-based sprite sheet and atlas slicing
 - `/dev-assets/audio` for ambience, BGM, SFX, UI, and voice intake
 - `/dev-terrain` for recipe-driven binding between biomes and asset libraries
@@ -272,6 +273,7 @@ It now has:
 - AI-assisted slice planning for `single / grid / manual` recommendations on sheet assets
 - weighted terrain recipe matching with biome / terrain / danger constraints
 - palette override controls and save-time validation in the terrain recipe editor
+- a separate map editor route with world list, tools, canvas, inspector, validation, and override-draft save flow
 - first generator-side geography binding from terrain recipes and tagged asset records
 
 This matters because the map generator can now begin reading a real tagged asset library instead of relying only on hard-coded visual assumptions.

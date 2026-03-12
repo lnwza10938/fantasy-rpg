@@ -40,6 +40,10 @@ app.get("/dev-assets", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "dev-assets.html"));
 });
 
+app.get("/dev-map-editor", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev-map-editor.html"));
+});
+
 app.get("/dev-assets/slices", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "dev-assets-slices.html"));
 });

@@ -16,6 +16,7 @@ It currently has:
 - an integrated `/adventure` map gameplay surface
 - guided `world_overrides` authoring inside the dev panel
 - a first visual node / path editor layered on top of override payloads
+- a dedicated `/dev-map-editor` route for visual topology authoring
 - a first asset ingestion layer for terrain / structure / sheet / audio workflows
 
 In short:
@@ -121,7 +122,24 @@ This matters because map authoring is now modifying canonical world data, so bad
 
 Inside the dev panel, `World Definitions` can now open directly into a new override flow.
 
-### 4. Geography Render Layer - Phase 1
+### 4. Dedicated Map Editor Route
+
+There is now a separate `/dev-map-editor` route for topology-first world authoring.
+
+Current support:
+
+- select a canonical world directly from a world list
+- inspect and edit nodes and paths on a dedicated canvas
+- switch tool modes such as select, move node, add node, add path, and delete
+- inspect node/path/layout fields in a separate inspector column
+- see validation warnings and errors alongside the canvas
+- generate a `set_map_layout` override draft and save it into `world_overrides`
+
+This is important because topology editing is no longer trapped inside the general dev
+panel modal flow. It now has a clear home that can grow into the long-term authoring
+tool without fighting the generic record editor.
+
+### 5. Geography Render Layer - Phase 1
 
 The map now has a first geography-aware background layer generated from the canonical world itself.
 
@@ -145,7 +163,7 @@ This is important because it turns the workflow into:
 
 That is the first practical authoring loop for map editing in the project.
 
-### 5. Asset Ingestion Layer - Phase 1
+### 6. Asset Ingestion Layer - Phase 1
 
 The map pipeline is now beginning to gain its own asset tooling rather than relying
 on generic file records.

@@ -23,6 +23,10 @@
       "destination": "/dev-assets.html"
     },
     {
+      "source": "/dev-map-editor",
+      "destination": "/dev-map-editor.html"
+    },
+    {
       "source": "/dev-assets/slices",
       "destination": "/dev-assets-slices.html"
     },

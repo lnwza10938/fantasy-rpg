@@ -29,6 +29,7 @@ export default defineConfig({
         forge: resolve(__dirname, "forge.html"),
         adventure: resolve(__dirname, "adventure.html"),
         dev: resolve(__dirname, "dev.html"),
+        devMapEditor: resolve(__dirname, "dev-map-editor.html"),
         devAssets: resolve(__dirname, "dev-assets.html"),
         devAssetsSlices: resolve(__dirname, "dev-assets-slices.html"),
         devAssetsAudio: resolve(__dirname, "dev-assets-audio.html"),
