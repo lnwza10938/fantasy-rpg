@@ -146,6 +146,221 @@ function normalizeAIDraftRecord(value: unknown, depth = 0): Record<string, unkno
   return record;
 }
 
+function coerceFieldByTemplate(
+  value: unknown,
+  template: unknown,
+  fallbackValue: unknown,
+): unknown {
+  if (Array.isArray(template)) {
+    if (Array.isArray(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      return value
+        .split(/[\n,]/)
+        .map((entry) => entry.trim())
+        .filter(Boolean);
+    }
+    return Array.isArray(fallbackValue) ? fallbackValue : template;
+  }
+
+  if (template && typeof template === "object") {
+    if (value && typeof value === "object" && !Array.isArray(value)) return value;
+    return fallbackValue && typeof fallbackValue === "object" && !Array.isArray(fallbackValue)
+      ? fallbackValue
+      : template;
+  }
+
+  if (typeof template === "number") {
+    const nextNumber =
+      typeof value === "number"
+        ? value
+        : typeof value === "string" && value.trim()
+          ? Number(value)
+          : NaN;
+    return Number.isFinite(nextNumber)
+      ? nextNumber
+      : typeof fallbackValue === "number"
+        ? fallbackValue
+        : template;
+  }
+
+  if (typeof template === "boolean") {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true") return true;
+      if (normalized === "false") return false;
+    }
+    return typeof fallbackValue === "boolean" ? fallbackValue : template;
+  }
+
+  if (typeof template === "string") {
+    if (typeof value === "string") return value;
+    if (value != null && !Array.isArray(value) && typeof value !== "object") {
+      return String(value);
+    }
+    return typeof fallbackValue === "string" ? fallbackValue : template;
+  }
+
+  return value ?? fallbackValue ?? template;
+}
+
+function sanitizeDraftRecordForSource(
+  sourceKey: string,
+  record: Record<string, unknown>,
+  currentRecord: Record<string, unknown>,
+) {
+  const source = getDevSourceConfig(sourceKey);
+  if (!source) return record;
+
+  const template = {
+    ...(source.defaultRecord || {}),
+    ...(source.fixedValues || {}),
+  };
+
+  const sanitized = Object.fromEntries(
+    Object.keys(template).map((key) => [
+      key,
+      coerceFieldByTemplate(record[key], template[key], currentRecord[key]),
+    ]),
+  ) as Record<string, unknown>;
+
+  return {
+    ...sanitized,
+    ...(source.fixedValues || {}),
+  };
+}
+
+function inferFallbackDraftRecord(
+  sourceKey: string,
+  promptText: string,
+  currentRecord: Record<string, unknown>,
+) {
+  const source = getDevSourceConfig(sourceKey);
+  if (!source) return currentRecord;
+
+  const baseRecord = {
+    ...(source.defaultRecord || {}),
+    ...(source.fixedValues || {}),
+    ...(currentRecord || {}),
+  } as Record<string, unknown>;
+  const text = promptText.trim();
+
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const firstLine = lines[0] || "";
+
+  const detectName = () => {
+    const quoted = text.match(/"([^"]{2,80})"/);
+    if (quoted) return quoted[1];
+    const named = text.match(/\b(?:named|called)\s+([A-Z][A-Za-z' -]{1,80})/i);
+    if (named) return named[1].trim();
+    const titleish =
+      firstLine &&
+      !/[.:]/.test(firstLine) &&
+      firstLine.length <= 80 &&
+      /[A-Za-z]/.test(firstLine)
+        ? firstLine
+        : "";
+    return titleish || String(baseRecord.name || baseRecord.title || "Draft Record");
+  };
+
+  const detectNumber = (field: string) => {
+    const patterns: Record<string, RegExp[]> = {
+      level: [/\blevel\s*(\d{1,3})/i, /\blv\.?\s*(\d{1,3})/i],
+      danger_level: [/\bdanger(?:\s*level)?\s*(\d{1,2})/i, /\blv\.?\s*(\d{1,2})/i],
+      spawn_rate: [/\bspawn(?:\s*rate)?\s*(0(?:\.\d+)?|1(?:\.0+)?)\b/i],
+    };
+    for (const pattern of patterns[field] || []) {
+      const match = text.match(pattern);
+      if (match) return Number(match[1]);
+    }
+    return undefined;
+  };
+
+  const detectEnum = (options: string[]) => {
+    const lower = text.toLowerCase();
+    return options.find((entry) => lower.includes(entry.toLowerCase()));
+  };
+
+  if ("name" in baseRecord) baseRecord.name = detectName();
+  if ("title" in baseRecord && (!baseRecord.title || String(baseRecord.title).startsWith("New "))) {
+    baseRecord.title = detectName();
+  }
+  if ("description" in baseRecord && text) {
+    baseRecord.description =
+      lines.slice(1).join(" ").trim() || firstLine || String(baseRecord.description || "");
+  }
+  if ("summary" in baseRecord && text) {
+    baseRecord.summary = firstLine || String(baseRecord.summary || "");
+  }
+  if ("body_text" in baseRecord && text && !String(baseRecord.body_text || "").trim()) {
+    baseRecord.body_text = text;
+  }
+  if ("dialogue_text" in baseRecord && text) {
+    baseRecord.dialogue_text = text;
+  }
+  if ("content" in baseRecord && text) {
+    baseRecord.content = text;
+  }
+  if ("danger_level" in baseRecord) {
+    baseRecord.danger_level =
+      detectNumber("danger_level") ?? Number(baseRecord.danger_level || 1);
+  }
+  if ("level" in baseRecord) {
+    baseRecord.level = detectNumber("level") ?? Number(baseRecord.level || 1);
+  }
+  if ("spawn_rate" in baseRecord) {
+    baseRecord.spawn_rate = detectNumber("spawn_rate") ?? Number(baseRecord.spawn_rate || 0.5);
+  }
+  if ("biome" in baseRecord) {
+    baseRecord.biome =
+      detectEnum([
+        "forest",
+        "swamp",
+        "desert",
+        "mountain",
+        "coast",
+        "tundra",
+        "volcanic",
+        "ruins",
+        "cursed_land",
+        "void",
+      ]) || String(baseRecord.biome || "forest");
+  }
+  if ("rarity" in baseRecord) {
+    baseRecord.rarity =
+      detectEnum(["common", "uncommon", "rare", "elite", "legendary"]) ||
+      String(baseRecord.rarity || "common");
+  }
+  if ("type" in baseRecord) {
+    baseRecord.type =
+      detectEnum([
+        "beast",
+        "undead",
+        "humanoid",
+        "construct",
+        "spirit",
+        "consumable",
+        "material",
+        "quest",
+        "key",
+      ]) || String(baseRecord.type || "");
+  }
+  if ("tags" in baseRecord && Array.isArray(baseRecord.tags)) {
+    const extraTags = text.match(/\b[a-z][a-z0-9_-]{2,}\b/gi) || [];
+    baseRecord.tags = Array.from(
+      new Set([
+        ...((baseRecord.tags as string[]) || []),
+        ...extraTags.slice(0, 6).map((entry) => entry.toLowerCase()),
+      ]),
+    );
+  }
+
+  return sanitizeDraftRecordForSource(sourceKey, baseRecord, currentRecord);
+}
+
 function isDevPanelAuthorized(req: any) {
   if (!DEV_PANEL_KEY) return true;
   const providedKey =
@@ -500,7 +715,11 @@ router.post(
     }
 
     try {
-      const prompt = buildDevRecordDraftPrompt(sourceKey, promptText, currentRecord);
+      const prompt = `${buildDevRecordDraftPrompt(sourceKey, promptText, currentRecord)}
+
+Additional hard rule:
+- If the user describes multiple entries, still produce only ONE record for this source.
+- Never nest sibling records under fields like maps, records, entries, or items unless that field already exists in the schema.`;
       const generated = await worldGenerator.generateFromPrompt(prompt, {
         systemMsg:
           "You are a database shaping assistant for a fantasy RPG tool. Return only one valid JSON object.",
@@ -515,9 +734,27 @@ router.post(
         );
       }
 
-      res.json({ success: true, data: { record } });
+      res.json({
+        success: true,
+        data: {
+          record: sanitizeDraftRecordForSource(sourceKey, record, currentRecord),
+        },
+      });
     } catch (error: any) {
-      res.status(400).json({ success: false, error: error.message });
+      const message = error.message || "Could not generate AI draft";
+      if (/rate limit/i.test(message)) {
+        res.json({
+          success: true,
+          data: {
+            record: inferFallbackDraftRecord(sourceKey, promptText, currentRecord),
+            fallback: true,
+            warning:
+              "AI rate limit hit. A local schema-safe draft was created from your text instead.",
+          },
+        });
+        return;
+      }
+      res.status(400).json({ success: false, error: message });
     }
   },
 );

@@ -623,7 +623,11 @@ async function generateEditorDraftWithAI() {
     }
 
     mergeEditorJson(payload.data?.record || {});
-    setInlineStatus("dev-editor-ai-status", "AI draft merged into the editor.");
+    setInlineStatus(
+      "dev-editor-ai-status",
+      payload.data?.warning || "AI draft merged into the editor.",
+      !!payload.data?.fallback,
+    );
   } catch (error: any) {
     setInlineStatus(
       "dev-editor-ai-status",
