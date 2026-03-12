@@ -8,7 +8,12 @@ import {
   type InventorySlot,
   type StructuredGameStateData,
 } from "./gameState.js";
-import { parseWorldMeta, serializeWorldMeta } from "../models/worldTypes.js";
+import type { WorldMetadata } from "../models/worldTypes.js";
+import {
+  normalizeWorldMetadata,
+  parseWorldMeta,
+  serializeWorldMeta,
+} from "../models/worldTypes.js";
 
 export interface PersistedPlayerStateRecord {
   character_id: string;
@@ -105,6 +110,7 @@ function parseEquipment(raw: unknown): EquipmentSlots {
 
 export function hydrateGameStateFromSave(
   save: PersistedPlayerStateRecord,
+  worldMetadata?: Partial<WorldMetadata> | null,
 ): GameStateManager {
   const seed = Number(save.world_seed || 0);
   const gsm = new GameStateManager(save.character_id, save.character_id, seed);
@@ -124,7 +130,12 @@ export function hydrateGameStateFromSave(
     Number(save.current_region ?? 0),
     typeof save.current_map === "string" ? save.current_map : undefined,
   );
-  gsm.setWorldMeta(parseWorldMeta(save.last_event, seed));
+  gsm.setWorldMeta(
+    normalizeWorldMetadata(
+      worldMetadata || parseWorldMeta(save.last_event, seed),
+      seed,
+    ),
+  );
   gsm.setInventory(parseInventory(save.inventory_json));
   gsm.setEquipment(parseEquipment(save.equipment_json));
 
@@ -170,9 +181,13 @@ export function mapSaveToWorldArchive(
     | "last_event"
   >,
   fallbackCharacterName?: string,
+  worldMetadata?: Partial<WorldMetadata> | null,
 ): WorldArchiveRecord {
   const worldSeed = Number(save.world_seed || 0);
-  const meta = parseWorldMeta(save.last_event, worldSeed);
+  const meta = normalizeWorldMetadata(
+    worldMetadata || parseWorldMeta(save.last_event, worldSeed),
+    worldSeed,
+  );
 
   return {
     characterId: save.character_id,

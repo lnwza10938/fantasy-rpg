@@ -114,6 +114,7 @@ export async function getCharacter(id: string): Promise<CharacterStats> {
 export async function deleteCharacter(id: string) {
   // Delete player_states first (in case there's no DB-level cascade)
   await supabase.from("player_states").delete().eq("character_id", id);
+  await supabase.from("world_definitions").delete().eq("character_id", id);
   // Then delete the character itself
   const { error } = await supabase.from("characters").delete().eq("id", id);
   if (error) throw error;

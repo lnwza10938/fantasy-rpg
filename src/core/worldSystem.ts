@@ -15,6 +15,7 @@ import type {
 import {
   defaultWorldNameFromPreset,
   inferWorldPresetFromSeed,
+  normalizeWorldDefinitionShape,
   normalizeWorldMetadata,
 } from "../models/worldTypes.js";
 import {
@@ -169,6 +170,8 @@ export class SeededRNG {
 
 // --- World Instance (Cached Data) ---
 export class WorldInstance {
+  public ownerCharacterId: string | null = null;
+
   constructor(
     public definition: WorldDefinition,
     public monsterPool: any[],
@@ -203,12 +206,31 @@ export class WorldInstance {
   public getRandomRegion(rng: SeededRNG): WorldRegion {
     return rng.pick(this.regions);
   }
+
+  public bindToCharacter(characterId: string | null): WorldInstance {
+    this.ownerCharacterId = characterId;
+    return this;
+  }
 }
 
 // --- World System ---
 export class WorldSystem {
   private rng!: SeededRNG;
   private worldInstance: WorldInstance | null = null;
+
+  private async fetchWorldSupportData() {
+    const [allMonsters, allFactions, allLore] = await Promise.all([
+      getMonsters(),
+      getFactions(),
+      getLoreSnippets(),
+    ]);
+
+    return {
+      allMonsters,
+      allFactions,
+      allLore,
+    };
+  }
 
   private matchesBiomeSelection(
     map: MapRecord,
@@ -456,14 +478,13 @@ export class WorldSystem {
     console.log(`[WorldSystem] Loading world instance for seed ${seed}...`);
     this.rng = new SeededRNG(seed);
 
-    let [allMaps, allMonsters, allFactions, allLore, allSpawnPoints] =
+    let [allMaps, allSpawnPoints, supportData] =
       await Promise.all([
         getMaps(),
-        getMonsters(),
-        getFactions(),
-        getLoreSnippets(),
         getSpawnPoints(),
+        this.fetchWorldSupportData(),
       ]);
+    const { allMonsters, allFactions, allLore } = supportData;
 
     if (allMaps.length === 0) throw new Error("No maps found in database.");
 
@@ -523,6 +544,25 @@ export class WorldSystem {
 
     this.worldInstance = new WorldInstance(
       definition,
+      allMonsters,
+      allFactions,
+      allLore,
+    );
+    return this.worldInstance;
+  }
+
+  public async loadWorldDefinition(
+    definition: WorldDefinition,
+  ): Promise<WorldInstance> {
+    const normalizedDefinition = normalizeWorldDefinitionShape(
+      definition,
+      definition.seed,
+    );
+    const { allMonsters, allFactions, allLore } =
+      await this.fetchWorldSupportData();
+
+    this.worldInstance = new WorldInstance(
+      normalizedDefinition,
       allMonsters,
       allFactions,
       allLore,

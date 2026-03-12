@@ -12,6 +12,12 @@ import {
   deleteCharacter,
   saveCombatLog,
 } from "../db/repositories.js";
+import {
+  deleteWorldDefinitionByCharacterId,
+  getWorldDefinitionByCharacterId,
+  listWorldDefinitionSummaries,
+  upsertWorldDefinition,
+} from "../db/worldDefinitionRepositories.js";
 import { worldSystem, SeededRNG } from "../core/worldSystem.js";
 import { eventSystem } from "../core/eventSystem.js";
 import { combatSystem } from "../core/combatSystem.js";
@@ -291,7 +297,8 @@ async function getSession(
 
   if (error || !save) return null;
 
-  const gsm = hydrateGameStateFromSave(save);
+  const storedWorld = await getWorldDefinitionByCharacterId(characterId);
+  const gsm = hydrateGameStateFromSave(save, storedWorld?.metadata);
 
   // Refresh with actual DB equipment data
   const allEquipment = await getEquipment();
@@ -315,6 +322,60 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
     .upsert(payload, { onConflict: "character_id" });
 
   if (error) console.error(`[AutoSave Error] ${characterId}:`, error.message);
+}
+
+async function persistCanonicalWorldForCharacter(params: {
+  characterId: string;
+  mode: "procedural" | "custom";
+  definition: any;
+  sourceLore?: string | null;
+}) {
+  return upsertWorldDefinition({
+    characterId: params.characterId,
+    mode: params.mode,
+    definition: params.definition,
+    sourceLore: params.sourceLore || null,
+  });
+}
+
+async function restoreCanonicalWorldForCharacter(
+  characterId: string,
+  worldState: ReturnType<GameStateManager["getWorldState"]>,
+) {
+  const stored = await getWorldDefinitionByCharacterId(characterId);
+  if (stored) {
+    const instance = (await worldSystem.loadWorldDefinition(
+      stored.definition,
+    )).bindToCharacter(characterId);
+    return {
+      mode: stored.mode,
+      definition: stored.definition,
+      instance,
+      stored: true,
+    };
+  }
+
+  const pipeline = await worldPipelineCoordinator.generateFromStoredWorld({
+    seed: worldState.seed,
+    worldName: worldState.metadata.worldName,
+    worldPreset: worldState.metadata.worldPreset,
+    customBiomes: worldState.metadata.customBiomes,
+    customMonsters: worldState.metadata.customMonsters,
+  });
+
+  await persistCanonicalWorldForCharacter({
+    characterId,
+    mode: pipeline.mode,
+    definition: pipeline.definition,
+  });
+  pipeline.instance.bindToCharacter(characterId);
+
+  return {
+    mode: pipeline.mode,
+    definition: pipeline.definition,
+    instance: pipeline.instance,
+    stored: false,
+  };
 }
 
 router.post("/invite/login", async (req, res) => {
@@ -406,6 +467,7 @@ router.post("/start", async (req, res) => {
       customSelection,
     });
     const instance = pipeline.instance;
+    instance.bindToCharacter(character.id);
 
     // Create game state session
     const gsm = new GameStateManager(player.id, character.id, seed);
@@ -424,6 +486,12 @@ router.post("/start", async (req, res) => {
     instance.setMetadata(gsm.getWorldState().metadata);
     sessions.set(character.id, gsm);
 
+    const canonicalWorld = await persistCanonicalWorldForCharacter({
+      characterId: character.id,
+      mode: pipeline.mode,
+      definition: instance.definition,
+    });
+
     // Initial save
     await autoSave(character.id, "Started a new adventure.");
 
@@ -434,7 +502,7 @@ router.post("/start", async (req, res) => {
         characterId: character.id,
         worldSeed: seed,
         regions: instance.regions,
-        worldDefinition: instance.definition,
+        worldDefinition: canonicalWorld.definition,
         generationMode: pipeline.mode,
         state: gsm.getState(),
         structuredState: gsm.getStructuredState(),
@@ -587,19 +655,16 @@ router.post("/event", async (req, res) => {
     const worldState = gsm.getWorldState();
     const shouldRegenerateWorld =
       !instance ||
+      instance.ownerCharacterId !== characterId ||
       instance.seed !== worldState.seed ||
       JSON.stringify(instance.metadata) !== JSON.stringify(worldState.metadata);
 
     if (shouldRegenerateWorld) {
-      // Hot-reload or swap the cached world instance if it does not match this session.
-      const pipeline = await worldPipelineCoordinator.generateFromStoredWorld({
-        seed: worldState.seed,
-        worldName: worldState.metadata.worldName,
-        worldPreset: worldState.metadata.worldPreset,
-        customBiomes: worldState.metadata.customBiomes,
-        customMonsters: worldState.metadata.customMonsters,
-      });
-      instance = pipeline.instance;
+      const restoredWorld = await restoreCanonicalWorldForCharacter(
+        characterId,
+        worldState,
+      );
+      instance = restoredWorld.instance;
     }
     if (!instance) {
       throw new Error("World instance could not be restored for this session.");
@@ -882,10 +947,12 @@ router.get("/worlds", async (req, res) => {
 
     if (saveError) throw saveError;
 
+    const definitionSummaryMap = await listWorldDefinitionSummaries(characterIds);
     const worlds = (saves || []).map((save: any) =>
       mapSaveToWorldArchive(
         save,
         characterMap.get(save.character_id) || undefined,
+        definitionSummaryMap.get(save.character_id)?.metadata,
       ),
     );
 
@@ -911,8 +978,10 @@ router.get("/load/:characterId", async (req, res) => {
       return;
     }
 
+    const storedWorld = await getWorldDefinitionByCharacterId(characterId);
+
     // Restore session
-    const gsm = hydrateGameStateFromSave(data);
+    const gsm = hydrateGameStateFromSave(data, storedWorld?.metadata);
 
     // Refresh with actual DB equipment data if possible
     const allEquipment = await getEquipment();
@@ -920,23 +989,19 @@ router.get("/load/:characterId", async (req, res) => {
 
     sessions.set(characterId, gsm);
 
-    // Regenerate world from saved seed
-    const pipeline = await worldPipelineCoordinator.generateFromStoredWorld({
-      seed: Number(data.world_seed),
-      worldName: gsm.getWorldState().metadata.worldName,
-      worldPreset: gsm.getWorldState().metadata.worldPreset,
-      customBiomes: gsm.getWorldState().metadata.customBiomes,
-      customMonsters: gsm.getWorldState().metadata.customMonsters,
-    });
-    const world = pipeline.instance;
+    const restoredWorld = await restoreCanonicalWorldForCharacter(
+      characterId,
+      gsm.getWorldState(),
+    );
+    const world = restoredWorld.instance;
 
     res.json({
       success: true,
       data: {
         gameState: gsm.getState(),
         structuredState: gsm.getStructuredState(),
-        worldDefinition: world.definition,
-        generationMode: pipeline.mode,
+        worldDefinition: restoredWorld.definition,
+        generationMode: restoredWorld.mode,
         regions: world.regions,
       },
     });
@@ -984,6 +1049,7 @@ router.delete("/worlds/:characterId", async (req, res) => {
       .eq("character_id", characterId);
 
     if (error) throw error;
+    await deleteWorldDefinitionByCharacterId(characterId);
 
     sessions.delete(characterId);
     combatSessions.delete(characterId);
