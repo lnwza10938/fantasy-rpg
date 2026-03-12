@@ -2944,6 +2944,197 @@ function backFromForge() {
   }
 }
 
+function formatSkillFallbackNotice(reason?: string | null) {
+  const normalized = String(reason || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalized || normalized === "ai_unavailable") {
+    return "Used a quick local sigil reading.";
+  }
+  if (normalized === "ai_not_configured" || normalized.includes("not configured")) {
+    return "AI is not ready yet, so a quick local sigil reading was used.";
+  }
+  if (normalized.includes("rate limit")) {
+    return "AI is busy right now, so a quick local sigil reading was used.";
+  }
+  if (normalized.includes("timed out") || normalized.includes("timeout")) {
+    return "AI took too long, so a quick local sigil reading was used.";
+  }
+  if (normalized.includes("abort")) {
+    return "The sigil reading was interrupted, so a quick local result was used.";
+  }
+  return "A quick local sigil reading was used to keep things moving.";
+}
+
+function buildLocalSkillFallback(code: string) {
+  const digits = (code || "000000000")
+    .replace(/\D/g, "")
+    .padEnd(9, "0")
+    .slice(0, 9)
+    .split("")
+    .map((value) => Number(value) || 0);
+
+  const triggers = [
+    "Always Active",
+    "On Hit",
+    "On Damaged",
+    "On Kill",
+    "Low HP",
+    "Low Mana",
+    "Timed",
+    "On Combat Start",
+    "On Buff",
+    "Chaotic",
+  ];
+  const targets = [
+    "Self",
+    "Single Enemy",
+    "Multiple Enemies",
+    "All Enemies",
+    "Area",
+    "Single Ally",
+    "All Allies",
+    "Random",
+    "Area (All)",
+    "Unstable",
+  ];
+  const scalings = [
+    "None",
+    "Attack",
+    "Defense",
+    "Max HP",
+    "Max Mana",
+    "Speed",
+    "Level",
+    "Enemy Count",
+    "Buff Count",
+    "Variable",
+  ];
+  const roles = [
+    "Striker",
+    "Healer",
+    "Buffer",
+    "Debuffer",
+    "Protector",
+    "Assailant",
+    "Infuser",
+    "Warden",
+    "Executioner",
+    "Glitch",
+  ];
+  const elements = [
+    "Kinetic",
+    "Spark",
+    "Flow",
+    "Spirit",
+    "Life",
+    "Mana",
+    "True",
+    "Null",
+    "Armor",
+    "Void",
+  ];
+  const prefix =
+    [
+      "Chaotic",
+      "Infernal",
+      "Sacred",
+      "Echoing",
+      "Void",
+      "Vibrant",
+      "Abyssal",
+      "Golden",
+      "Shattered",
+      "Lost",
+    ][digits[0]] || "Primal";
+  const role = roles[digits[1]] || "Skill";
+  const element = elements[digits[3]] || "Force";
+  const targetType =
+    [
+      "self",
+      "single_enemy",
+      "single_enemy",
+      "all_enemies",
+      "all_enemies",
+      "self",
+      "all_allies",
+      "single_enemy",
+      "all_enemies",
+      "single_enemy",
+    ][digits[2]] || "single_enemy";
+  const scalingStat =
+    [
+      "level",
+      "attack",
+      "defense",
+      "maxHP",
+      "maxMana",
+      "speed",
+      "level",
+      "attack",
+      "defense",
+      "speed",
+    ][digits[4]] || "attack";
+  const effectType =
+    digits[1] === 6
+      ? "heal"
+      : digits[1] === 2 || digits[1] === 3
+        ? "buff"
+        : digits[1] === 4 || digits[1] === 5
+          ? "debuff"
+          : "damage";
+
+  return {
+    name: `${prefix} ${element} ${role}`,
+    description: "A quickly stabilized sigil reading shaped from the legend core.",
+    mechanics: `Triggers ${triggers[digits[0]]}. Affects ${targets[digits[2]]} using ${element.toLowerCase()} power. Effectiveness scales with ${scalings[digits[4]]}.`,
+    mana_cost: 0,
+    cooldown: Math.min(4, Math.max(0, digits[6] - 2)),
+    target_type: targetType,
+    effect_type: effectType,
+    scaling_stat: scalingStat,
+    power_multiplier: Number((0.9 + digits[5] * 0.12).toFixed(1)),
+  };
+}
+
+async function requestSkillInterpretation(code: string, timeoutMs = 4600) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(`${DEV_API}/ai/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({ type: "skill", context: code }),
+    });
+    const payload = await res.json().catch(() => null);
+
+    if (res.ok && payload?.success && payload?.data) {
+      return {
+        data: payload.data,
+        fallback: !!payload.meta?.fallback,
+        notice: payload.meta?.fallback
+          ? formatSkillFallbackNotice(payload.meta?.reason)
+          : "",
+      };
+    }
+
+    throw new Error(payload?.error || `Skill interpretation failed (${res.status})`);
+  } catch (error: any) {
+    return {
+      data: buildLocalSkillFallback(code),
+      fallback: true,
+      notice: formatSkillFallbackNotice(
+        error?.name === "AbortError" ? "timeout" : error?.message,
+      ),
+    };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 async function rollForgeSkill() {
   const btn = document.getElementById("btn-roll-forge") as HTMLButtonElement;
   const confirmBtn = document.getElementById(
@@ -2970,7 +3161,9 @@ async function rollForgeSkill() {
   )
     return;
 
+  const originalBtnLabel = btn.textContent || "🎲 Roll New Skill";
   btn.disabled = true;
+  btn.textContent = "🔮 Reading...";
   confirmBtn.disabled = true;
   placeholder.style.display = "none";
   starArea.style.display = "block";
@@ -3000,43 +3193,37 @@ async function rollForgeSkill() {
     renderForgeSigil(display, code, null, "interpreting");
 
     try {
-      const res = await fetch(`${DEV_API}/ai/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "skill", context: code }),
-      });
-      const j = await res.json();
+      const interpretation = await requestSkillInterpretation(code);
+      const skillData = interpretation.data;
 
-      if (j.success && j.data) {
-        forgeState.skillCode = code;
-        forgeState.skillData = j.data;
+      forgeState.skillCode = code;
+      forgeState.skillData = skillData;
 
-        document.getElementById("forge-skill-name")!.textContent = j.data.name;
-        document.getElementById("forge-skill-cost")!.textContent =
-          j.data.mana_cost + " MP";
-        document.getElementById("forge-skill-desc")!.textContent =
-          j.data.description;
-        document.getElementById("forge-skill-mechanics")!.textContent =
-          j.data.mechanics;
-        document.getElementById("forge-skill-cd")!.textContent = String(
-          j.data.cooldown,
-        );
-        document.getElementById("forge-skill-target")!.textContent =
-          j.data.target_type;
-        document.getElementById("forge-skill-scaling")!.textContent =
-          j.data.scaling_stat;
+      document.getElementById("forge-skill-name")!.textContent = skillData.name;
+      document.getElementById("forge-skill-cost")!.textContent =
+        skillData.mana_cost + " MP";
+      document.getElementById("forge-skill-desc")!.textContent =
+        skillData.description;
+      document.getElementById("forge-skill-mechanics")!.textContent =
+        skillData.mechanics;
+      document.getElementById("forge-skill-cd")!.textContent = String(
+        skillData.cooldown,
+      );
+      document.getElementById("forge-skill-target")!.textContent =
+        skillData.target_type;
+      document.getElementById("forge-skill-scaling")!.textContent =
+        skillData.scaling_stat;
 
-        renderForgeSigil(display, code, j.data, "final");
-        setForgeScreenPhase(screen, "settling");
-        await new Promise((resolve) => setTimeout(resolve, 220));
-        await settleForgeSigil(display);
-        setForgeSkillBoxVisible(true);
-        setForgeScreenPhase(screen, "resolved");
-        confirmBtn.disabled = false;
-      } else {
-        stopForgeSigilMotion();
-        setForgeScreenPhase(screen, "idle");
-        display.innerHTML = `<div style="color:var(--red);font-size:10px">${j.error || "Interpretation Failed"}</div>`;
+      renderForgeSigil(display, code, skillData, "final");
+      setForgeScreenPhase(screen, "settling");
+      await new Promise((resolve) => setTimeout(resolve, 220));
+      await settleForgeSigil(display);
+      setForgeSkillBoxVisible(true);
+      setForgeScreenPhase(screen, "resolved");
+      confirmBtn.disabled = false;
+
+      if (interpretation.fallback && interpretation.notice) {
+        showToast(interpretation.notice, "info");
       }
     } catch (e) {
       stopForgeSigilMotion();
@@ -3045,6 +3232,7 @@ async function rollForgeSkill() {
     } finally {
       stopForgeSigilMotion();
       btn.disabled = false;
+      btn.textContent = originalBtnLabel;
     }
   }
 }
@@ -3126,9 +3314,11 @@ async function rollSkill() {
   ) as HTMLButtonElement;
   const display = document.getElementById("skill-code-display") as HTMLElement;
   const resultBox = document.getElementById("skill-result-box") as HTMLElement;
+  const originalBtnLabel = btn.textContent || "🎲 Roll Skill";
 
   // Disable buttons
   btn.disabled = true;
+  btn.textContent = "🔮 Reading...";
   nextBtn.disabled = true;
   resultBox.style.display = "none";
 
@@ -3152,42 +3342,39 @@ async function rollSkill() {
     display.innerHTML = `<div style="font-family:monospace; font-size:32px; font-weight:900; letter-spacing:4px; color:var(--text); text-shadow:0 0 10px rgba(255,255,255,0.5)">${code.match(/.{1,3}/g)?.join("-")}</div><div style="font-size:10px;color:var(--accent);margin-top:8px">Interpreting with AI...</div>`;
 
     try {
-      const res = await fetch(`${DEV_API}/ai/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "skill", context: code }),
-      });
-      const j = await res.json();
+      const interpretation = await requestSkillInterpretation(code);
+      const skillData = interpretation.data;
 
-      if (j.success && j.data) {
-        wizardState.skillCode = code;
-        wizardState.skillData = j.data;
+      wizardState.skillCode = code;
+      wizardState.skillData = skillData;
 
-        // Populate UI
-        document.getElementById("skill-name-ui")!.textContent = j.data.name;
-        document.getElementById("skill-cost-ui")!.textContent =
-          j.data.mana_cost + " MP";
-        document.getElementById("skill-desc-ui")!.textContent =
-          j.data.description;
-        document.getElementById("skill-cd-ui")!.textContent = String(
-          j.data.cooldown,
-        );
-        document.getElementById("skill-target-ui")!.textContent =
-          j.data.target_type;
-        document.getElementById("skill-scaling-ui")!.textContent =
-          j.data.scaling_stat + " (" + j.data.power_multiplier + "x)";
+      document.getElementById("skill-name-ui")!.textContent = skillData.name;
+      document.getElementById("skill-cost-ui")!.textContent =
+        skillData.mana_cost + " MP";
+      document.getElementById("skill-desc-ui")!.textContent =
+        skillData.description;
+      document.getElementById("skill-cd-ui")!.textContent = String(
+        skillData.cooldown,
+      );
+      document.getElementById("skill-target-ui")!.textContent =
+        skillData.target_type;
+      document.getElementById("skill-scaling-ui")!.textContent =
+        skillData.scaling_stat + " (" + skillData.power_multiplier + "x)";
 
-        resultBox.style.display = "block";
-        display.innerHTML = `<div style="font-family:monospace; font-size:24px; font-weight:900; letter-spacing:4px; color:#fff">${code.match(/.{1,3}/g)?.join("-")}</div>`;
-        nextBtn.disabled = false;
-      } else {
-        display.innerHTML = `<div style="color:var(--red);font-size:12px">AI Interpretation Failed. Ensure API Key is set in Dev Panel.</div>`;
+      resultBox.style.display = "block";
+      display.innerHTML = `<div style="font-family:monospace; font-size:24px; font-weight:900; letter-spacing:4px; color:#fff">${code.match(/.{1,3}/g)?.join("-")}</div>`;
+      nextBtn.disabled = false;
+
+      if (interpretation.fallback && interpretation.notice) {
+        showToast(interpretation.notice, "info");
       }
     } catch (e) {
       console.error(e);
       display.innerHTML = `<div style="color:var(--red);font-size:12px">Network Error</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalBtnLabel;
     }
-    btn.disabled = false;
   }
 }
 

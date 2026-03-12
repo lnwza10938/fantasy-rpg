@@ -112,7 +112,30 @@ type GenerationOptions = {
   systemMsg?: string;
   temperature?: number;
   maxTokens?: number;
+  timeoutMs?: number;
 };
+
+type SkillInterpretationResult = {
+  data: any;
+  fallback: boolean;
+  cached?: boolean;
+  reason?: string;
+};
+
+function createTimedAbortController(timeoutMs?: number) {
+  const controller = new AbortController();
+  const timer =
+    timeoutMs && timeoutMs > 0
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : null;
+
+  return {
+    controller,
+    cleanup() {
+      if (timer) clearTimeout(timer);
+    },
+  };
+}
 
 function stripMarkdownFences(text: string) {
   const trimmed = text.trim();
@@ -194,55 +217,81 @@ export class WorldGenerator {
     if (config.provider === "gemini") {
       const activeModel = normalizeAIConfigValue(config.provider, config.model);
       const url = `${config.baseUrl}/models/${activeModel}:generateContent?key=${config.apiKey}`;
-      const response = await fetch(url, {
+      const { controller, cleanup } = createTimedAbortController(
+        options?.timeoutMs,
+      );
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
+            generationConfig: {
+              temperature: options?.temperature ?? 0.4,
+              maxOutputTokens: options?.maxTokens ?? 8000,
+              responseMimeType: "application/json",
+            },
+          }),
+        });
+
+        if (response.status === 429) {
+          throw new Error("AI rate limit hit. Please try again in a moment.");
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `Gemini Error: ${response.status} ${await response.text()}`,
+          );
+        }
+        const data = await response.json();
+        return String(
+          data.candidates?.[0]?.content?.parts?.[0]?.text ?? "",
+        ).trim();
+      } catch (error: any) {
+        if (error?.name === "AbortError") {
+          throw new Error("AI request timed out.");
+        }
+        throw error;
+      } finally {
+        cleanup();
+      }
+    }
+
+    const { controller, cleanup } = createTimedAbortController(options?.timeoutMs);
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        signal: controller.signal,
         body: JSON.stringify({
-          contents: [{ parts: [{ text: systemMsg + "\n\n" + prompt }] }],
-          generationConfig: {
-            temperature: options?.temperature ?? 0.4,
-            maxOutputTokens: options?.maxTokens ?? 8000,
-            responseMimeType: "application/json",
-          },
+          model: config.model,
+          messages: [
+            { role: "system", content: systemMsg },
+            { role: "user", content: prompt },
+          ],
+          temperature: options?.temperature ?? 0.4,
+          max_tokens: options?.maxTokens ?? 1400,
         }),
       });
-
-      if (response.status === 429) {
-        throw new Error("AI rate limit hit. Please try again in a moment.");
-      }
-
       if (!response.ok) {
         throw new Error(
-          `Gemini Error: ${response.status} ${await response.text()}`,
+          `AI API error: ${response.status} ${await response.text()}`,
         );
       }
       const data = await response.json();
-      return String(data.candidates?.[0]?.content?.parts?.[0]?.text ?? "").trim();
+      return String(data.choices?.[0]?.message?.content ?? "").trim();
+    } catch (error: any) {
+      if (error?.name === "AbortError") {
+        throw new Error("AI request timed out.");
+      }
+      throw error;
+    } finally {
+      cleanup();
     }
-
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: prompt },
-        ],
-        temperature: options?.temperature ?? 0.4,
-        max_tokens: options?.maxTokens ?? 1400,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(
-        `AI API error: ${response.status} ${await response.text()}`,
-      );
-    }
-    const data = await response.json();
-    return String(data.choices?.[0]?.message?.content ?? "").trim();
   }
 
   private parseGeneratedJson(text: string) {
@@ -316,13 +365,14 @@ ${rawText}`;
   public async generate(
     type: keyof typeof PROMPTS,
     context?: string,
+    options?: Pick<GenerationOptions, "timeoutMs">,
   ): Promise<any | null> {
-    if (!isAIConfigured()) return null;
-
-    // Check cache first for skill interpretations
-    if (type === "skill" && context && interpretationCache.has(context)) {
-      return interpretationCache.get(context);
+    if (type === "skill") {
+      const result = await this.interpretSkill(context || "000000000", options);
+      return result.data;
     }
+
+    if (!isAIConfigured()) return null;
 
     const prompt =
       PROMPTS[type] + (context ? `\n\nAdditional context: ${context}` : "");
@@ -333,20 +383,54 @@ ${rawText}`;
           "You are a fantasy RPG content generator. Return ONLY valid JSON.",
         temperature: 0.8,
         maxTokens: 8000,
+        timeoutMs: options?.timeoutMs,
       });
-
-      // Save to cache before returning
-      if (type === "skill" && context) {
-        interpretationCache.set(context, result);
-      }
       return result;
     } catch (err: any) {
       console.error("AI generation failed:", err);
-      // If it's a skill and it failed (other than 429 handled above), use fallback
-      if (type === "skill") {
-        return this.getFallbackSkillInterpretation(context || "000000000");
-      }
       throw new Error(`AI generation failed: ${err.message}`);
+    }
+  }
+
+  public async interpretSkill(
+    code: string,
+    options?: Pick<GenerationOptions, "timeoutMs">,
+  ): Promise<SkillInterpretationResult> {
+    if (interpretationCache.has(code)) {
+      return {
+        data: interpretationCache.get(code),
+        fallback: false,
+        cached: true,
+      };
+    }
+
+    if (!isAIConfigured()) {
+      return {
+        data: this.getFallbackSkillInterpretation(code),
+        fallback: true,
+        reason: "ai_not_configured",
+      };
+    }
+
+    const prompt = `${PROMPTS.skill}\n\nAdditional context: ${code}`;
+
+    try {
+      const result = await this.generateFromPrompt(prompt, {
+        systemMsg:
+          "You are a fantasy RPG content generator. Return ONLY valid JSON.",
+        temperature: 0.8,
+        maxTokens: 8000,
+        timeoutMs: options?.timeoutMs,
+      });
+      interpretationCache.set(code, result);
+      return { data: result, fallback: false };
+    } catch (err: any) {
+      console.error("Skill interpretation failed, using fallback:", err);
+      return {
+        data: this.getFallbackSkillInterpretation(code),
+        fallback: true,
+        reason: err?.message || "ai_unavailable",
+      };
     }
   }
 

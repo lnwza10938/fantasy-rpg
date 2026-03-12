@@ -554,6 +554,27 @@ router.post("/ai/generate", async (req, res) => {
     });
     return;
   }
+  if (type === "skill") {
+    try {
+      const interpretation = await worldGenerator.interpretSkill(
+        String(context || "000000000"),
+        { timeoutMs: 3200 },
+      );
+      res.json({
+        success: true,
+        data: interpretation.data,
+        meta: {
+          fallback: interpretation.fallback,
+          cached: !!interpretation.cached,
+          reason: interpretation.reason || null,
+        },
+      });
+      return;
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+      return;
+    }
+  }
   if (!isAIConfigured()) {
     res.status(400).json({
       success: false,
