@@ -1668,83 +1668,26 @@
                   </button>
                 </div>
 
-                <!-- 9-Pointed Star Area -->
+                <!-- 9-Pointed Sigil Area -->
                 <div
                   id="forge-skill-display"
                   class="star-container"
                   style="
                     position: relative;
-                    width: 180px;
-                    height: 180px;
+                    width: 320px;
+                    height: 320px;
+                    max-width: 100%;
                     margin: 20px auto;
                     display: none;
                   "
                 >
-                  <svg viewBox="0 0 100 100" style="width: 100%; height: 100%">
-                    <defs>
-                      <linearGradient
-                        id="starGrad"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="100%"
-                      >
-                        <stop
-                          offset="0%"
-                          style="stop-color: var(--accent); stop-opacity: 1"
-                        />
-                        <stop
-                          offset="100%"
-                          style="stop-color: var(--accent2); stop-opacity: 1"
-                        />
-                      </linearGradient>
-                    </defs>
-                    <!-- A perfectly symmetrical 9-pointed star (nonagram) generated using every 3rd point of a 9-gon -->
-                    <polygon
-                      points="50,2 6,67 97,35 3,35 94,67 50,2"
-                      fill="none"
-                      stroke="url(#starGrad)"
-                      stroke-opacity="0.2"
-                      stroke-width="0.5"
-                      style="transform-origin: center"
-                    />
-                    <!-- The actual continuous 9-pointed continuous line -->
-                    <polygon
-                      points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
-                      fill="url(#starGrad)"
-                      style="transform-origin: center; opacity: 0.15"
-                    />
-                    <polygon
-                      points="50,2 92,86 15,30 98,38 23,94 50,2 77,94 2,38 85,30 8,86"
-                      fill="none"
-                      stroke="url(#starGrad)"
-                      stroke-width="1.5"
-                      style="transform-origin: center; transition: all 0.5s"
-                    />
-                  </svg>
                   <div
                     id="skill-code-forge"
                     style="
                       position: absolute;
-                      top: 50%;
-                      left: 50%;
-                      transform: translate(-50%, -50%);
-                      width: 100%;
-                      text-align: center;
+                      inset: 0;
                     "
-                  >
-                    <div
-                      style="
-                        font-family: monospace;
-                        font-size: 18px;
-                        font-weight: 900;
-                        color: #fff;
-                        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-                      "
-                    >
-                      000-000-000
-                    </div>
-                  </div>
+                  ></div>
                 </div>
 
                 <div
@@ -1756,7 +1699,7 @@
                     font-size: 13px;
                   "
                 >
-                  Roll to discover your legend's unique power.
+                  Roll to awaken your legend's rune circle.
                 </div>
 
                 <div

@@ -59,6 +59,186 @@ const PRESET_WORLD_BIOMES: Record<string, string[]> = {
   ancient: ["ruins"],
 };
 
+const SKILL_SIGIL_LEXICON = [
+  {
+    category: "Trigger",
+    values: [
+      "Self Cast",
+      "On Hit",
+      "On Damaged",
+      "On Kill",
+      "Low HP",
+      "Low Mana",
+      "Timed",
+      "Enter Combat",
+      "Buff Event",
+      "Random Trigger",
+    ],
+  },
+  {
+    category: "Skill Role",
+    values: [
+      "None",
+      "Attack",
+      "Defense",
+      "Buff",
+      "Debuff",
+      "Curse",
+      "Heal",
+      "Summon",
+      "Utility",
+      "Random Role",
+    ],
+  },
+  {
+    category: "Target Type",
+    values: [
+      "Self",
+      "Single Enemy",
+      "Multi Enemy",
+      "All Enemies",
+      "Area",
+      "Single Ally",
+      "All Allies",
+      "Random Target",
+      "All Units Area",
+      "Random Target Type",
+    ],
+  },
+  {
+    category: "Effect Type",
+    values: [
+      "None",
+      "Physical",
+      "Magical",
+      "Soul",
+      "Life Steal",
+      "Mana Drain",
+      "Max HP Damage",
+      "Mana Break",
+      "Armor Break",
+      "Random Effect",
+    ],
+  },
+  {
+    category: "Scaling Source",
+    values: [
+      "No Scaling",
+      "Attack Power",
+      "Defense Power",
+      "Max HP",
+      "Max Mana",
+      "Speed",
+      "Level",
+      "Enemy Count",
+      "Buff Count",
+      "Random Scaling",
+    ],
+  },
+  {
+    category: "Delivery Type",
+    values: [
+      "Instant",
+      "Direct Strike",
+      "Explosion",
+      "Wave",
+      "Chain",
+      "Aura",
+      "Ring",
+      "Beam",
+      "Spawn Object",
+      "Random Delivery",
+    ],
+  },
+  {
+    category: "Duration Type",
+    values: [
+      "Instant",
+      "Short",
+      "Medium",
+      "Long",
+      "Continuous",
+      "Periodic",
+      "Stackable",
+      "Delayed",
+      "Conditional",
+      "Random Duration",
+    ],
+  },
+  {
+    category: "Secondary Modifier",
+    values: [
+      "None",
+      "Life Steal",
+      "Armor Up",
+      "Attack Up",
+      "Slow",
+      "Status Effect",
+      "Bounce",
+      "Range Up",
+      "Cooldown Reduce",
+      "Random Modifier",
+    ],
+  },
+  {
+    category: "Special Property",
+    values: [
+      "None",
+      "HP Trade Power",
+      "Mana Overload",
+      "Random Outcome",
+      "Backfire",
+      "Permanent Stack",
+      "Mutation",
+      "Low HP Boost",
+      "Hidden Unlock",
+      "Anomaly",
+    ],
+  },
+] as const;
+
+const RUNE_ALPHABET: Record<string, string> = {
+  A: "ᚨ",
+  B: "ᛒ",
+  C: "ᚲ",
+  D: "ᛞ",
+  E: "ᛖ",
+  F: "ᚠ",
+  G: "ᚷ",
+  H: "ᚺ",
+  I: "ᛁ",
+  J: "ᛃ",
+  K: "ᚲ",
+  L: "ᛚ",
+  M: "ᛗ",
+  N: "ᚾ",
+  O: "ᛟ",
+  P: "ᛈ",
+  Q: "ᚲ",
+  R: "ᚱ",
+  S: "ᛊ",
+  T: "ᛏ",
+  U: "ᚢ",
+  V: "ᚡ",
+  W: "ᚹ",
+  X: "ᚲᛊ",
+  Y: "ᛇ",
+  Z: "ᛉ",
+  " ": " ᛫ ",
+  "-": " ᛫ ",
+  _: " ᛫ ",
+  "/": " ᛬ ",
+  "|": " ᛭ ",
+  ".": " ᛫ ",
+  ",": " ᛫ ",
+  ":": " ᛬ ",
+  "&": " ᛭ ",
+  "'": "",
+  '"': "",
+  "(": " ",
+  ")": " ",
+};
+
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
 
@@ -122,6 +302,248 @@ function pageHref(page: string) {
   if (page === "forge") return "/forge";
   if (page === "adventure") return "/adventure";
   return "/";
+}
+
+function humanizeSkillTerm(value: unknown) {
+  return String(value ?? "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\bHp\b/gi, "HP")
+    .replace(/\bMp\b/gi, "MP")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function shortenSigilPhrase(value: unknown, maxWords = 2, maxChars = 18) {
+  const words = humanizeSkillTerm(value).split(" ").filter(Boolean);
+  const shortened = words.slice(0, maxWords).join(" ");
+  return shortened.slice(0, maxChars).trim();
+}
+
+function toRuneText(value: unknown) {
+  return humanizeSkillTerm(value)
+    .toUpperCase()
+    .split("")
+    .map((char) => RUNE_ALPHABET[char] ?? char)
+    .join("")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function getSigilSegments(code: string) {
+  const digits = code
+    .replace(/\D/g, "")
+    .slice(0, 9)
+    .padEnd(9, "0")
+    .split("")
+    .map((digit) => Number(digit));
+
+  return digits.map((digit, index) => {
+    const bucket = SKILL_SIGIL_LEXICON[index];
+    return {
+      digit,
+      category: bucket.category,
+      value: bucket.values[digit] || bucket.values[0],
+    };
+  });
+}
+
+function polarPoint(cx: number, cy: number, radius: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(rad),
+    y: cy + radius * Math.sin(rad),
+  };
+}
+
+function buildCirclePath(
+  cx: number,
+  cy: number,
+  radius: number,
+  reverse = false,
+) {
+  if (reverse) {
+    return `M ${cx} ${cy - radius} a ${radius} ${radius} 0 1 0 0 ${
+      radius * 2
+    } a ${radius} ${radius} 0 1 0 0 -${radius * 2}`;
+  }
+  return `M ${cx} ${cy - radius} a ${radius} ${radius} 0 1 1 0 ${
+    radius * 2
+  } a ${radius} ${radius} 0 1 1 0 -${radius * 2}`;
+}
+
+function buildSigilStarPoints(
+  cx: number,
+  cy: number,
+  radius: number,
+  step = 4,
+  total = 9,
+) {
+  let index = 0;
+  const ordered: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const point = polarPoint(cx, cy, radius, (360 / total) * index);
+    ordered.push(`${point.x.toFixed(2)},${point.y.toFixed(2)}`);
+    index = (index + step) % total;
+  }
+  const first = polarPoint(cx, cy, radius, 0);
+  ordered.push(`${first.x.toFixed(2)},${first.y.toFixed(2)}`);
+  return ordered.join(" ");
+}
+
+function buildSigilTicks(
+  cx: number,
+  cy: number,
+  innerRadius: number,
+  outerRadius: number,
+  count: number,
+) {
+  return Array.from({ length: count }, (_, index) => {
+    const angle = (360 / count) * index;
+    const inner = polarPoint(cx, cy, innerRadius, angle);
+    const outer = polarPoint(cx, cy, outerRadius, angle);
+    return `<line x1="${inner.x.toFixed(2)}" y1="${inner.y.toFixed(
+      2,
+    )}" x2="${outer.x.toFixed(2)}" y2="${outer.y.toFixed(
+      2,
+    )}" class="sigil-tick" />`;
+  }).join("");
+}
+
+function buildRuneRingText(source: string | string[], minimumLength = 120) {
+  const raw = Array.isArray(source) ? source.filter(Boolean).join(" | ") : source;
+  const base = toRuneText(raw || "Legendary Sigil");
+  let text = base;
+  while (text.length < minimumLength) {
+    text += " ᛫ " + base;
+  }
+  return text;
+}
+
+function buildSigilPointLabels(segments: ReturnType<typeof getSigilSegments>) {
+  return segments
+    .map((segment, index) => {
+      const point = polarPoint(200, 200, 123, index * 40);
+      const label = escapeHtml(toRuneText(shortenSigilPhrase(segment.value, 2, 14)));
+      return `<text x="${point.x.toFixed(2)}" y="${point.y.toFixed(
+        2,
+      )}" class="sigil-point-label">${label}</text>`;
+    })
+    .join("");
+}
+
+function buildForgeSigilSvg(
+  code: string,
+  skillData?: any,
+  phase: "rolling" | "interpreting" | "final" = "final",
+) {
+  const segments = getSigilSegments(code);
+  const skillName =
+    humanizeSkillTerm(skillData?.name) ||
+    (phase === "interpreting" ? "Interpreting Sigil" : "Unwritten Legend");
+  const loreText =
+    humanizeSkillTerm(skillData?.mechanics) ||
+    humanizeSkillTerm(skillData?.description) ||
+    `${segments[1].value} ${segments[3].value} ${segments[2].value}`;
+  const outerRingText = buildRuneRingText(
+    [
+      skillName,
+      humanizeSkillTerm(skillData?.target_type || segments[2].value),
+      humanizeSkillTerm(skillData?.scaling_stat || segments[4].value),
+      humanizeSkillTerm(skillData?.mechanics || segments[8].value),
+    ],
+    170,
+  );
+  const innerRingText = buildRuneRingText(
+    segments.map((segment) => `${segment.category} ${segment.value}`),
+    210,
+  );
+  const loreRingText = buildRuneRingText(loreText, 150);
+  const coreText = escapeHtml(
+    toRuneText(
+      phase === "rolling"
+        ? "Awakening"
+        : phase === "interpreting"
+          ? "Interpreting"
+          : shortenSigilPhrase(skillName, 3, 22),
+    ),
+  );
+  const starPath = buildSigilStarPoints(200, 200, 104);
+  const innerStarPath = buildSigilStarPoints(200, 200, 76, 2);
+  const runeLabels = buildSigilPointLabels(segments);
+  const tickMarks = buildSigilTicks(200, 200, 182, 191, 108);
+  const statusText =
+    phase === "rolling"
+      ? "Sigil awakening"
+      : phase === "interpreting"
+        ? "Reading the runes"
+        : shortenSigilPhrase(skillData?.name || "Legendary Sigil", 3, 20);
+
+  return `
+    <svg class="forge-sigil-svg" viewBox="0 0 400 400" aria-label="Legendary magic circle">
+      <defs>
+        <linearGradient id="sigil-grad" x1="5%" y1="5%" x2="95%" y2="95%">
+          <stop offset="0%" stop-color="#f2c38e" />
+          <stop offset="55%" stop-color="#d4a65a" />
+          <stop offset="100%" stop-color="#a06cff" />
+        </linearGradient>
+        <radialGradient id="sigil-core" cx="50%" cy="50%" r="55%">
+          <stop offset="0%" stop-color="rgba(255,233,190,0.22)" />
+          <stop offset="70%" stop-color="rgba(160,108,255,0.12)" />
+          <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+        </radialGradient>
+        <path id="sigil-ring-outer" d="${buildCirclePath(200, 200, 168)}" />
+        <path id="sigil-ring-mid" d="${buildCirclePath(200, 200, 141, true)}" />
+        <path id="sigil-ring-inner" d="${buildCirclePath(200, 200, 118)}" />
+      </defs>
+
+      <circle cx="200" cy="200" r="188" class="sigil-outline sigil-outline-outer" />
+      <circle cx="200" cy="200" r="176" class="sigil-outline sigil-outline-mid" />
+      <circle cx="200" cy="200" r="152" class="sigil-outline sigil-outline-soft" />
+      <circle cx="200" cy="200" r="129" class="sigil-outline sigil-outline-soft" />
+      <circle cx="200" cy="200" r="97" class="sigil-outline sigil-outline-core" />
+      <circle cx="200" cy="200" r="63" fill="url(#sigil-core)" />
+
+      <g class="sigil-ticks">${tickMarks}</g>
+
+      <text class="sigil-ring-text sigil-ring-text-outer">
+        <textPath href="#sigil-ring-outer" startOffset="0%">${escapeHtml(
+          outerRingText,
+        )}</textPath>
+      </text>
+      <text class="sigil-ring-text sigil-ring-text-mid">
+        <textPath href="#sigil-ring-mid" startOffset="0%">${escapeHtml(
+          innerRingText,
+        )}</textPath>
+      </text>
+      <text class="sigil-ring-text sigil-ring-text-inner">
+        <textPath href="#sigil-ring-inner" startOffset="0%">${escapeHtml(
+          loreRingText,
+        )}</textPath>
+      </text>
+
+      <polygon points="${starPath}" class="sigil-star-fill" />
+      <polygon points="${starPath}" class="sigil-star-line" />
+      <polygon points="${innerStarPath}" class="sigil-inner-web" />
+      <circle cx="200" cy="200" r="46" class="sigil-outline sigil-outline-core" />
+
+      <g class="sigil-spoke-labels">${runeLabels}</g>
+
+      <text x="200" y="194" class="sigil-core-text">${coreText}</text>
+      <text x="200" y="220" class="sigil-core-subtext">${escapeHtml(
+        toRuneText(statusText),
+      )}</text>
+    </svg>
+  `;
+}
+
+function renderForgeSigil(
+  container: HTMLElement,
+  code: string,
+  skillData?: any,
+  phase: "rolling" | "interpreting" | "final" = "final",
+) {
+  container.innerHTML = buildForgeSigilSvg(code, skillData, phase);
 }
 
 function setHubSummaryValue(id: string, value: string) {
@@ -1823,6 +2245,7 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
   document.getElementById("forge-skill-display")!.style.display = "none";
   document.getElementById("forge-skill-placeholder")!.style.display = "block";
   document.getElementById("forge-skill-box")!.style.display = "none";
+  document.getElementById("skill-code-forge")!.innerHTML = "";
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).disabled =
     true;
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).textContent =
@@ -1888,7 +2311,7 @@ async function rollForgeSkill() {
     codeStr = Array.from({ length: 9 }, () =>
       Math.floor(Math.random() * 10),
     ).join("");
-    display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; letter-spacing:2px; color:var(--accent)">${codeStr.match(/.{1,3}/g)?.join("-")}</div>`;
+    renderForgeSigil(display, codeStr, null, "rolling");
     rolls++;
     if (rolls > 15) {
       clearInterval(rollInterval);
@@ -1897,7 +2320,7 @@ async function rollForgeSkill() {
   }, 50);
 
   async function fetchForgeInterpretation(code: string) {
-    display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join("-")}</div><div style="font-size:9px;color:var(--accent)">Interpreting...</div>`;
+    renderForgeSigil(display, code, null, "interpreting");
 
     try {
       const res = await fetch(`${DEV_API}/ai/generate`, {
@@ -1927,7 +2350,7 @@ async function rollForgeSkill() {
           j.data.scaling_stat;
 
         resultBox.style.display = "block";
-        display.innerHTML = `<div style="font-family:monospace; font-size:18px; font-weight:900; color:#fff">${code.match(/.{1,3}/g)?.join("-")}</div>`;
+        renderForgeSigil(display, code, j.data, "final");
         confirmBtn.disabled = false;
       } else {
         display.innerHTML = `<div style="color:var(--red);font-size:10px">${j.error || "Interpretation Failed"}</div>`;

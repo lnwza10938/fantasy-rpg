@@ -1471,26 +1471,136 @@ input:focus {
 
 @keyframes pulseGlow {
   0% {
-    filter: drop-shadow(0 0 5px rgba(79, 195, 247, 0.5));
+    filter: drop-shadow(0 0 8px rgba(212, 166, 90, 0.35));
   }
 
   50% {
-    filter: drop-shadow(0 0 20px rgba(79, 195, 247, 0.8));
+    filter:
+      drop-shadow(0 0 24px rgba(212, 166, 90, 0.5))
+      drop-shadow(0 0 30px rgba(160, 108, 255, 0.28));
   }
 
   100% {
-    filter: drop-shadow(0 0 5px rgba(79, 195, 247, 0.5));
+    filter: drop-shadow(0 0 8px rgba(212, 166, 90, 0.35));
   }
 }
 
 .star-container svg {
-  filter: drop-shadow(0 0 10px rgba(79, 195, 247, 0.3));
+  filter:
+    drop-shadow(0 0 12px rgba(212, 166, 90, 0.24))
+    drop-shadow(0 0 24px rgba(160, 108, 255, 0.12));
 }
 
 .forging .star-container svg {
   animation:
     rotateStar 5s linear infinite,
     pulseGlow 2s ease-in-out infinite;
+}
+
+.forge-sigil-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sigil-outline {
+  fill: none;
+  stroke: rgba(212, 166, 90, 0.18);
+}
+
+.sigil-outline-outer {
+  stroke: rgba(242, 195, 142, 0.82);
+  stroke-width: 3.2;
+}
+
+.sigil-outline-mid {
+  stroke: rgba(212, 166, 90, 0.42);
+  stroke-width: 1.5;
+}
+
+.sigil-outline-soft {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 0.9;
+  stroke-dasharray: 1 6;
+}
+
+.sigil-outline-core {
+  stroke: rgba(232, 206, 163, 0.58);
+  stroke-width: 1.1;
+}
+
+.sigil-tick {
+  stroke: rgba(242, 195, 142, 0.42);
+  stroke-width: 1;
+}
+
+.sigil-ring-text {
+  fill: rgba(242, 222, 189, 0.92);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: "Times New Roman", "Georgia", serif;
+}
+
+.sigil-ring-text-outer {
+  font-size: 11px;
+}
+
+.sigil-ring-text-mid {
+  font-size: 8.8px;
+  fill: rgba(233, 223, 208, 0.78);
+}
+
+.sigil-ring-text-inner {
+  font-size: 7px;
+  fill: rgba(214, 176, 255, 0.7);
+}
+
+.sigil-star-fill {
+  fill: rgba(219, 182, 136, 0.1);
+}
+
+.sigil-star-line,
+.sigil-inner-web {
+  fill: none;
+  stroke: url(#sigil-grad);
+  stroke-linejoin: round;
+}
+
+.sigil-star-line {
+  stroke-width: 5.2;
+}
+
+.sigil-inner-web {
+  stroke-width: 2.5;
+  opacity: 0.82;
+}
+
+.sigil-point-label {
+  fill: #f6dfbf;
+  font-size: 6.7px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-family: "Times New Roman", "Georgia", serif;
+}
+
+.sigil-core-text {
+  fill: #fff0d9;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  font-family: "Times New Roman", "Georgia", serif;
+}
+
+.sigil-core-subtext {
+  fill: rgba(241, 228, 206, 0.78);
+  text-anchor: middle;
+  font-size: 6px;
+  letter-spacing: 2.8px;
+  text-transform: uppercase;
+  font-family: "Orbitron", sans-serif;
 }
 
 .btn-danger {
