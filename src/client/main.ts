@@ -241,6 +241,13 @@ const RUNE_ALPHABET: Record<string, string> = {
 
 // Vault and Forge state
 let forgeState = { skillCode: "", skillData: null as any };
+let forgeSigilHost: HTMLElement | null = null;
+let forgeSigilSpinFrame: number | null = null;
+let forgeSigilSettleFrame: number | null = null;
+let forgeSigilRotation = 0;
+let forgeSigilVelocity = 0;
+let forgeSigilTargetVelocity = 0;
+let forgeSigilLastTimestamp = 0;
 
 // --- AUTH ---
 let authMode = "login";
@@ -544,6 +551,134 @@ function renderForgeSigil(
   phase: "rolling" | "interpreting" | "final" = "final",
 ) {
   container.innerHTML = buildForgeSigilSvg(code, skillData, phase);
+}
+
+function applyForgeSigilRotation(container?: HTMLElement | null) {
+  const host = container || forgeSigilHost;
+  if (!host) return;
+  host.style.setProperty("--sigil-rotation", `${forgeSigilRotation}deg`);
+}
+
+function setForgeSkillBoxVisible(visible: boolean) {
+  const box = document.getElementById("forge-skill-box");
+  if (!box) return;
+  if (visible) {
+    box.style.display = "block";
+    requestAnimationFrame(() => box.classList.add("is-visible"));
+    return;
+  }
+  box.classList.remove("is-visible");
+  box.style.display = "none";
+}
+
+function setForgeScreenPhase(
+  screen: HTMLElement | null,
+  phase: "idle" | "rolling" | "interpreting" | "settling" | "resolved",
+) {
+  if (!screen) return;
+  screen.classList.remove(
+    "forging",
+    "forge-interpreting",
+    "forge-settling",
+    "forge-resolved",
+  );
+
+  if (phase === "rolling") screen.classList.add("forging");
+  if (phase === "interpreting") screen.classList.add("forge-interpreting");
+  if (phase === "settling") screen.classList.add("forge-settling");
+  if (phase === "resolved") screen.classList.add("forge-resolved");
+}
+
+function stopForgeSigilMotion() {
+  if (forgeSigilSpinFrame !== null) {
+    cancelAnimationFrame(forgeSigilSpinFrame);
+    forgeSigilSpinFrame = null;
+  }
+  if (forgeSigilSettleFrame !== null) {
+    cancelAnimationFrame(forgeSigilSettleFrame);
+    forgeSigilSettleFrame = null;
+  }
+  forgeSigilVelocity = 0;
+  forgeSigilTargetVelocity = 0;
+  forgeSigilLastTimestamp = 0;
+}
+
+function tickForgeSigilMotion(timestamp: number) {
+  if (!forgeSigilHost || !forgeSigilHost.isConnected) {
+    stopForgeSigilMotion();
+    return;
+  }
+
+  if (!forgeSigilLastTimestamp) {
+    forgeSigilLastTimestamp = timestamp;
+  }
+
+  const deltaSeconds = Math.max(0, (timestamp - forgeSigilLastTimestamp) / 1000);
+  forgeSigilLastTimestamp = timestamp;
+
+  const easing = Math.min(1, deltaSeconds * 3.5);
+  forgeSigilVelocity += (forgeSigilTargetVelocity - forgeSigilVelocity) * easing;
+  forgeSigilRotation += forgeSigilVelocity * deltaSeconds;
+  applyForgeSigilRotation();
+
+  if (
+    Math.abs(forgeSigilVelocity) > 0.05 ||
+    Math.abs(forgeSigilTargetVelocity - forgeSigilVelocity) > 0.05
+  ) {
+    forgeSigilSpinFrame = requestAnimationFrame(tickForgeSigilMotion);
+  } else {
+    forgeSigilSpinFrame = null;
+  }
+}
+
+function startForgeSigilMotion(container: HTMLElement, velocity = 64) {
+  forgeSigilHost = container;
+  forgeSigilTargetVelocity = velocity;
+  applyForgeSigilRotation(container);
+
+  if (forgeSigilSpinFrame === null) {
+    forgeSigilLastTimestamp = 0;
+    forgeSigilSpinFrame = requestAnimationFrame(tickForgeSigilMotion);
+  }
+}
+
+function easeOutCubic(t: number) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function settleForgeSigil(container: HTMLElement, duration = 820) {
+  stopForgeSigilMotion();
+  forgeSigilHost = container;
+
+  const startRotation = forgeSigilRotation;
+  const normalized = ((startRotation % 360) + 360) % 360;
+  const snapStep = 40;
+  let targetRotation = startRotation - normalized + Math.round(normalized / snapStep) * snapStep;
+  if (targetRotation <= startRotation + 80) {
+    targetRotation += 360;
+  }
+
+  return new Promise<void>((resolve) => {
+    let startTime = 0;
+
+    const frame = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min(1, (timestamp - startTime) / duration);
+      const eased = easeOutCubic(progress);
+      forgeSigilRotation =
+        startRotation + (targetRotation - startRotation) * eased;
+      applyForgeSigilRotation(container);
+
+      if (progress < 1) {
+        forgeSigilSettleFrame = requestAnimationFrame(frame);
+      } else {
+        forgeSigilSettleFrame = null;
+        resolve();
+      }
+    };
+
+    forgeSigilSettleFrame = requestAnimationFrame(frame);
+  });
 }
 
 function setHubSummaryValue(id: string, value: string) {
@@ -2244,8 +2379,17 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
 
   document.getElementById("forge-skill-display")!.style.display = "none";
   document.getElementById("forge-skill-placeholder")!.style.display = "block";
-  document.getElementById("forge-skill-box")!.style.display = "none";
+  setForgeSkillBoxVisible(false);
   document.getElementById("skill-code-forge")!.innerHTML = "";
+  const sigilHost = document.getElementById("skill-code-forge") as HTMLElement | null;
+  if (sigilHost) {
+    forgeSigilHost = sigilHost;
+    forgeSigilRotation = 0;
+    applyForgeSigilRotation(sigilHost);
+  }
+  stopForgeSigilMotion();
+  const forgeScreen = document.getElementById("screen-forge");
+  setForgeScreenPhase(forgeScreen, "idle");
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).disabled =
     true;
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).textContent =
@@ -2302,8 +2446,11 @@ async function rollForgeSkill() {
   confirmBtn.disabled = true;
   placeholder.style.display = "none";
   starArea.style.display = "block";
-  resultBox.style.display = "none";
-  screen.classList.add("forging");
+  setForgeSkillBoxVisible(false);
+  setForgeScreenPhase(screen, "rolling");
+  forgeSigilRotation = 0;
+  applyForgeSigilRotation(display);
+  startForgeSigilMotion(display, 96);
 
   let codeStr = "";
   let rolls = 0;
@@ -2320,6 +2467,8 @@ async function rollForgeSkill() {
   }, 50);
 
   async function fetchForgeInterpretation(code: string) {
+    setForgeScreenPhase(screen, "interpreting");
+    startForgeSigilMotion(display, 42);
     renderForgeSigil(display, code, null, "interpreting");
 
     try {
@@ -2349,16 +2498,24 @@ async function rollForgeSkill() {
         document.getElementById("forge-skill-scaling")!.textContent =
           j.data.scaling_stat;
 
-        resultBox.style.display = "block";
         renderForgeSigil(display, code, j.data, "final");
+        setForgeScreenPhase(screen, "settling");
+        await new Promise((resolve) => setTimeout(resolve, 220));
+        await settleForgeSigil(display);
+        setForgeSkillBoxVisible(true);
+        setForgeScreenPhase(screen, "resolved");
         confirmBtn.disabled = false;
       } else {
+        stopForgeSigilMotion();
+        setForgeScreenPhase(screen, "idle");
         display.innerHTML = `<div style="color:var(--red);font-size:10px">${j.error || "Interpretation Failed"}</div>`;
       }
     } catch (e) {
+      stopForgeSigilMotion();
+      setForgeScreenPhase(screen, "idle");
       display.innerHTML = `<div style="color:var(--red);font-size:10px">Connection Error</div>`;
     } finally {
-      if (screen) screen.classList.remove("forging");
+      stopForgeSigilMotion();
       btn.disabled = false;
     }
   }

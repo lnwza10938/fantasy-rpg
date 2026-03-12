@@ -1506,15 +1506,47 @@ input:focus {
 
 .star-container #skill-code-forge {
   transform-origin: 50% 50%;
+  transform: rotate(var(--sigil-rotation, 0deg));
+  transition:
+    opacity 0.42s ease,
+    filter 0.42s ease;
   will-change: transform;
 }
 
 .forging .star-container #skill-code-forge {
-  animation: rotateStar 14s linear infinite;
+  opacity: 1;
+  filter: saturate(1.04);
+}
+
+.forge-interpreting .star-container #skill-code-forge {
+  opacity: 0.94;
+  filter:
+    saturate(1.08)
+    drop-shadow(0 0 10px rgba(160, 108, 255, 0.18));
+}
+
+.forge-settling .star-container #skill-code-forge {
+  opacity: 1;
+  filter:
+    saturate(1.12)
+    drop-shadow(0 0 16px rgba(212, 166, 90, 0.18));
+}
+
+.forge-resolved .star-container #skill-code-forge {
+  opacity: 1;
+  filter: none;
 }
 
 .forging .star-container svg {
   animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.forge-interpreting .star-container svg {
+  animation: pulseGlow 2.4s ease-in-out infinite;
+}
+
+.forge-settling .star-container svg {
+  animation: pulseGlow 1.8s ease-in-out 1;
 }
 
 .forge-sigil-svg {
@@ -1624,6 +1656,19 @@ input:focus {
   letter-spacing: 2.8px;
   text-transform: uppercase;
   font-family: "Orbitron", sans-serif;
+}
+
+#forge-skill-box {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+#forge-skill-box.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .btn-danger {
