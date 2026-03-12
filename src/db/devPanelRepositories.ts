@@ -48,6 +48,19 @@ function cloneRecord<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+function safeObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => String(entry || "").trim())
+    .filter(Boolean);
+}
+
 function normalizeSourceRecord(
   source: DevSourceConfig,
   record: Record<string, unknown>,
@@ -92,6 +105,37 @@ function normalizeSourceRecord(
     nextRecord.is_active = nextRecord.is_active !== false;
   }
 
+  if (source.key === "world_definitions") {
+    nextRecord.world_seed = Number(nextRecord.world_seed || 0);
+    nextRecord.generation_mode =
+      String(nextRecord.generation_mode || "procedural").trim() || "procedural";
+    nextRecord.world_name =
+      String(nextRecord.world_name || "New World").trim() || "New World";
+    nextRecord.world_preset =
+      String(nextRecord.world_preset || "balanced").trim() || "balanced";
+    nextRecord.custom_biomes = normalizeStringArray(nextRecord.custom_biomes);
+    nextRecord.custom_monsters = normalizeStringArray(nextRecord.custom_monsters);
+    nextRecord.metadata_json = safeObject(nextRecord.metadata_json);
+    nextRecord.definition_json = safeObject(nextRecord.definition_json);
+    nextRecord.definition_version = Number(nextRecord.definition_version || 1);
+  }
+
+  if (source.key === "world_overrides") {
+    nextRecord.world_definition_id = String(nextRecord.world_definition_id || "").trim();
+    nextRecord.override_type =
+      String(nextRecord.override_type || "patch_region").trim() || "patch_region";
+    nextRecord.scope_type =
+      String(
+        nextRecord.scope_type ||
+          (nextRecord.override_type === "patch_region" ? "region" : "world"),
+      ).trim() || "world";
+    nextRecord.scope_ref =
+      nextRecord.scope_type === "region"
+        ? String(nextRecord.scope_ref || "").trim()
+        : "";
+    nextRecord.payload_json = safeObject(nextRecord.payload_json);
+  }
+
   const updatedAtField = TABLE_UPDATED_AT_FIELDS[source.table];
   if (updatedAtField) {
     nextRecord[updatedAtField] = new Date().toISOString();
@@ -107,6 +151,62 @@ function validateSourceRecord(source: DevSourceConfig, record: Record<string, un
   if (source.key === "maps") return contentValidator.validateMap(record);
   if (source.key === "spawn_points") return contentValidator.validateSpawnPoint(record);
   if (source.key === "dialogues") return contentValidator.validateDialogue(record);
+
+  if (source.key === "world_definitions") {
+    const errors: string[] = [];
+    if (!record.character_id || typeof record.character_id !== "string") {
+      errors.push("character_id is required");
+    }
+    if (!record.world_name || typeof record.world_name !== "string") {
+      errors.push("world_name is required");
+    }
+    if (
+      record.generation_mode !== "procedural" &&
+      record.generation_mode !== "custom"
+    ) {
+      errors.push("generation_mode must be procedural or custom");
+    }
+    if (
+      !record.definition_json ||
+      typeof record.definition_json !== "object" ||
+      Array.isArray(record.definition_json)
+    ) {
+      errors.push("definition_json must be an object");
+    }
+    return { valid: errors.length === 0, errors };
+  }
+
+  if (source.key === "world_overrides") {
+    const errors: string[] = [];
+    const allowedTypes = new Set([
+      "patch_region",
+      "set_map_layout",
+      "patch_metadata",
+      "replace_definition",
+    ]);
+    if (!record.world_definition_id || typeof record.world_definition_id !== "string") {
+      errors.push("world_definition_id is required");
+    }
+    if (!allowedTypes.has(String(record.override_type || ""))) {
+      errors.push("override_type is invalid");
+    }
+    if (
+      !record.payload_json ||
+      typeof record.payload_json !== "object" ||
+      Array.isArray(record.payload_json)
+    ) {
+      errors.push("payload_json must be an object");
+    }
+    if (record.override_type === "patch_region") {
+      if (record.scope_type !== "region") {
+        errors.push("patch_region overrides must use scope_type=region");
+      }
+      if (!record.scope_ref || typeof record.scope_ref !== "string") {
+        errors.push("patch_region overrides require scope_ref");
+      }
+    }
+    return { valid: errors.length === 0, errors };
+  }
 
   if (source.table === "content_entries") {
     const errors: string[] = [];

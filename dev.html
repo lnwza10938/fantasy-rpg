@@ -217,6 +217,57 @@
           <div id="dev-editor-ai-status" class="dev-inline-status"></div>
         </div>
 
+        <div id="dev-override-builder" class="dev-ai-draft-box dev-override-builder hidden">
+          <div class="dev-panel-kicker">World Override Builder</div>
+          <p class="dev-panel-copy dev-ai-draft-copy">
+            Choose a world, pick the patch target, and seed a safe override
+            payload without writing the whole JSON structure by hand.
+          </p>
+          <div class="dev-override-grid">
+            <label class="dev-override-field">
+              <span>World</span>
+              <select id="dev-override-world"></select>
+            </label>
+            <label class="dev-override-field">
+              <span>Override Type</span>
+              <select id="dev-override-type">
+                <option value="patch_region">Patch Region</option>
+                <option value="set_map_layout">Set Map Layout</option>
+                <option value="patch_metadata">Patch Metadata</option>
+                <option value="replace_definition">Replace Definition</option>
+              </select>
+            </label>
+            <label class="dev-override-field">
+              <span>Scope</span>
+              <select id="dev-override-scope">
+                <option value="region">Region</option>
+                <option value="world">World</option>
+              </select>
+            </label>
+            <label class="dev-override-field">
+              <span>Target</span>
+              <select id="dev-override-region"></select>
+            </label>
+            <label class="dev-override-field dev-override-field-wide">
+              <span>Template</span>
+              <select id="dev-override-template-select"></select>
+            </label>
+          </div>
+          <div class="dev-editor-tools dev-override-actions">
+            <button id="dev-override-apply-template" class="btn btn-action" type="button">
+              Apply Template
+            </button>
+            <button id="dev-override-mirror-current" class="btn btn-action" type="button">
+              Mirror Current Data
+            </button>
+            <button id="dev-override-sync-json" class="btn btn-action" type="button">
+              Sync From JSON
+            </button>
+          </div>
+          <div id="dev-override-world-summary" class="dev-override-summary"></div>
+          <div id="dev-override-status" class="dev-inline-status"></div>
+        </div>
+
         <textarea id="dev-editor-json" class="dev-editor-json"></textarea>
 
         <div class="dev-editor-actions">

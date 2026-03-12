@@ -31,6 +31,18 @@ interface EditorState {
   recordId: string | null;
 }
 
+interface ParsedWorldDefinitionRecord {
+  id: string;
+  name: string;
+  preset: string;
+  mode: string;
+  record: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  definition: Record<string, unknown>;
+  regions: Record<string, unknown>[];
+  mapLayout: Record<string, unknown>;
+}
+
 const DEV_KEY_STORAGE = "rpg_dev_panel_key";
 const DEV_SORT_STORAGE = "rpg_dev_panel_sort";
 const DEV_CATEGORY_STORAGE = "rpg_dev_panel_category";
@@ -78,6 +90,16 @@ function cloneRecord<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
 }
 
+function safeObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function safeArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function getDevKey() {
   return localStorage.getItem(DEV_KEY_STORAGE) || "";
 }
@@ -112,6 +134,366 @@ function getSourceSnapshot(sourceKey: string) {
       .flatMap((category) => category.sources)
       .find((source) => source.key === sourceKey) || null
   );
+}
+
+function parseWorldDefinitionRecord(
+  record: Record<string, unknown>,
+): ParsedWorldDefinitionRecord | null {
+  const id = String(record.id || "").trim();
+  if (!id) return null;
+
+  const definition = safeObject(record.definition_json);
+  const metadata = safeObject(record.metadata_json);
+  const definitionMetadata = safeObject(definition.metadata);
+  const regions = safeArray(definition.regions).map((entry) => safeObject(entry));
+  const mapLayout = safeObject(definition.mapLayout);
+
+  return {
+    id,
+    name:
+      String(record.world_name || metadata.worldName || definitionMetadata.worldName || "Unnamed World").trim() ||
+      "Unnamed World",
+    preset:
+      String(record.world_preset || metadata.worldPreset || definitionMetadata.worldPreset || "custom").trim() ||
+      "custom",
+    mode: String(record.generation_mode || "procedural").trim() || "procedural",
+    record,
+    metadata,
+    definition,
+    regions,
+    mapLayout,
+  };
+}
+
+function getWorldDefinitionRecords() {
+  const source = getSourceSnapshot("world_definitions");
+  return (source?.records || [])
+    .map((record) => parseWorldDefinitionRecord(record))
+    .filter((record): record is ParsedWorldDefinitionRecord => !!record);
+}
+
+function getWorldDefinitionById(worldDefinitionId: string) {
+  return getWorldDefinitionRecords().find((record) => record.id === worldDefinitionId) || null;
+}
+
+function getOverrideTemplateOptions(overrideType: string) {
+  if (overrideType === "patch_region") {
+    return [
+      { value: "region_overview", label: "Region Overview" },
+      { value: "danger_and_spawns", label: "Danger + Spawns" },
+      { value: "map_node_state", label: "Node Placement" },
+      { value: "full_region_patch", label: "Full Region Patch" },
+    ];
+  }
+  if (overrideType === "set_map_layout") {
+    return [
+      { value: "layout_shell", label: "Layout Shell" },
+      { value: "layout_nodes", label: "Nodes Only" },
+      { value: "layout_paths", label: "Paths Only" },
+      { value: "full_layout", label: "Full Layout" },
+    ];
+  }
+  if (overrideType === "patch_metadata") {
+    return [{ value: "world_identity", label: "World Metadata" }];
+  }
+  return [{ value: "full_definition", label: "Full Definition" }];
+}
+
+function defaultTemplateForOverrideType(overrideType: string) {
+  return getOverrideTemplateOptions(overrideType)[0]?.value || "region_overview";
+}
+
+function setEditorJsonValue(record: Record<string, unknown>) {
+  const textareaEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
+  if (!textareaEl) return;
+  textareaEl.value = JSON.stringify(record, null, 2);
+}
+
+function parseEditorJsonValue() {
+  const textareaEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
+  if (!textareaEl) return {};
+  try {
+    return safeObject(JSON.parse(textareaEl.value || "{}"));
+  } catch {
+    return {};
+  }
+}
+
+function buildOverrideTemplateRecord(
+  world: ParsedWorldDefinitionRecord | null,
+  overrideType: string,
+  scopeType: string,
+  scopeRef: string,
+  templateKey: string,
+) {
+  const region =
+    world?.regions.find((entry) => String(entry.id || "") === scopeRef) || null;
+  const mapLayout = world?.mapLayout || {};
+  const metadata = world?.metadata || {};
+  const definition = world?.definition || {};
+
+  let payload: Record<string, unknown> = {};
+
+  if (overrideType === "patch_region") {
+    if (templateKey === "danger_and_spawns") {
+      payload = {
+        dangerLevel: Number(region?.dangerLevel || 1),
+        enemyPool: cloneRecord(
+          Array.isArray(region?.enemyPool) ? (region?.enemyPool as unknown[]) : [],
+        ),
+        tier: Number(region?.tier || 0),
+      };
+    } else if (templateKey === "map_node_state") {
+      payload = {
+        tier: Number(region?.tier || 0),
+        mapPosition: cloneRecord(safeObject(region?.mapPosition)),
+        isStart: region?.isStart === true,
+        isGoal: region?.isGoal === true,
+      };
+    } else if (templateKey === "full_region_patch") {
+      payload = cloneRecord(region || {});
+    } else {
+      payload = {
+        name: String(region?.name || ""),
+        biome: String(region?.biome || ""),
+        description: String(region?.description || ""),
+        landmark: String(region?.landmark || ""),
+        icon: String(region?.icon || ""),
+        accentColor: String(region?.accentColor || ""),
+        imageUrl: String(region?.imageUrl || ""),
+      };
+    }
+  } else if (overrideType === "set_map_layout") {
+    if (templateKey === "layout_nodes") {
+      payload = {
+        nodes: cloneRecord(Array.isArray(mapLayout.nodes) ? mapLayout.nodes : []),
+      };
+    } else if (templateKey === "layout_paths") {
+      payload = {
+        paths: cloneRecord(Array.isArray(mapLayout.paths) ? mapLayout.paths : []),
+      };
+    } else if (templateKey === "full_layout") {
+      payload = cloneRecord(mapLayout);
+    } else {
+      payload = {
+        width: Number(mapLayout.width || 1040),
+        height: Number(mapLayout.height || 560),
+        startRegionId: String(mapLayout.startRegionId || world?.regions[0]?.id || ""),
+        goalRegionId: String(
+          mapLayout.goalRegionId ||
+            world?.regions[world.regions.length - 1]?.id ||
+            "",
+        ),
+      };
+    }
+  } else if (overrideType === "patch_metadata") {
+    payload = cloneRecord(metadata);
+  } else if (overrideType === "replace_definition") {
+    payload = cloneRecord(definition);
+  }
+
+  return {
+    world_definition_id: world?.id || "",
+    override_type: overrideType,
+    scope_type: scopeType,
+    scope_ref: scopeType === "region" ? scopeRef : "",
+    payload_json: payload,
+  };
+}
+
+function buildOverrideMirrorRecord(
+  world: ParsedWorldDefinitionRecord | null,
+  overrideType: string,
+  scopeType: string,
+  scopeRef: string,
+) {
+  return buildOverrideTemplateRecord(
+    world,
+    overrideType,
+    scopeType,
+    scopeRef,
+    overrideType === "patch_region"
+      ? "full_region_patch"
+      : overrideType === "set_map_layout"
+        ? "full_layout"
+        : overrideType === "patch_metadata"
+          ? "world_identity"
+          : "full_definition",
+  );
+}
+
+function renderOverrideWorldSummary(
+  world: ParsedWorldDefinitionRecord | null,
+  overrideType: string,
+  scopeRef: string,
+) {
+  const summaryEl = document.getElementById("dev-override-world-summary");
+  if (!summaryEl) return;
+
+  if (!world) {
+    summaryEl.innerHTML =
+      "<strong>No canonical world selected.</strong><br /><span>Create or load a world definition first, then use it as the target for overrides.</span>";
+    return;
+  }
+
+  const pathCount = Array.isArray(world.mapLayout.paths) ? world.mapLayout.paths.length : 0;
+  const region = world.regions.find((entry) => String(entry.id || "") === scopeRef) || null;
+  const regionLine =
+    overrideType === "patch_region" && region
+      ? `<br /><strong>Target Region:</strong> ${escapeHtml(
+          String(region.name || region.id || "Unknown Region"),
+        )} <span>• biome ${escapeHtml(
+          String(region.biome || "unknown"),
+        )} • danger ${escapeHtml(String(region.dangerLevel || 1))}</span>`
+      : "";
+
+  summaryEl.innerHTML = `
+    <strong>${escapeHtml(world.name)}</strong>
+    <span>• ${escapeHtml(world.mode)} • preset ${escapeHtml(world.preset)}</span>
+    <br />
+    <span>${world.regions.length} regions • ${pathCount} paths • world_definition_id ${escapeHtml(world.id)}</span>
+    ${regionLine}
+  `;
+}
+
+function syncOverrideBuilderFromJson() {
+  const builderEl = document.getElementById("dev-override-builder");
+  if (!builderEl || builderEl.classList.contains("hidden")) return;
+
+  const worldSelect = document.getElementById("dev-override-world") as HTMLSelectElement;
+  const typeSelect = document.getElementById("dev-override-type") as HTMLSelectElement;
+  const scopeSelect = document.getElementById("dev-override-scope") as HTMLSelectElement;
+  const regionSelect = document.getElementById("dev-override-region") as HTMLSelectElement;
+  const templateSelect = document.getElementById(
+    "dev-override-template-select",
+  ) as HTMLSelectElement;
+
+  const record = parseEditorJsonValue();
+  const worldDefinitionId = String(record.world_definition_id || "");
+  const overrideType = String(record.override_type || "patch_region");
+  const scopeType = String(record.scope_type || (overrideType === "patch_region" ? "region" : "world"));
+  const scopeRef = String(record.scope_ref || "");
+
+  if (worldSelect) worldSelect.value = worldDefinitionId;
+  if (typeSelect) typeSelect.value = overrideType;
+  if (scopeSelect) scopeSelect.value = scopeType;
+
+  populateOverrideBuilder({
+    worldDefinitionId,
+    overrideType,
+    scopeType,
+    scopeRef,
+    templateKey:
+      templateSelect?.value && getOverrideTemplateOptions(overrideType).some((entry) => entry.value === templateSelect.value)
+        ? templateSelect.value
+        : defaultTemplateForOverrideType(overrideType),
+  });
+}
+
+function syncEditorRecordWithOverrideControls(preservePayload = true) {
+  const worldSelect = document.getElementById("dev-override-world") as HTMLSelectElement;
+  const typeSelect = document.getElementById("dev-override-type") as HTMLSelectElement;
+  const scopeSelect = document.getElementById("dev-override-scope") as HTMLSelectElement;
+  const regionSelect = document.getElementById("dev-override-region") as HTMLSelectElement;
+  if (!worldSelect || !typeSelect || !scopeSelect || !regionSelect) return;
+
+  const currentRecord = parseEditorJsonValue();
+  const nextRecord: Record<string, unknown> = {
+    ...currentRecord,
+    world_definition_id: worldSelect.value || "",
+    override_type: typeSelect.value || "patch_region",
+    scope_type: scopeSelect.value || "world",
+    scope_ref: scopeSelect.value === "region" ? regionSelect.value || "" : "",
+  };
+
+  if (!preservePayload || !nextRecord.payload_json) {
+    nextRecord.payload_json = {};
+  }
+
+  setEditorJsonValue(nextRecord);
+}
+
+function populateOverrideBuilder(options?: {
+  worldDefinitionId?: string;
+  overrideType?: string;
+  scopeType?: string;
+  scopeRef?: string;
+  templateKey?: string;
+}) {
+  const builderEl = document.getElementById("dev-override-builder");
+  const worldSelect = document.getElementById("dev-override-world") as HTMLSelectElement;
+  const typeSelect = document.getElementById("dev-override-type") as HTMLSelectElement;
+  const scopeSelect = document.getElementById("dev-override-scope") as HTMLSelectElement;
+  const regionSelect = document.getElementById("dev-override-region") as HTMLSelectElement;
+  const templateSelect = document.getElementById(
+    "dev-override-template-select",
+  ) as HTMLSelectElement;
+
+  if (!builderEl || !worldSelect || !typeSelect || !scopeSelect || !regionSelect || !templateSelect) {
+    return;
+  }
+
+  const worlds = getWorldDefinitionRecords();
+  const selectedWorldId =
+    options?.worldDefinitionId || worldSelect.value || worlds[0]?.id || "";
+  const selectedWorld =
+    worlds.find((record) => record.id === selectedWorldId) || worlds[0] || null;
+  const overrideType = options?.overrideType || typeSelect.value || "patch_region";
+  const scopeType =
+    options?.scopeType || (overrideType === "patch_region" ? "region" : "world");
+
+  worldSelect.innerHTML = worlds.length
+    ? worlds
+        .map(
+          (world) =>
+            `<option value="${escapeHtml(world.id)}" ${world.id === selectedWorld?.id ? "selected" : ""}>${escapeHtml(world.name)} • ${escapeHtml(world.mode)}</option>`,
+        )
+        .join("")
+    : `<option value="">No world definitions yet</option>`;
+
+  typeSelect.value = overrideType;
+  scopeSelect.value = scopeType;
+  scopeSelect.disabled = overrideType !== "patch_region";
+  if (overrideType !== "patch_region") {
+    scopeSelect.value = "world";
+  }
+
+  const regionOptions = selectedWorld?.regions || [];
+  const selectedScopeRef =
+    options?.scopeRef ||
+    (overrideType === "patch_region"
+      ? regionSelect.value || String(regionOptions[0]?.id || "")
+      : "");
+
+  regionSelect.disabled = overrideType !== "patch_region";
+  regionSelect.innerHTML =
+    overrideType === "patch_region"
+      ? regionOptions.length
+        ? regionOptions
+            .map((region) => {
+              const regionId = String(region.id || "");
+              const regionName = String(region.name || regionId || "Unnamed Region");
+              return `<option value="${escapeHtml(regionId)}" ${regionId === selectedScopeRef ? "selected" : ""}>${escapeHtml(regionName)} • danger ${escapeHtml(String(region.dangerLevel || 1))}</option>`;
+            })
+            .join("")
+        : `<option value="">No regions in selected world</option>`
+      : `<option value="">World-wide patch</option>`;
+
+  const templates = getOverrideTemplateOptions(overrideType);
+  const templateKey =
+    options?.templateKey && templates.some((entry) => entry.value === options.templateKey)
+      ? options.templateKey
+      : templateSelect.value && templates.some((entry) => entry.value === templateSelect.value)
+        ? templateSelect.value
+        : defaultTemplateForOverrideType(overrideType);
+  templateSelect.innerHTML = templates
+    .map(
+      (entry) =>
+        `<option value="${escapeHtml(entry.value)}" ${entry.value === templateKey ? "selected" : ""}>${escapeHtml(entry.label)}</option>`,
+    )
+    .join("");
+
+  renderOverrideWorldSummary(selectedWorld, overrideType, selectedScopeRef);
 }
 
 function getRecordTitle(source: DevSourceSnapshot, record: Record<string, unknown>) {
@@ -243,6 +625,10 @@ function renderActiveCategory() {
               .map((record) => {
                 const recordId = String(record.id || "");
                 const preview = getRecordPreview(source, record);
+                const sourceSpecificActions =
+                  source.key === "world_definitions"
+                    ? `<button class="btn btn-action dev-mini-btn" data-open-world-override="${escapeHtml(recordId)}">Override</button>`
+                    : "";
                 return `
                   <article class="dev-record-card">
                     <div class="dev-record-card-top">
@@ -251,6 +637,7 @@ function renderActiveCategory() {
                         <div class="dev-record-meta">${escapeHtml(getRecordTimestamp(source, record))}</div>
                       </div>
                       <div class="dev-record-actions">
+                        ${sourceSpecificActions}
                         <button class="btn btn-action dev-mini-btn" data-edit-record="${escapeHtml(source.key)}::${escapeHtml(recordId)}">Edit</button>
                         <button class="btn btn-action dev-mini-btn" data-delete-record="${escapeHtml(source.key)}::${escapeHtml(recordId)}">Delete</button>
                       </div>
@@ -309,6 +696,21 @@ function bindSourceActions() {
       openEditor(sourceKey, "edit", recordId);
     });
   });
+
+  document
+    .querySelectorAll<HTMLElement>("[data-open-world-override]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const worldDefinitionId = String(button.dataset.openWorldOverride || "");
+        openEditor("world_overrides", "create", undefined, {
+          world_definition_id: worldDefinitionId,
+          override_type: "patch_region",
+          scope_type: "region",
+          scope_ref: "",
+          payload_json: {},
+        });
+      });
+    });
 
   document.querySelectorAll<HTMLElement>("[data-delete-record]").forEach((button) => {
     button.addEventListener("click", async () => {
@@ -420,7 +822,12 @@ async function refreshSingleSource(sourceKey: string) {
   }
 }
 
-function openEditor(sourceKey: string, mode: "create" | "edit", recordId?: string) {
+function openEditor(
+  sourceKey: string,
+  mode: "create" | "edit",
+  recordId?: string,
+  prefillRecord?: Record<string, unknown>,
+) {
   const source = getSourceSnapshot(sourceKey);
   if (!source) return;
 
@@ -444,7 +851,10 @@ function openEditor(sourceKey: string, mode: "create" | "edit", recordId?: strin
   const record =
     mode === "edit"
       ? source.records.find((entry) => String(entry.id || "") === String(recordId || ""))
-      : source.defaultRecord;
+      : {
+          ...cloneRecord(source.defaultRecord),
+          ...(prefillRecord ? cloneRecord(prefillRecord) : {}),
+        };
   textareaEl.value = JSON.stringify(record || source.defaultRecord, null, 2);
   titleEl.textContent =
     mode === "create" ? `Create ${source.label}` : `Edit ${source.label}`;
@@ -453,11 +863,69 @@ function openEditor(sourceKey: string, mode: "create" | "edit", recordId?: strin
   if (fileMetaEl) fileMetaEl.textContent = "";
   if (aiStatusEl) aiStatusEl.textContent = "";
   if (aiBriefEl) aiBriefEl.value = "";
+
+  const overrideBuilder = document.getElementById("dev-override-builder");
+  if (overrideBuilder) {
+    const shouldShow = sourceKey === "world_overrides";
+    overrideBuilder.classList.toggle("hidden", !shouldShow);
+    if (shouldShow) {
+      syncOverrideBuilderFromJson();
+      setInlineStatus(
+        "dev-override-status",
+        "Builder synced with the current override JSON.",
+      );
+    } else {
+      setInlineStatus("dev-override-status", "");
+    }
+  }
+
   overlayEl.classList.add("open");
 }
 
 function closeEditor() {
   document.getElementById("dev-editor-overlay")?.classList.remove("open");
+}
+
+function applyOverrideTemplateFromBuilder(useMirror = false) {
+  const worldSelect = document.getElementById("dev-override-world") as HTMLSelectElement;
+  const typeSelect = document.getElementById("dev-override-type") as HTMLSelectElement;
+  const scopeSelect = document.getElementById("dev-override-scope") as HTMLSelectElement;
+  const regionSelect = document.getElementById("dev-override-region") as HTMLSelectElement;
+  const templateSelect = document.getElementById(
+    "dev-override-template-select",
+  ) as HTMLSelectElement;
+
+  if (!worldSelect || !typeSelect || !scopeSelect || !regionSelect || !templateSelect) {
+    return;
+  }
+
+  const world = getWorldDefinitionById(worldSelect.value);
+  const overrideType = typeSelect.value || "patch_region";
+  const scopeType = overrideType === "patch_region" ? "region" : "world";
+  const scopeRef = scopeType === "region" ? regionSelect.value || "" : "";
+
+  const nextRecord = useMirror
+    ? buildOverrideMirrorRecord(world, overrideType, scopeType, scopeRef)
+    : buildOverrideTemplateRecord(
+        world,
+        overrideType,
+        scopeType,
+        scopeRef,
+        templateSelect.value || defaultTemplateForOverrideType(overrideType),
+      );
+
+  const currentRecord = parseEditorJsonValue();
+  setEditorJsonValue({
+    ...currentRecord,
+    ...nextRecord,
+  });
+  syncOverrideBuilderFromJson();
+  setInlineStatus(
+    "dev-override-status",
+    useMirror
+      ? "Loaded current world data into the override payload."
+      : "Template applied to the override payload.",
+  );
 }
 
 async function saveEditorRecord() {
@@ -546,6 +1014,9 @@ function mergeEditorJson(nextRecord: Record<string, unknown>) {
     null,
     2,
   );
+  if (state.editor.sourceKey === "world_overrides") {
+    syncOverrideBuilderFromJson();
+  }
 }
 
 function collectDraftTextFromRecord(record: Record<string, unknown>) {
@@ -787,9 +1258,16 @@ function bindGlobalControls() {
   document.getElementById("dev-editor-template")?.addEventListener("click", () => {
     if (!state.editor.source) return;
     mergeEditorJson(state.editor.source.defaultRecord);
+    if (state.editor.sourceKey === "world_overrides") {
+      syncOverrideBuilderFromJson();
+      setInlineStatus("dev-override-status", "Reset to the source template.");
+    }
   });
   document.getElementById("dev-editor-ai-draft")?.addEventListener("click", async () => {
     await generateEditorDraftWithAI();
+    if (state.editor.sourceKey === "world_overrides") {
+      syncOverrideBuilderFromJson();
+    }
   });
   document.getElementById("dev-editor-save")?.addEventListener("click", async () => {
     await saveEditorRecord();
@@ -803,8 +1281,90 @@ function bindGlobalControls() {
     const file = fileInput.files?.[0];
     if (!file) return;
     await importEditorFile(file);
+    if (state.editor.sourceKey === "world_overrides") {
+      syncOverrideBuilderFromJson();
+    }
     fileInput.value = "";
   });
+
+  const overrideWorld = document.getElementById("dev-override-world") as HTMLSelectElement;
+  const overrideType = document.getElementById("dev-override-type") as HTMLSelectElement;
+  const overrideScope = document.getElementById("dev-override-scope") as HTMLSelectElement;
+  const overrideRegion = document.getElementById("dev-override-region") as HTMLSelectElement;
+  const overrideTemplate = document.getElementById(
+    "dev-override-template-select",
+  ) as HTMLSelectElement;
+
+  overrideWorld?.addEventListener("change", () => {
+    populateOverrideBuilder({
+      worldDefinitionId: overrideWorld.value,
+      overrideType: overrideType?.value || "patch_region",
+      scopeType: overrideScope?.value || "region",
+      scopeRef: "",
+      templateKey: overrideTemplate?.value || "",
+    });
+    syncEditorRecordWithOverrideControls(true);
+  });
+
+  overrideType?.addEventListener("change", () => {
+    populateOverrideBuilder({
+      worldDefinitionId: overrideWorld?.value || "",
+      overrideType: overrideType.value,
+      scopeType: overrideType.value === "patch_region" ? "region" : "world",
+      scopeRef: "",
+      templateKey: defaultTemplateForOverrideType(overrideType.value),
+    });
+    syncEditorRecordWithOverrideControls(true);
+  });
+
+  overrideScope?.addEventListener("change", () => {
+    populateOverrideBuilder({
+      worldDefinitionId: overrideWorld?.value || "",
+      overrideType: overrideType?.value || "patch_region",
+      scopeType: overrideScope.value,
+      scopeRef: overrideRegion?.value || "",
+      templateKey: overrideTemplate?.value || "",
+    });
+    syncEditorRecordWithOverrideControls(true);
+  });
+
+  overrideRegion?.addEventListener("change", () => {
+    renderOverrideWorldSummary(
+      getWorldDefinitionById(overrideWorld?.value || ""),
+      overrideType?.value || "patch_region",
+      overrideRegion.value,
+    );
+    syncEditorRecordWithOverrideControls(true);
+  });
+
+  overrideTemplate?.addEventListener("change", () => {
+    setInlineStatus(
+      "dev-override-status",
+      "Template changed. Apply it to seed a new payload.",
+    );
+  });
+
+  document
+    .getElementById("dev-override-apply-template")
+    ?.addEventListener("click", () => {
+      applyOverrideTemplateFromBuilder(false);
+    });
+
+  document
+    .getElementById("dev-override-mirror-current")
+    ?.addEventListener("click", () => {
+      applyOverrideTemplateFromBuilder(true);
+    });
+
+  document
+    .getElementById("dev-override-sync-json")
+    ?.addEventListener("click", () => {
+      syncOverrideBuilderFromJson();
+      setInlineStatus(
+        "dev-override-status",
+        "Builder synced from the JSON editor.",
+      );
+    });
 
   document.getElementById("dev-editor-overlay")?.addEventListener("click", (event) => {
     if (event.target === event.currentTarget) {
