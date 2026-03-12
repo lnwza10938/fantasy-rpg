@@ -5053,6 +5053,18 @@ html[data-app-page="dev"] body::after {
   line-height: 1.6;
 }
 
+.dev-help-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(243, 250, 232, 0.82);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.dev-help-list li + li {
+  margin-top: 4px;
+}
+
 .dev-inline-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

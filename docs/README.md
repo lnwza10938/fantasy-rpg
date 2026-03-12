@@ -8,6 +8,7 @@ This folder contains project-level documentation and planning materials.
 - `PROGRESS_REPORT.md` - Current implementation status and milestone report.
 - `MAP_IMPLEMENTATION_STATUS.md` - Focused status report for the map, traversal, canonical world, and world-override authoring layers.
 - `ASSET_PIPELINE_ARCHITECTURE.md` - Core asset ingestion architecture for terrain, sheets, atlas packs, audio, and AI review.
+- `DEV_DATA_ENTRY_GUIDE.md` - Practical examples for adding assets, slices, audio, terrain recipes, and AI-to-DB prompts through the dev pages.
 - `TERRAIN_ASSET_WORKFLOW.md` - Practical workflow for uploading, classifying, slicing, and binding terrain-facing assets.
 - `MULTI_AGENT_ASSET_AI_PLAN.md` - Planned specialized AI-agent split for asset captioning, filename review, slice planning, and metadata mapping.
 - `CHATGPT_SHARED_REFERENCE_INDEX.md` - Index of the shared ChatGPT planning links that informed the architecture and current build order.

@@ -15,6 +15,7 @@ const MOBILE_UI_STORAGE = "rpg_ui_mobile";
 
 let currentLang = localStorage.getItem(LANG_STORAGE) || "";
 let autoTranslate = localStorage.getItem(AUTO_TRANSLATE_STORAGE) === "true";
+let translateRequestId = 0;
 
 function getTranslateButton() {
   return document.getElementById("translate-btn");
@@ -74,14 +75,41 @@ function resolveResetValue(select: HTMLSelectElement) {
 function applyLanguageToPage(lang: string) {
   setTranslateCookie(lang);
   withTranslateCombo((select) => {
-    if (select.value !== lang) {
-      select.value = lang;
+    const requestId = ++translateRequestId;
+    const targetValue = lang;
+    const resetValue = resolveResetValue(select);
+
+    const finalize = () => {
+      if (requestId !== translateRequestId) return;
+      select.value = targetValue;
+      dispatchComboChange(select);
+      window.setTimeout(() => {
+        if (requestId !== translateRequestId) return;
+        clearTranslationArtifacts();
+        updateLanguageButtons();
+      }, 220);
+    };
+
+    if (targetValue && select.value === targetValue) {
+      select.value = resetValue;
+      dispatchComboChange(select);
+      window.setTimeout(finalize, 180);
+      return;
     }
+
+    if (select.value === resetValue) {
+      finalize();
+      return;
+    }
+
+    select.value = resetValue;
     dispatchComboChange(select);
+    window.setTimeout(finalize, 180);
   });
 }
 
 function restoreOriginalLanguage() {
+  translateRequestId += 1;
   setTranslateCookie("");
   clearTranslationArtifacts();
 
