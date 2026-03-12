@@ -4340,60 +4340,7 @@ html[data-app-page="map"] #gp-center-top {
 
 html[data-app-page="adventure"] #sub-map,
 html[data-app-page="map"] #sub-map {
-  gap: 12px;
-}
-
-.map-world-board {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
-  gap: 14px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(220, 231, 210, 0.12);
-  background:
-    linear-gradient(180deg, rgba(72, 88, 101, 0.82), rgba(34, 44, 55, 0.94));
-}
-
-.map-world-board-main,
-.map-world-board-event {
-  min-width: 0;
-}
-
-.map-world-board-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.map-world-name {
-  font-family: "Bree Serif", serif;
-  font-size: 26px;
-  line-height: 1.1;
-  color: #f7f8ef;
-}
-
-.map-world-meta {
-  margin-top: 5px;
-  font-size: 11px;
-  line-height: 1.6;
-  color: rgba(241, 249, 229, 0.72);
-}
-
-.map-world-event-title {
-  margin-top: 4px;
-  font-family: "Bree Serif", serif;
-  font-size: 18px;
-  line-height: 1.2;
-  color: #f4f8ea;
-}
-
-.map-world-event-copy {
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: rgba(241, 249, 229, 0.78);
+  gap: 0;
 }
 
 .map-scene-shell {
@@ -4491,6 +4438,8 @@ html[data-app-page="map"] #sub-map {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
+  min-height: 0;
+  overflow: auto;
   border-radius: 18px;
   border: 1px solid rgba(233, 245, 216, 0.12);
   background:
@@ -4574,8 +4523,58 @@ html[data-app-page="map"] #sub-map {
   font-size: 12px;
 }
 
+.map-camera-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(233, 245, 216, 0.12);
+}
+
+.map-camera-world-name {
+  font-family: "Bree Serif", serif;
+  font-size: 18px;
+  line-height: 1.15;
+  color: #f4f8ea;
+}
+
+.map-camera-world-meta {
+  font-size: 10px;
+  line-height: 1.55;
+  color: rgba(241, 249, 229, 0.72);
+}
+
+.map-camera-region-chip {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.map-camera-region-heading,
+.map-camera-event-title {
+  font-family: "Bree Serif", serif;
+  font-size: 16px;
+  line-height: 1.2;
+  color: #f4f8ea;
+}
+
+.map-camera-region-copy,
+.map-camera-event-copy {
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(241, 249, 229, 0.76);
+}
+
+.map-camera-event-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(233, 245, 216, 0.1);
+}
+
 @media (max-width: 1180px) {
-  .map-world-board,
   .command-deck-shell {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -4589,11 +4588,6 @@ html[data-app-page="map"] #sub-map {
   html[data-app-page="adventure"] #game-ui-screen,
   html[data-app-page="map"] #game-ui-screen {
     height: auto;
-  }
-
-  .map-world-board-top {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .map-camera-dpad,
