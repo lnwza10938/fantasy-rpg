@@ -402,6 +402,10 @@ This is especially important if the project supports multiple providers or fallb
 
 The shared chat framed maps as visualizations of the world model. That fits the current architecture and should remain the rule.
 
+For visual direction and composition rules derived from the latest user-provided map references, also use:
+
+- `docs/MAP_REFERENCE_GUIDE.md`
+
 The system should eventually support four scales:
 
 ### World Map

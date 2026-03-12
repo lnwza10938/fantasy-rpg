@@ -134,5 +134,6 @@ When a future task touches the systems below, start from these links and then mo
 ## Notes
 
 - These links are external planning references, not runtime dependencies.
+- For user-provided image-based map references, use `docs/MAP_REFERENCE_GUIDE.md`.
 - If a link becomes unavailable later, the derived local docs should remain the working source inside this repository.
 - If more shared planning links are added later, append them here with their purpose and local impact.
