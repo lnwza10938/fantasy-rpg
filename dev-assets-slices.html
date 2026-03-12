@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en" data-app-page="dev-assets-slices">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Procedural Fantasy RPG - Sheet Slicer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/client/style.css" />
+  </head>
+  <body class="dev-panel-page dev-assets-page">
+    <a href="/dev-assets" class="dev-launch-btn dev-launch-btn-inline">← Asset Library</a>
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="dev-panel-shell">
+      <header class="dev-panel-hero">
+        <div class="dev-panel-kicker">Sheet Slicer</div>
+        <h1 class="dev-panel-title">Grid Slice Sprite Sheets And Atlases</h1>
+        <p class="dev-panel-copy">
+          Pick an uploaded image asset, define a grid, preview the cut, and save
+          slice metadata back into the record for terrain generation.
+        </p>
+        <nav class="dev-assets-subnav">
+          <a href="/dev-assets" class="btn btn-action">Asset Library</a>
+          <a href="/dev-assets/slices" class="btn btn-primary">Sheet Slicer</a>
+          <a href="/dev-assets/audio" class="btn btn-action">Audio Intake</a>
+        </nav>
+      </header>
+
+      <section class="dev-assets-layout dev-assets-layout-slices">
+        <aside class="dev-assets-sidebar">
+          <div class="dev-panel-card-title">Image Assets</div>
+          <div class="dev-panel-card-copy">
+            Select a terrain, structure, effect, monster, or character image to slice.
+          </div>
+          <div id="slice-asset-list" class="dev-assets-source-list"></div>
+        </aside>
+
+        <main class="dev-assets-main">
+          <section class="dev-assets-grid-shell dev-slice-shell">
+            <div class="dev-panel-section-header">
+              <div>
+                <div class="dev-panel-kicker">Slice Config</div>
+                <h2 id="slice-title" class="dev-panel-section-title">Choose An Asset</h2>
+                <p id="slice-copy" class="dev-panel-copy">
+                  Load an image record from the left to generate slice coordinates.
+                </p>
+              </div>
+              <div id="slice-meta" class="dev-panel-section-meta">No asset selected</div>
+            </div>
+
+            <div class="dev-slice-controls">
+              <label class="dev-override-field">
+                <span>Slice Mode</span>
+                <select id="slice-mode">
+                  <option value="grid">Grid</option>
+                  <option value="auto">Auto</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
+              <label class="dev-override-field">
+                <span>Frame Width</span>
+                <input id="slice-frame-width" type="number" min="1" step="1" />
+              </label>
+              <label class="dev-override-field">
+                <span>Frame Height</span>
+                <input id="slice-frame-height" type="number" min="1" step="1" />
+              </label>
+              <label class="dev-override-field">
+                <span>Columns</span>
+                <input id="slice-columns" type="number" min="1" step="1" />
+              </label>
+              <label class="dev-override-field">
+                <span>Rows</span>
+                <input id="slice-rows" type="number" min="1" step="1" />
+              </label>
+              <label class="dev-override-field">
+                <span>Padding</span>
+                <input id="slice-padding" type="number" min="0" step="1" value="0" />
+              </label>
+              <label class="dev-override-field">
+                <span>Spacing</span>
+                <input id="slice-spacing" type="number" min="0" step="1" value="0" />
+              </label>
+              <label class="dev-override-field dev-override-field-wide">
+                <span>Slice Prefix</span>
+                <input id="slice-prefix" type="text" placeholder="terrain-meadow" />
+              </label>
+            </div>
+
+            <div class="dev-editor-tools">
+              <button id="slice-generate" class="btn btn-primary" type="button">Generate Grid</button>
+              <button id="slice-save" class="btn btn-action" type="button">Save Slice Metadata</button>
+            </div>
+            <div id="slice-status" class="dev-inline-status"></div>
+
+            <div class="dev-slice-stage">
+              <div class="dev-slice-preview-shell">
+                <div id="slice-preview" class="dev-slice-preview">
+                  <div class="dev-assets-preview-empty">Choose an image asset to begin slicing.</div>
+                </div>
+              </div>
+              <div class="dev-slice-output-shell">
+                <div class="dev-panel-kicker">Generated Slices</div>
+                <div id="slice-output" class="dev-slice-output"></div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script type="module" src="/src/client/translateWidget.ts"></script>
+    <script type="module" src="/src/client/devAssetSlices.ts"></script>
+  </body>
+</html>

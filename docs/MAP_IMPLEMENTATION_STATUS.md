@@ -16,6 +16,7 @@ It currently has:
 - an integrated `/adventure` map gameplay surface
 - guided `world_overrides` authoring inside the dev panel
 - a first visual node / path editor layered on top of override payloads
+- a first asset ingestion layer for terrain / structure / sheet / audio workflows
 
 In short:
 
@@ -143,6 +144,22 @@ This is important because it turns the workflow into:
 4. save the patch into `world_overrides`
 
 That is the first practical authoring loop for map editing in the project.
+
+### 5. Asset Ingestion Layer - Phase 1
+
+The map pipeline is now beginning to gain its own asset tooling rather than relying
+on generic file records.
+
+Current direction:
+
+- separate `/dev-assets` page for terrain and structure intake
+- `/dev-assets/slices` for sprite sheet and atlas slicing
+- `/dev-assets/audio` for ambient and cue intake
+- AI filename review with free-model image captioning plus fallback heuristics
+- metadata designed for terrain and geography generation
+
+This is important because geography rendering should eventually read from tagged
+asset libraries instead of hand-wired filenames.
 
 ## What Is Partially Complete
 

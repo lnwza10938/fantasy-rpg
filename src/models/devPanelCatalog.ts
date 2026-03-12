@@ -17,6 +17,16 @@ export interface DevSourceConfig {
   defaultRecord: Record<string, unknown>;
 }
 
+export const ASSET_WORKBENCH_SOURCE_KEYS = [
+  "terrain_assets",
+  "structure_assets",
+  "background_assets",
+  "effect_assets",
+  "character_assets",
+  "monster_assets",
+  "audio_entries",
+] as const;
+
 export const DEV_PANEL_CATEGORIES: DevCategoryConfig[] = [
   {
     key: "creatures",
@@ -429,6 +439,80 @@ export const DEV_PANEL_SOURCES: DevSourceConfig[] = [
     },
   },
   {
+    key: "terrain_assets",
+    label: "Terrain Assets",
+    description: "Geography, terrain fragments, landmasses, cliffs, rivers, and biome paint layers.",
+    categoryKey: "assets",
+    table: "content_entries",
+    orderField: "updated_at",
+    titleField: "title",
+    fixedValues: {
+      category: "asset",
+      subcategory: "terrain",
+      content_kind: "image",
+    },
+    summaryFields: ["summary", "file_url", "tags", "metadata_json"],
+    defaultRecord: {
+      category: "asset",
+      subcategory: "terrain",
+      content_kind: "image",
+      title: "New Terrain Asset",
+      slug: "new-terrain-asset",
+      summary: "",
+      body_text: "",
+      file_url: "",
+      preview_url: "",
+      mime_type: "image/png",
+      tags: ["terrain", "geography"],
+      metadata_json: {
+        terrainType: "plains",
+        biome: "forest",
+        renderLayer: "midground",
+        intendedUse: "world-geography",
+        tileable: false,
+        paletteHints: [],
+      },
+      is_active: true,
+    },
+  },
+  {
+    key: "structure_assets",
+    label: "Structure Assets",
+    description: "Cities, ruins, bridges, castles, settlements, and interior/exterior structure art.",
+    categoryKey: "assets",
+    table: "content_entries",
+    orderField: "updated_at",
+    titleField: "title",
+    fixedValues: {
+      category: "asset",
+      subcategory: "structure",
+      content_kind: "image",
+    },
+    summaryFields: ["summary", "file_url", "tags", "metadata_json"],
+    defaultRecord: {
+      category: "asset",
+      subcategory: "structure",
+      content_kind: "image",
+      title: "New Structure Asset",
+      slug: "new-structure-asset",
+      summary: "",
+      body_text: "",
+      file_url: "",
+      preview_url: "",
+      mime_type: "image/png",
+      tags: ["structure", "settlement"],
+      metadata_json: {
+        structureType: "city",
+        biome: "",
+        renderLayer: "foreground",
+        intendedUse: "regional-map",
+        tileable: false,
+        paletteHints: [],
+      },
+      is_active: true,
+    },
+  },
+  {
     key: "background_assets",
     label: "Background Assets",
     description: "Scene backdrops and environmental image assets.",
@@ -528,4 +612,10 @@ export function getDevCategoryConfig(categoryKey: string) {
 
 export function getDevSourceConfig(sourceKey: string) {
   return DEV_PANEL_SOURCES.find((source) => source.key === sourceKey) || null;
+}
+
+export function getAssetWorkbenchSourceConfigs() {
+  return ASSET_WORKBENCH_SOURCE_KEYS.map((key) => getDevSourceConfig(key)).filter(
+    (source): source is DevSourceConfig => !!source,
+  );
 }

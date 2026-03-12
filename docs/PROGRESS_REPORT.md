@@ -255,26 +255,36 @@ Current changes:
 
 This matters because the setup flow now matches the actual architecture of the project rather than an older prototype mental model.
 
-### 4. Dev Content Upload Workflow
+### 4. Dev Asset Pipeline - Phase 1
 
-The project still needs the planned dev-facing page for:
+The dev-side media workflow is no longer just planned.
 
-- uploading images
-- uploading audio
-- adding monsters
-- building world packs
-- linking stories to a chosen world
+It now has:
 
-The architecture now supports this direction much better than before, but the UI and upload flow are still pending.
+- `/dev-assets` for terrain / structure / effect / background intake
+- `/dev-assets/slices` for grid-based sprite sheet and atlas slicing
+- `/dev-assets/audio` for ambience, BGM, SFX, UI, and voice intake
+- AI filename review using a free-model image caption pass plus heuristic fallback
+- asset-kind guessing for `single`, `sheet`, `atlas`, `gif`, and `audio`
+- terrain-facing metadata fields such as biome, terrain type, render layer, intended use, palette hints, tileability, and slice metadata
+
+This matters because the map generator can now begin reading a real tagged asset library instead of relying only on hard-coded visual assumptions.
+
+Still to do:
+
+- richer manual slicing and sub-asset promotion
+- audio-specific AI classification
+- terrain recipe binding between assets and generator rules
+- better story / world-pack binding on top of the new asset pages
 
 ## Recommended Next Build Order
 
 The most sensible next implementation order is:
 
 1. Deepen the new `node/path` editor with stronger ergonomics and validation.
-2. Deepen the traversal engine with stronger route rules, gating, and hidden routes.
+2. Connect the new asset pipeline to terrain recipes and geography rendering.
 3. Bind story/lore content directly to canonical world definitions and regions.
-4. Continue the dev panel flow for monster/world/story/media uploads.
+4. Deepen traversal and route progression rules on top of the stronger content pipeline.
 
 ## Verification Notes
 

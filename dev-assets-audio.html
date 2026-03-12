@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" data-app-page="dev-assets-audio">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Procedural Fantasy RPG - Audio Intake</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/client/style.css" />
+  </head>
+  <body class="dev-panel-page dev-assets-page">
+    <a href="/dev-assets" class="dev-launch-btn dev-launch-btn-inline">← Asset Library</a>
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="dev-panel-shell">
+      <header class="dev-panel-hero">
+        <div class="dev-panel-kicker">Audio Intake</div>
+        <h1 class="dev-panel-title">Ambient, Music, And Sound Cue Library</h1>
+        <p class="dev-panel-copy">
+          Register audio files with biome, mood, and usage metadata so the world
+          generator can pull fitting ambience and cue sets later.
+        </p>
+        <nav class="dev-assets-subnav">
+          <a href="/dev-assets" class="btn btn-action">Asset Library</a>
+          <a href="/dev-assets/slices" class="btn btn-action">Sheet Slicer</a>
+          <a href="/dev-assets/audio" class="btn btn-primary">Audio Intake</a>
+        </nav>
+      </header>
+
+      <section class="dev-assets-layout dev-assets-layout-audio">
+        <aside class="dev-assets-sidebar">
+          <div class="dev-panel-card-title">Audio Library</div>
+          <div class="dev-panel-card-copy">
+            Existing sound cues, loops, ambience tracks, and voice clips.
+          </div>
+          <div id="audio-record-list" class="dev-assets-source-list"></div>
+        </aside>
+
+        <main class="dev-assets-main">
+          <section class="dev-assets-intake-shell">
+            <div class="dev-assets-intake-head">
+              <div>
+                <div class="dev-panel-kicker">Audio Record</div>
+                <h2 id="audio-intake-title" class="dev-panel-section-title">New Audio Asset</h2>
+                <p class="dev-panel-copy">
+                  Attach the file, tag the usage, and save the cue into `content_entries`.
+                </p>
+              </div>
+              <div class="dev-assets-intake-actions">
+                <button id="audio-reset" class="btn btn-action" type="button">Reset</button>
+                <button id="audio-delete" class="btn btn-action" type="button">Delete</button>
+              </div>
+            </div>
+
+            <div class="dev-assets-intake-grid">
+              <label class="dev-override-field">
+                <span>Title</span>
+                <input id="audio-title" type="text" />
+              </label>
+              <label class="dev-override-field">
+                <span>Slug</span>
+                <input id="audio-slug" type="text" />
+              </label>
+              <label class="dev-override-field">
+                <span>Biome</span>
+                <input id="audio-biome" type="text" placeholder="forest" />
+              </label>
+              <label class="dev-override-field">
+                <span>Audio Type</span>
+                <select id="audio-type">
+                  <option value="ambient">Ambient</option>
+                  <option value="bgm">BGM</option>
+                  <option value="sfx">SFX</option>
+                  <option value="ui">UI</option>
+                  <option value="voice">Voice</option>
+                </select>
+              </label>
+              <label class="dev-override-field">
+                <span>Mood</span>
+                <input id="audio-mood" type="text" placeholder="mystic" />
+              </label>
+              <label class="dev-override-field">
+                <span>Intensity</span>
+                <select id="audio-intensity">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <label class="dev-override-field dev-override-field-wide">
+                <span>Intended Use</span>
+                <input id="audio-use" type="text" placeholder="world-map, overworld, combat, menu" />
+              </label>
+              <label class="dev-override-field dev-override-field-wide">
+                <span>Tags</span>
+                <input id="audio-tags" type="text" placeholder="audio, ambient, forest" />
+              </label>
+              <label class="dev-override-field dev-override-field-wide">
+                <span>Summary</span>
+                <textarea id="audio-summary" class="dev-assets-textarea"></textarea>
+              </label>
+            </div>
+
+            <div class="dev-assets-file-zone">
+              <label class="btn btn-action dev-file-import-btn">
+                Choose Audio File
+                <input id="audio-file" type="file" accept="audio/*" hidden />
+              </label>
+              <div id="audio-file-meta" class="dev-inline-status">No audio file selected yet.</div>
+            </div>
+
+            <div class="dev-assets-toggle-row">
+              <label class="dev-topology-check">
+                <input id="audio-loopable" type="checkbox" />
+                <span>Loopable</span>
+              </label>
+            </div>
+
+            <label class="dev-override-field dev-override-field-wide">
+              <span>Notes</span>
+              <textarea id="audio-body-text" class="dev-assets-textarea dev-assets-textarea-large"></textarea>
+            </label>
+
+            <div class="dev-assets-review-shell">
+              <div class="dev-assets-preview-card">
+                <div class="dev-panel-kicker">Preview</div>
+                <div id="audio-preview" class="dev-assets-preview"></div>
+              </div>
+              <div class="dev-assets-review-card">
+                <div class="dev-panel-kicker">Cue Fit</div>
+                <p class="dev-panel-copy">
+                  Audio metadata is saved in a terrain-friendly format so biome recipes can select it later.
+                </p>
+                <div id="audio-status" class="dev-inline-status"></div>
+              </div>
+            </div>
+
+            <div class="dev-editor-actions">
+              <button id="audio-save" class="btn btn-primary" type="button">Save Audio Asset</button>
+            </div>
+          </section>
+        </main>
+      </section>
+    </div>
+
+    <script type="module" src="/src/client/translateWidget.ts"></script>
+    <script type="module" src="/src/client/devAssetAudio.ts"></script>
+  </body>
+</html>

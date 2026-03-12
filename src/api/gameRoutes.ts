@@ -31,7 +31,11 @@ import {
   updateSourceRecord,
   type DevSortOrder,
 } from "../db/devPanelRepositories.js";
-import { getDevSourceConfig } from "../models/devPanelCatalog.js";
+import {
+  getAssetWorkbenchSourceConfigs,
+  getDevSourceConfig,
+} from "../models/devPanelCatalog.js";
+import { reviewAssetAgainstFilename } from "../core/assetReview.js";
 
 const router = Router();
 const DEV_PANEL_KEY = process.env.DEV_PANEL_KEY || "";
@@ -667,6 +671,26 @@ router.get("/panel/source/:sourceKey", requireDevPanelAccess, async (req, res) =
   }
 });
 
+router.get("/panel/assets/workbench", requireDevPanelAccess, async (req, res) => {
+  try {
+    const sortOrder = getRequestedSortOrder(req.query.sort);
+    const sources = await Promise.all(
+      getAssetWorkbenchSourceConfigs().map((source) =>
+        getSourceSnapshot(source.key, sortOrder),
+      ),
+    );
+    res.json({
+      success: true,
+      data: {
+        sort: sortOrder,
+        sources,
+      },
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 router.post("/panel/records/:sourceKey", requireDevPanelAccess, async (req, res) => {
   try {
     const record = await createSourceRecord(req.params.sourceKey, req.body.record || {});
@@ -776,6 +800,54 @@ Additional hard rule:
         return;
       }
       res.status(400).json({ success: false, error: message });
+    }
+  },
+);
+
+router.post(
+  "/panel/assets/review",
+  requireDevPanelAccess,
+  async (req, res) => {
+    const record =
+      req.body?.record && typeof req.body.record === "object" && !Array.isArray(req.body.record)
+        ? req.body.record
+        : {};
+    const filename = String(req.body?.filename || record.title || "").trim();
+    const mimeType = String(
+      req.body?.mimeType || record.mime_type || "application/octet-stream",
+    ).trim();
+    const dataUrl = String(
+      req.body?.dataUrl || record.preview_url || record.file_url || "",
+    ).trim();
+    const sourceKey = String(req.body?.sourceKey || "").trim();
+
+    if (!filename) {
+      res.status(400).json({ success: false, error: "filename is required" });
+      return;
+    }
+
+    try {
+      const review = await reviewAssetAgainstFilename({
+        filename,
+        title: String(record.title || ""),
+        sourceKey,
+        mimeType,
+        dataUrl,
+        tags: Array.isArray(record.tags) ? record.tags.map((entry: unknown) => String(entry)) : [],
+        metadata:
+          record.metadata_json &&
+          typeof record.metadata_json === "object" &&
+          !Array.isArray(record.metadata_json)
+            ? record.metadata_json
+            : {},
+      });
+
+      res.json({
+        success: true,
+        data: review,
+      });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: error.message });
     }
   },
 );

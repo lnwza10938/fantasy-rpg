@@ -19,6 +19,18 @@
       "destination": "/dev.html"
     },
     {
+      "source": "/dev-assets",
+      "destination": "/dev-assets.html"
+    },
+    {
+      "source": "/dev-assets/slices",
+      "destination": "/dev-assets-slices.html"
+    },
+    {
+      "source": "/dev-assets/audio",
+      "destination": "/dev-assets-audio.html"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.ts"
     },

@@ -36,6 +36,18 @@ app.get("/dev-panel", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "dev.html"));
 });
 
+app.get("/dev-assets", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev-assets.html"));
+});
+
+app.get("/dev-assets/slices", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev-assets-slices.html"));
+});
+
+app.get("/dev-assets/audio", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "dev-assets-audio.html"));
+});
+
 app.get("/hub", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
 });
@@ -60,5 +72,6 @@ if (!process.env.VERCEL) {
     console.log(`🎮 RPG Engine Server running at http://localhost:${PORT}`);
     console.log(`🕹  Game UI:   http://localhost:${PORT}/`);
     console.log(`🛠  Dev Panel: http://localhost:${PORT}/dev-panel`);
+    console.log(`🧩 Assets:    http://localhost:${PORT}/dev-assets`);
   });
 }
