@@ -167,9 +167,9 @@ Examples:
 
 The next useful layers after the current implementation are:
 
-1. richer sheet slicing and sub-asset editing
+1. richer sheet slicing and sub-asset editing with drag-to-slice
 2. AI-assisted slice planning
-3. deeper terrain recipe authoring and validation
+3. deeper terrain recipe authoring, weighting, and validation
 4. local map / dungeon tileset usage
 5. stronger audio classification
 

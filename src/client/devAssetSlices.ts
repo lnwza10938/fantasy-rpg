@@ -15,10 +15,20 @@ const state: {
   assets: SliceAssetRecord[];
   active: SliceAssetRecord | null;
   slices: Array<{ id: string; x: number; y: number; width: number; height: number; index: number }>;
+  naturalWidth: number;
+  naturalHeight: number;
+  dragRect: { x: number; y: number; width: number; height: number } | null;
+  dragStart: { x: number; y: number } | null;
+  dragCurrent: { x: number; y: number } | null;
 } = {
   assets: [],
   active: null,
   slices: [],
+  naturalWidth: 0,
+  naturalHeight: 0,
+  dragRect: null,
+  dragStart: null,
+  dragCurrent: null,
 };
 
 function escapeHtml(value: unknown) {
@@ -75,6 +85,45 @@ function getMetadata(record: Record<string, unknown>) {
   return safeObject(record.metadata_json);
 }
 
+function currentPrefix() {
+  return ((document.getElementById("slice-prefix") as HTMLInputElement | null)?.value || "slice")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function nextSliceId() {
+  const prefix = currentPrefix();
+  return `${prefix}-${String(state.slices.length + 1).padStart(3, "0")}`;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function setManualInputs(slice: { x: number; y: number; width: number; height: number }) {
+  const xEl = document.getElementById("slice-manual-x") as HTMLInputElement | null;
+  const yEl = document.getElementById("slice-manual-y") as HTMLInputElement | null;
+  const widthEl = document.getElementById("slice-manual-width") as HTMLInputElement | null;
+  const heightEl = document.getElementById("slice-manual-height") as HTMLInputElement | null;
+  if (xEl) xEl.value = String(slice.x);
+  if (yEl) yEl.value = String(slice.y);
+  if (widthEl) widthEl.value = String(slice.width);
+  if (heightEl) heightEl.value = String(slice.height);
+}
+
+function slicePreviewStyle(slice: { x: number; y: number; width: number; height: number }) {
+  if (!state.naturalWidth || !state.naturalHeight) return "";
+  const scaleX = 100 / Math.max(slice.width, 1);
+  const scaleY = 100 / Math.max(slice.height, 1);
+  return [
+    `background-image:url(${JSON.stringify(getImageUrl(state.active || {}))})`,
+    `background-size:${state.naturalWidth * scaleX}% ${state.naturalHeight * scaleY}%`,
+    `background-position:-${slice.x * scaleX}% -${slice.y * scaleY}%`,
+  ].join(";");
+}
+
 function renderAssetList() {
   const listEl = document.getElementById("slice-asset-list");
   if (!listEl) return;
@@ -123,10 +172,8 @@ function renderPreview() {
 
   const overlay = state.slices
     .map((slice) => {
-      const width = parseIntInput("slice-frame-width", slice.width);
-      const height = parseIntInput("slice-frame-height", slice.height);
-      const canvasWidth = parseIntInput("slice-columns", 1) * width || slice.width;
-      const canvasHeight = parseIntInput("slice-rows", 1) * height || slice.height;
+      const canvasWidth = state.naturalWidth || parseIntInput("slice-columns", 1) * parseIntInput("slice-frame-width", slice.width) || slice.width;
+      const canvasHeight = state.naturalHeight || parseIntInput("slice-rows", 1) * parseIntInput("slice-frame-height", slice.height) || slice.height;
       const left = canvasWidth > 0 ? (slice.x / canvasWidth) * 100 : 0;
       const top = canvasHeight > 0 ? (slice.y / canvasHeight) * 100 : 0;
       const widthPct = canvasWidth > 0 ? (slice.width / canvasWidth) * 100 : 0;
@@ -135,10 +182,23 @@ function renderPreview() {
     })
     .join("");
 
+  const dragOverlay =
+    state.dragRect && (state.naturalWidth || state.naturalHeight)
+      ? (() => {
+          const canvasWidth = state.naturalWidth || 1;
+          const canvasHeight = state.naturalHeight || 1;
+          const left = (state.dragRect.x / canvasWidth) * 100;
+          const top = (state.dragRect.y / canvasHeight) * 100;
+          const widthPct = (state.dragRect.width / canvasWidth) * 100;
+          const heightPct = (state.dragRect.height / canvasHeight) * 100;
+          return `<div class="dev-slice-drag-box" style="left:${left}%;top:${top}%;width:${widthPct}%;height:${heightPct}%"></div>`;
+        })()
+      : "";
+
   previewEl.innerHTML = `
     <div class="dev-slice-preview-frame">
       <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(String(state.active.title || "slice preview"))}" class="dev-assets-preview-image" />
-      <div class="dev-slice-grid-overlay">${overlay}</div>
+      <div class="dev-slice-grid-overlay">${overlay}${dragOverlay}</div>
     </div>
   `;
 
@@ -146,14 +206,162 @@ function renderPreview() {
     ? state.slices
         .map(
           (slice) => `
-            <div class="dev-slice-row">
+            <button class="dev-slice-row" type="button" data-slice-row="${slice.index}">
+              <span class="dev-slice-thumb" style="${slicePreviewStyle(slice)}"></span>
+              <span class="dev-slice-row-main">
               <strong>${escapeHtml(slice.id)}</strong>
               <span>x:${slice.x} y:${slice.y} w:${slice.width} h:${slice.height}</span>
-            </div>
+              </span>
+            </button>
           `,
         )
         .join("")
     : '<div class="dev-assets-preview-empty">No slices generated yet.</div>';
+
+  outputEl.querySelectorAll<HTMLElement>("[data-slice-row]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = Number(button.dataset.sliceRow || "-1");
+      const slice = state.slices[index];
+      if (!slice) return;
+      setManualInputs(slice);
+      setStatus(`Loaded ${slice.id} into the manual controls.`);
+    });
+  });
+
+  const frameEl = previewEl.querySelector(".dev-slice-preview-frame") as HTMLDivElement | null;
+  const imageEl = previewEl.querySelector(".dev-assets-preview-image") as HTMLImageElement | null;
+  if (frameEl && imageEl) {
+    const bindPreview = () => {
+      state.naturalWidth = imageEl.naturalWidth || state.naturalWidth;
+      state.naturalHeight = imageEl.naturalHeight || state.naturalHeight;
+      attachDragHandlers(frameEl, imageEl);
+    };
+    if (imageEl.complete) {
+      bindPreview();
+    } else {
+      imageEl.addEventListener("load", bindPreview, { once: true });
+    }
+  }
+}
+
+function clientToImagePoint(
+  event: PointerEvent,
+  imageEl: HTMLImageElement,
+) {
+  const rect = imageEl.getBoundingClientRect();
+  const normalizedX = clamp((event.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
+  const normalizedY = clamp((event.clientY - rect.top) / Math.max(rect.height, 1), 0, 1);
+  return {
+    x: Math.round(normalizedX * (imageEl.naturalWidth || state.naturalWidth || rect.width)),
+    y: Math.round(normalizedY * (imageEl.naturalHeight || state.naturalHeight || rect.height)),
+  };
+}
+
+function updateDragRect() {
+  if (!state.dragStart || !state.dragCurrent) {
+    state.dragRect = null;
+    return;
+  }
+  const x = Math.min(state.dragStart.x, state.dragCurrent.x);
+  const y = Math.min(state.dragStart.y, state.dragCurrent.y);
+  const width = Math.abs(state.dragCurrent.x - state.dragStart.x);
+  const height = Math.abs(state.dragCurrent.y - state.dragStart.y);
+  state.dragRect = { x, y, width, height };
+}
+
+function paintDragBox(frameEl: HTMLDivElement) {
+  const overlayEl = frameEl.querySelector(".dev-slice-grid-overlay") as HTMLDivElement | null;
+  if (!overlayEl) return;
+  const existing = overlayEl.querySelector(".dev-slice-drag-box") as HTMLDivElement | null;
+  if (!state.dragRect || !state.naturalWidth || !state.naturalHeight) {
+    existing?.remove();
+    return;
+  }
+  const left = (state.dragRect.x / state.naturalWidth) * 100;
+  const top = (state.dragRect.y / state.naturalHeight) * 100;
+  const width = (state.dragRect.width / state.naturalWidth) * 100;
+  const height = (state.dragRect.height / state.naturalHeight) * 100;
+  const dragBox = existing || document.createElement("div");
+  dragBox.className = "dev-slice-drag-box";
+  dragBox.style.left = `${left}%`;
+  dragBox.style.top = `${top}%`;
+  dragBox.style.width = `${width}%`;
+  dragBox.style.height = `${height}%`;
+  if (!existing) overlayEl.appendChild(dragBox);
+}
+
+function commitDragSlice() {
+  if (!state.dragRect || state.dragRect.width < 2 || state.dragRect.height < 2) {
+    state.dragRect = null;
+    renderPreview();
+    return;
+  }
+  const slice = {
+    id: nextSliceId(),
+    x: state.dragRect.x,
+    y: state.dragRect.y,
+    width: state.dragRect.width,
+    height: state.dragRect.height,
+    index: state.slices.length,
+  };
+  state.slices.push(slice);
+  setManualInputs(slice);
+  state.dragRect = null;
+  renderPreview();
+  setStatus(`Added dragged slice ${slice.id}.`);
+}
+
+function attachDragHandlers(frameEl: HTMLDivElement, imageEl: HTMLImageElement) {
+  const manualMode = ((document.getElementById("slice-mode") as HTMLSelectElement | null)?.value || "grid") === "manual";
+  frameEl.classList.toggle("is-manual", manualMode);
+  if (!manualMode) {
+    frameEl.onpointerdown = null;
+    frameEl.onpointermove = null;
+    frameEl.onpointerup = null;
+    frameEl.onpointerleave = null;
+    frameEl.onpointercancel = null;
+    return;
+  }
+
+  frameEl.onpointerdown = (event: PointerEvent) => {
+    const start = clientToImagePoint(event, imageEl);
+    state.dragStart = start;
+    state.dragCurrent = start;
+    updateDragRect();
+    paintDragBox(frameEl);
+    frameEl.setPointerCapture(event.pointerId);
+  };
+
+  frameEl.onpointermove = (event: PointerEvent) => {
+    if (!state.dragStart) return;
+    state.dragCurrent = clientToImagePoint(event, imageEl);
+    updateDragRect();
+    paintDragBox(frameEl);
+  };
+
+  frameEl.onpointerup = (event: PointerEvent) => {
+    if (!state.dragStart) return;
+    state.dragCurrent = clientToImagePoint(event, imageEl);
+    updateDragRect();
+    state.dragStart = null;
+    state.dragCurrent = null;
+    frameEl.releasePointerCapture(event.pointerId);
+    commitDragSlice();
+  };
+
+  frameEl.onpointerleave = (event: PointerEvent) => {
+    if (!state.dragStart || !frameEl.hasPointerCapture(event.pointerId)) return;
+    state.dragCurrent = clientToImagePoint(event, imageEl);
+    updateDragRect();
+    paintDragBox(frameEl);
+  };
+
+  frameEl.onpointercancel = () => {
+    state.dragStart = null;
+    state.dragCurrent = null;
+    state.dragRect = null;
+    renderPreview();
+  };
 }
 
 function loadAssetIntoEditor(asset: SliceAssetRecord) {
@@ -214,6 +422,9 @@ function loadAssetIntoEditor(asset: SliceAssetRecord) {
         })
         .filter((entry) => entry.width > 0 && entry.height > 0)
     : [];
+  state.dragRect = null;
+  state.dragStart = null;
+  state.dragCurrent = null;
 
   renderAssetList();
   renderPreview();
@@ -231,12 +442,6 @@ function generateSlices() {
   const rows = parseIntInput("slice-rows");
   const padding = parseIntInput("slice-padding", 0);
   const spacing = parseIntInput("slice-spacing", 0);
-  const prefix = ((document.getElementById("slice-prefix") as HTMLInputElement | null)?.value || "slice")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
   if (!frameWidth || !frameHeight || !columns || !rows) {
     setStatus("Frame width, frame height, columns, and rows are required.", true);
     return;
@@ -247,7 +452,7 @@ function generateSlices() {
   for (let row = 0; row < rows; row += 1) {
     for (let col = 0; col < columns; col += 1) {
       slices.push({
-        id: `${prefix}-${String(index + 1).padStart(3, "0")}`,
+        id: `${currentPrefix()}-${String(index + 1).padStart(3, "0")}`,
         x: padding + col * (frameWidth + spacing),
         y: padding + row * (frameHeight + spacing),
         width: frameWidth,
@@ -271,14 +476,9 @@ function addManualSlice() {
   const y = parseIntInput("slice-manual-y", 0);
   const width = parseIntInput("slice-manual-width", 32);
   const height = parseIntInput("slice-manual-height", 32);
-  const prefix = ((document.getElementById("slice-prefix") as HTMLInputElement | null)?.value || "slice")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
   const index = state.slices.length;
   state.slices.push({
-    id: `${prefix}-${String(index + 1).padStart(3, "0")}`,
+    id: nextSliceId(),
     x,
     y,
     width,
@@ -426,6 +626,7 @@ async function loadAssets() {
 
 function bindControls() {
   document.getElementById("slice-generate")?.addEventListener("click", generateSlices);
+  document.getElementById("slice-mode")?.addEventListener("change", () => renderPreview());
   document.getElementById("slice-add-manual")?.addEventListener("click", addManualSlice);
   document.getElementById("slice-remove-last")?.addEventListener("click", removeLastSlice);
   document.getElementById("slice-promote")?.addEventListener("click", async () => {

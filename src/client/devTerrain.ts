@@ -40,6 +40,13 @@ function safeObject(value: unknown) {
     : {};
 }
 
+function metadataNumber(metadata: Record<string, unknown>, key: string, fallback: number | null = null) {
+  const value = metadata[key];
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function slugify(value: string) {
   return String(value || "")
     .trim()
@@ -173,6 +180,15 @@ function getCurrentRecord() {
       appliesTo: (document.getElementById("terrain-applies-to") as HTMLSelectElement | null)?.value || "zone",
       renderLayer: (document.getElementById("terrain-render-layer") as HTMLSelectElement | null)?.value || "midground",
       intendedUse: (document.getElementById("terrain-use") as HTMLInputElement | null)?.value?.trim() || "",
+      selectionWeight: Number((document.getElementById("terrain-weight") as HTMLInputElement | null)?.value || 100) || 100,
+      minDanger: metadataNumber(
+        { value: (document.getElementById("terrain-min-danger") as HTMLInputElement | null)?.value || null },
+        "value",
+      ),
+      maxDanger: metadataNumber(
+        { value: (document.getElementById("terrain-max-danger") as HTMLInputElement | null)?.value || null },
+        "value",
+      ),
       assetRefs: getSelectedIds("terrain-asset-picks"),
       structureRefs: [],
       effectRefs: [],
@@ -196,6 +212,9 @@ function fillForm(record?: TerrainContextRecord, mode: "create" | "edit" = "crea
       appliesTo: "zone",
       renderLayer: "midground",
       intendedUse: "world-geography",
+      selectionWeight: 100,
+      minDanger: null,
+      maxDanger: null,
       assetRefs: [],
       structureRefs: [],
       effectRefs: [],
@@ -213,6 +232,9 @@ function fillForm(record?: TerrainContextRecord, mode: "create" | "edit" = "crea
   (document.getElementById("terrain-type") as HTMLInputElement | null)!.value = String(metadata.terrainType || "");
   (document.getElementById("terrain-applies-to") as HTMLSelectElement | null)!.value = String(metadata.appliesTo || "zone");
   (document.getElementById("terrain-render-layer") as HTMLSelectElement | null)!.value = String(metadata.renderLayer || "midground");
+  (document.getElementById("terrain-weight") as HTMLInputElement | null)!.value = String(metadataNumber(metadata, "selectionWeight", 100) ?? 100);
+  (document.getElementById("terrain-min-danger") as HTMLInputElement | null)!.value = String(metadataNumber(metadata, "minDanger", null) ?? "");
+  (document.getElementById("terrain-max-danger") as HTMLInputElement | null)!.value = String(metadataNumber(metadata, "maxDanger", null) ?? "");
   (document.getElementById("terrain-use") as HTMLInputElement | null)!.value = String(metadata.intendedUse || "");
   (document.getElementById("terrain-summary") as HTMLTextAreaElement | null)!.value = String(next.summary || "");
   (document.getElementById("terrain-body-text") as HTMLTextAreaElement | null)!.value = String(next.body_text || "");

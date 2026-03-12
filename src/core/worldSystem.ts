@@ -183,6 +183,17 @@ function metadataStringArray(metadata: Record<string, unknown>, key: string): st
     : [];
 }
 
+function metadataNumber(
+  metadata: Record<string, unknown>,
+  key: string,
+  fallback: number | null = null,
+): number | null {
+  const value = metadata[key];
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function deterministicShuffle<T>(values: T[], rng: SeededRNG): T[] {
   const next = [...values];
   for (let i = next.length - 1; i > 0; i -= 1) {
@@ -729,34 +740,68 @@ export class WorldSystem {
       );
     });
 
-    const matchRecipeForZone = (zone: WorldGeographyZone) => {
-      return (
-        terrainRecipes.find((recipe) => {
-          const metadata = safeObject(recipe.metadata_json);
-          const appliesTo = metadataString(metadata, "appliesTo") || "zone";
-          const biome = metadataString(metadata, "biome");
-          const terrainType = metadataString(metadata, "terrainType");
-          return (
-            appliesTo === "zone" &&
-            (!biome || biome === zone.biome) &&
-            (!terrainType || terrainType === zone.terrain)
-          );
-        }) || null
-      );
+    const matchRecipeForZone = (zone: WorldGeographyZone): ContentEntryRecord | null => {
+      const dangerLevel = zone.regionId ? regionById.get(zone.regionId)?.dangerLevel || 0 : 0;
+      let bestScore = Number.NEGATIVE_INFINITY;
+      let bestRecipe: ContentEntryRecord | null = null;
+
+      terrainRecipes.forEach((recipe) => {
+        const metadata = safeObject(recipe.metadata_json);
+        const appliesTo = metadataString(metadata, "appliesTo") || "zone";
+        const biome = metadataString(metadata, "biome");
+        const terrainType = metadataString(metadata, "terrainType");
+        const minDanger = metadataNumber(metadata, "minDanger");
+        const maxDanger = metadataNumber(metadata, "maxDanger");
+
+        if (appliesTo !== "zone") return;
+        if (biome && biome !== zone.biome) return;
+        if (terrainType && terrainType !== zone.terrain) return;
+        if (minDanger !== null && dangerLevel < minDanger) return;
+        if (maxDanger !== null && dangerLevel > maxDanger) return;
+
+        let score = metadataNumber(metadata, "selectionWeight", 100) || 100;
+        if (biome) score += 50;
+        if (terrainType) score += 40;
+        if (minDanger !== null || maxDanger !== null) score += 18;
+        const intendedUse = metadataString(metadata, "intendedUse");
+        if (intendedUse.includes("world")) score += 8;
+        if (intendedUse.includes("regional")) score += 6;
+        if (intendedUse.includes("geography")) score += 12;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestRecipe = recipe;
+        }
+      });
+
+      return bestRecipe;
     };
 
-    const matchRecipeForFlow = (flow: WorldGeographyFlow) => {
-      return (
-        terrainRecipes.find((recipe) => {
-          const metadata = safeObject(recipe.metadata_json);
-          const appliesTo = metadataString(metadata, "appliesTo") || "zone";
-          const terrainType = metadataString(metadata, "terrainType");
-          return (
-            appliesTo === "flow" &&
-            (!terrainType || terrainType === flow.kind)
-          );
-        }) || null
-      );
+    const matchRecipeForFlow = (flow: WorldGeographyFlow): ContentEntryRecord | null => {
+      let bestScore = Number.NEGATIVE_INFINITY;
+      let bestRecipe: ContentEntryRecord | null = null;
+
+      terrainRecipes.forEach((recipe) => {
+        const metadata = safeObject(recipe.metadata_json);
+        const appliesTo = metadataString(metadata, "appliesTo") || "zone";
+        const terrainType = metadataString(metadata, "terrainType");
+        if (appliesTo !== "flow") return;
+        if (terrainType && terrainType !== flow.kind) return;
+
+        let score = metadataNumber(metadata, "selectionWeight", 100) || 100;
+        if (terrainType) score += 44;
+        const intendedUse = metadataString(metadata, "intendedUse");
+        if (intendedUse.includes(flow.kind)) score += 10;
+        if (intendedUse.includes("world")) score += 6;
+        if (intendedUse.includes("geography")) score += 8;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestRecipe = recipe;
+        }
+      });
+
+      return bestRecipe;
     };
 
     const inferZoneAssets = (zone: WorldGeographyZone) => {

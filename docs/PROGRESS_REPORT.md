@@ -268,16 +268,16 @@ It now has:
 - AI filename review using a free-model image caption pass plus heuristic fallback
 - asset-kind guessing for `single`, `sheet`, `atlas`, `gif`, and `audio`
 - terrain-facing metadata fields such as biome, terrain type, render layer, intended use, palette hints, tileability, and slice metadata
-- manual slice entry and slice promotion into standalone sub-assets
+- manual slice entry, drag-to-slice, crop previews, and slice promotion into standalone sub-assets
+- weighted terrain recipe matching with biome / terrain / danger constraints
 - first generator-side geography binding from terrain recipes and tagged asset records
 
 This matters because the map generator can now begin reading a real tagged asset library instead of relying only on hard-coded visual assumptions.
 
 Still to do:
 
-- richer manual slicing ergonomics and direct drag-to-slice
 - audio-specific AI classification
-- terrain recipe binding between assets and generator rules
+- stronger terrain recipe validation and palette tooling
 - better story / world-pack binding on top of the new asset pages
 
 ## Recommended Next Build Order
