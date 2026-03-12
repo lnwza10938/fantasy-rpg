@@ -269,6 +269,7 @@ It now has:
 - asset-kind guessing for `single`, `sheet`, `atlas`, `gif`, and `audio`
 - terrain-facing metadata fields such as biome, terrain type, render layer, intended use, palette hints, tileability, and slice metadata
 - manual slice entry, drag-to-slice, crop previews, and slice promotion into standalone sub-assets
+- AI-assisted slice planning for `single / grid / manual` recommendations on sheet assets
 - weighted terrain recipe matching with biome / terrain / danger constraints
 - palette override controls and save-time validation in the terrain recipe editor
 - first generator-side geography binding from terrain recipes and tagged asset records

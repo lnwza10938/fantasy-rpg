@@ -159,6 +159,7 @@ Current direction:
 - AI filename review with free-model image captioning plus fallback heuristics
 - metadata designed for terrain and geography generation
 - manual slice entry, drag-to-slice, and slice promotion into standalone sub-assets
+- AI-assisted slice-plan suggestions in the sheet slicer
 - first-pass terrain recipe application during geography generation with weighted matching
 - palette override and validation controls in the terrain recipe editor
 

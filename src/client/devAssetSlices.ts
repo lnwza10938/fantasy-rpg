@@ -9,6 +9,22 @@ interface SliceAssetRecord extends Record<string, unknown> {
   sourceLabel: string;
 }
 
+interface SlicePlanResult {
+  provider: "huggingface" | "heuristic";
+  caption: string | null;
+  assetKindGuess: "single" | "sheet" | "atlas" | "gif" | "audio" | "unknown";
+  recommendedMode: "single" | "grid" | "manual";
+  frameWidth: number;
+  frameHeight: number;
+  columns: number;
+  rows: number;
+  padding: number;
+  spacing: number;
+  confidence: number;
+  reasoning: string;
+  warnings: string[];
+}
+
 const DEV_KEY_STORAGE = "rpg_dev_panel_key";
 
 const state: {
@@ -77,6 +93,13 @@ function setStatus(text: string, isError = false) {
   el.classList.toggle("error", isError);
 }
 
+function setPlanStatus(text: string, isError = false) {
+  const el = document.getElementById("slice-plan-status");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("error", isError);
+}
+
 function getImageUrl(record: Record<string, unknown>) {
   return String(record.preview_url || record.file_url || "");
 }
@@ -111,6 +134,36 @@ function setManualInputs(slice: { x: number; y: number; width: number; height: n
   if (yEl) yEl.value = String(slice.y);
   if (widthEl) widthEl.value = String(slice.width);
   if (heightEl) heightEl.value = String(slice.height);
+}
+
+function applySlicePlan(plan: SlicePlanResult) {
+  const modeEl = document.getElementById("slice-mode") as HTMLSelectElement | null;
+  const frameWidthEl = document.getElementById("slice-frame-width") as HTMLInputElement | null;
+  const frameHeightEl = document.getElementById("slice-frame-height") as HTMLInputElement | null;
+  const columnsEl = document.getElementById("slice-columns") as HTMLInputElement | null;
+  const rowsEl = document.getElementById("slice-rows") as HTMLInputElement | null;
+  const paddingEl = document.getElementById("slice-padding") as HTMLInputElement | null;
+  const spacingEl = document.getElementById("slice-spacing") as HTMLInputElement | null;
+
+  if (modeEl) modeEl.value = plan.recommendedMode === "single" ? "manual" : plan.recommendedMode;
+  if (frameWidthEl && plan.frameWidth > 0) frameWidthEl.value = String(plan.frameWidth);
+  if (frameHeightEl && plan.frameHeight > 0) frameHeightEl.value = String(plan.frameHeight);
+  if (columnsEl && plan.columns > 0) columnsEl.value = String(plan.columns);
+  if (rowsEl && plan.rows > 0) rowsEl.value = String(plan.rows);
+  if (paddingEl) paddingEl.value = String(plan.padding || 0);
+  if (spacingEl) spacingEl.value = String(plan.spacing || 0);
+
+  if (plan.recommendedMode === "grid" && plan.frameWidth > 0 && plan.frameHeight > 0 && plan.columns > 0 && plan.rows > 0) {
+    generateSlices();
+  } else {
+    renderPreview();
+  }
+
+  const warningText = plan.warnings?.length ? ` Warnings: ${plan.warnings.join(" ")}` : "";
+  setPlanStatus(
+    `AI slice plan: ${plan.recommendedMode} • ${Math.round(plan.confidence * 100)}% • ${plan.reasoning}${warningText}`,
+    false,
+  );
 }
 
 function slicePreviewStyle(slice: { x: number; y: number; width: number; height: number }) {
@@ -599,6 +652,41 @@ async function promoteSlices() {
   setStatus(`Promoted ${created} slices into standalone asset records.`);
 }
 
+async function requestSlicePlan() {
+  if (!state.active) {
+    setPlanStatus("Choose an image asset first.", true);
+    return;
+  }
+
+  const record = {
+    ...state.active,
+    metadata_json: {
+      ...getMetadata(state.active),
+      width: state.naturalWidth || Number(getMetadata(state.active).width || 0) || 0,
+      height: state.naturalHeight || Number(getMetadata(state.active).height || 0) || 0,
+    },
+  };
+
+  const response = await fetch("/dev/panel/assets/slice-plan", {
+    method: "POST",
+    headers: panelHeaders(),
+    body: JSON.stringify({
+      sourceKey: state.active.sourceKey,
+      filename: String(state.active.file_url || state.active.preview_url || state.active.title || "asset.png")
+        .split("/")
+        .pop(),
+      mimeType: state.active.mime_type || "image/png",
+      dataUrl: state.active.preview_url || state.active.file_url || "",
+      record,
+    }),
+  });
+  const payload = await response.json();
+  if (!payload.success) {
+    throw new Error(payload.error || "Could not generate slice plan");
+  }
+  applySlicePlan(payload.data as SlicePlanResult);
+}
+
 async function loadAssets() {
   const response = await fetch("/dev/panel/assets/workbench?sort=latest", {
     headers: panelHeaders(),
@@ -625,6 +713,14 @@ async function loadAssets() {
 }
 
 function bindControls() {
+  document.getElementById("slice-ai-plan")?.addEventListener("click", async () => {
+    try {
+      setPlanStatus("Generating AI slice plan...");
+      await requestSlicePlan();
+    } catch (error: any) {
+      setPlanStatus(error.message || "Could not generate slice plan", true);
+    }
+  });
   document.getElementById("slice-generate")?.addEventListener("click", generateSlices);
   document.getElementById("slice-mode")?.addEventListener("change", () => renderPreview());
   document.getElementById("slice-add-manual")?.addEventListener("click", addManualSlice);

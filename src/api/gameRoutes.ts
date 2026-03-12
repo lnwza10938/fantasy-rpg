@@ -35,7 +35,7 @@ import {
   getAssetWorkbenchSourceConfigs,
   getDevSourceConfig,
 } from "../models/devPanelCatalog.js";
-import { reviewAssetAgainstFilename } from "../core/assetReview.js";
+import { planAssetSlicing, reviewAssetAgainstFilename } from "../core/assetReview.js";
 import {
   listAudioAssetEntries,
   listTerrainFacingAssets,
@@ -873,6 +873,54 @@ router.post(
       res.json({
         success: true,
         data: review,
+      });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  },
+);
+
+router.post(
+  "/panel/assets/slice-plan",
+  requireDevPanelAccess,
+  async (req, res) => {
+    const record =
+      req.body?.record && typeof req.body.record === "object" && !Array.isArray(req.body.record)
+        ? req.body.record
+        : {};
+    const filename = String(req.body?.filename || record.title || "").trim();
+    const mimeType = String(
+      req.body?.mimeType || record.mime_type || "application/octet-stream",
+    ).trim();
+    const dataUrl = String(
+      req.body?.dataUrl || record.preview_url || record.file_url || "",
+    ).trim();
+    const sourceKey = String(req.body?.sourceKey || "").trim();
+
+    if (!filename) {
+      res.status(400).json({ success: false, error: "filename is required" });
+      return;
+    }
+
+    try {
+      const plan = await planAssetSlicing({
+        filename,
+        title: String(record.title || ""),
+        sourceKey,
+        mimeType,
+        dataUrl,
+        tags: Array.isArray(record.tags) ? record.tags.map((entry: unknown) => String(entry)) : [],
+        metadata:
+          record.metadata_json &&
+          typeof record.metadata_json === "object" &&
+          !Array.isArray(record.metadata_json)
+            ? record.metadata_json
+            : {},
+      });
+
+      res.json({
+        success: true,
+        data: plan,
       });
     } catch (error: any) {
       res.status(400).json({ success: false, error: error.message });
