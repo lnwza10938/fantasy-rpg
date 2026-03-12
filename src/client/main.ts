@@ -1560,12 +1560,16 @@ function onLoginSuccess() {
         ? `Invite Access: ${G.user.label || "Streamer"}`
         : `Logged in as: ${G.user.email}`;
   syncPageChrome();
-  loadWorldContent(); // Load DB content for the world creation screen
-  fetchSaveList(); // Fetch existing saves so user can see their data
-  fetchCreatedWorlds(); // Fetch saved worlds for world archive / custom reuse
-  renderThemeBiomes("balanced"); // Initial biome preview
-  renderThemeMonsters("balanced"); // Initial monster preview
-  void renderHubLegendPreview();
+  if (APP_PAGE === "menu" || APP_PAGE === "forge" || APP_PAGE === "adventure") {
+    loadWorldContent();
+    renderThemeBiomes("balanced");
+    renderThemeMonsters("balanced");
+  }
+  if (APP_PAGE === "hub") {
+    fetchSaveList();
+    fetchCreatedWorlds();
+    void renderHubLegendPreview();
+  }
   if (APP_PAGE === "menu") {
     navigateToPage("hub");
     return;

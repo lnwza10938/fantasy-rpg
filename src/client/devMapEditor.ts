@@ -1409,8 +1409,18 @@ function bindControls() {
     const draft = buildOverrideDraft();
     if (!draft) return;
     setStatus("Saving override...");
-    const res = await fetch(`${API}/panel/records/world_overrides`, {
-      method: "POST",
+    const existingOverrideId =
+      state.selectedOverrideId &&
+      state.selectedOverrideId !== "new" &&
+      state.selectedOverrideId !== "local-draft"
+        ? state.selectedOverrideId
+        : "";
+    const targetUrl = existingOverrideId
+      ? `${API}/panel/records/world_overrides/${encodeURIComponent(existingOverrideId)}`
+      : `${API}/panel/records/world_overrides`;
+    const method = existingOverrideId ? "PATCH" : "POST";
+    const res = await fetch(targetUrl, {
+      method,
       headers: panelHeaders(),
       body: JSON.stringify(draft),
     });
@@ -1419,7 +1429,7 @@ function bindControls() {
       setStatus(payload.error || "Could not save override.", true);
       return;
     }
-    setStatus("Override saved to world_overrides.");
+    setStatus(existingOverrideId ? "Override updated." : "Override saved to world_overrides.");
     if (state.selectedWorldId) {
       localStorage.removeItem(getLocalDraftKey(state.selectedWorldId));
     }
@@ -1428,7 +1438,7 @@ function bindControls() {
     if (world) {
       applyWorkingDefinition(cloneRecord(state.currentDefinition || world.definition));
     }
-    state.selectedOverrideId = String(payload.data?.id || "new");
+    state.selectedOverrideId = String(payload.data?.id || existingOverrideId || "new");
     renderAll();
   });
 
