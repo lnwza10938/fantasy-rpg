@@ -2013,22 +2013,177 @@ input:focus {
   gap: 14px;
 }
 
+.world-builder-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(19, 74, 69, 0.22), rgba(11, 44, 61, 0.16));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 14px;
+}
+
+.world-builder-kicker,
+.world-builder-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.world-builder-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.world-builder-copy {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.65;
+  max-width: 700px;
+}
+
+.world-builder-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.world-builder-pill {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.world-builder-section-label {
+  margin: 16px 0 10px;
+}
+
+.world-builder-input-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+}
+
+.world-builder-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.world-builder-field {
+  flex: 1;
+}
+
+.world-builder-field-wide {
+  flex: 2;
+}
+
+.world-archive-panel {
+  margin-top: 8px;
+  padding-top: 4px;
+}
+
+.world-builder-preview-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.world-builder-summary-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.world-builder-summary-block {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.world-builder-summary-block:last-child {
+  border-bottom: none;
+}
+
+.world-builder-summary-kicker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.world-builder-summary-title {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.world-builder-summary-meta,
+.world-builder-summary-copy {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.world-builder-summary-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+@media (max-width: 980px) {
+  .world-builder-hero,
+  .world-builder-input-row {
+    flex-direction: column;
+  }
+
+  .world-builder-pill-list {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  .world-builder-preview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Preset Cards */
 .preset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
   margin-bottom: 4px;
 }
 
 .preset-card {
   background: var(--surface2);
   border: 2px solid var(--border);
-  border-radius: 10px;
-  padding: 14px;
+  border-radius: 14px;
+  padding: 16px 14px;
   cursor: pointer;
   transition: all 0.2s;
-  text-align: center;
+  text-align: left;
 }
 
 .preset-card:hover {
@@ -2043,26 +2198,26 @@ input:focus {
 
 .preset-icon {
   font-size: 28px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .preset-name {
   font-weight: 700;
-  font-size: 13px;
-  margin-bottom: 4px;
+  font-size: 14px;
+  margin-bottom: 6px;
 }
 
 .preset-desc {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--muted);
-  margin-bottom: 8px;
-  line-height: 1.4;
+  margin-bottom: 12px;
+  line-height: 1.55;
 }
 
 .preset-tags {
   display: flex;
   gap: 4px;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
 }
 

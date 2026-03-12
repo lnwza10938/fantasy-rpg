@@ -2209,12 +2209,105 @@ function showToast(msg: string, type = "success") {
 
 // Wizard state
 let wizardState = {
+  preset: "balanced",
   worldName: "The Balanced Realm",
   charSuggestion: "Hero",
   seed: 500000000 as number | null,
   skillCode: "",
   skillData: null as any,
 };
+
+function renderWorldBuilderSummary() {
+  const shell = document.getElementById("world-builder-summary");
+  if (!shell) return;
+
+  const selectedPreset = document.querySelector(
+    ".preset-card.selected",
+  ) as HTMLElement | null;
+  const presetId = selectedPreset?.dataset.preset || wizardState.preset || "balanced";
+  const presetLabel = worldPresetLabel(presetId);
+  const worldNameInput = document.getElementById(
+    "input-world-name",
+  ) as HTMLInputElement | null;
+  const seedInput = document.getElementById("input-seed") as HTMLInputElement | null;
+  const worldName =
+    worldNameInput?.value.trim() || wizardState.worldName || presetLabel;
+  const seedValue = seedInput?.value.trim() || (wizardState.seed ? String(wizardState.seed) : "");
+  const biomeBias =
+    presetId === "custom"
+      ? G.customSelection.biomes
+      : PRESET_WORLD_BIOMES[presetId] || [];
+  const threatBias = presetId === "custom" ? G.customSelection.monsters : [];
+
+  const outlook =
+    presetId === "inferno"
+      ? "Hazard routes and harder terrain layers will dominate this world's travel graph."
+      : presetId === "cursed"
+        ? "Fogged travel, corrupted pockets, and secret route reveal loops will shape this realm."
+        : presetId === "ancient"
+          ? "Ruin-heavy geography and lore-focused traversal will define the expedition."
+          : presetId === "custom"
+            ? "The generator will follow your biome and threat bias, then build topology and geography around it."
+            : "The generator will create a balanced topology with mixed biomes, readable routes, and a steady opening curve.";
+
+  shell.innerHTML = `
+    <div class="world-builder-summary-block">
+      <div class="world-builder-summary-kicker">World Identity</div>
+      <div class="world-builder-summary-title">${escapeHtml(worldName)}</div>
+      <div class="world-builder-summary-meta">${escapeHtml(presetLabel)} • Seed ${escapeHtml(seedValue || "Random")}</div>
+    </div>
+    <div class="world-builder-summary-block">
+      <div class="world-builder-summary-kicker">Generation Bias</div>
+      <div class="world-builder-summary-list">
+        <span><strong>Biomes:</strong> ${escapeHtml(biomeBias.length ? formatWorldList("biomes", biomeBias) : "Default")}</span>
+        <span><strong>Threats:</strong> ${escapeHtml(threatBias.length ? formatWorldList("monsters", threatBias) : presetId === "custom" ? "Open pool" : "Preset weighted pool")}</span>
+      </div>
+    </div>
+    <div class="world-builder-summary-block">
+      <div class="world-builder-summary-kicker">Generation Outlook</div>
+      <div class="world-builder-summary-copy">${escapeHtml(outlook)}</div>
+    </div>
+  `;
+}
+
+function syncWorldBuilderInputs() {
+  const worldNameInput = document.getElementById(
+    "input-world-name",
+  ) as HTMLInputElement | null;
+  const seedInput = document.getElementById("input-seed") as HTMLInputElement | null;
+
+  if (worldNameInput) {
+    wizardState.worldName =
+      worldNameInput.value.trim() || wizardState.worldName || "Custom World";
+  }
+  if (seedInput) {
+    const seedValue = seedInput.value.trim();
+    wizardState.seed = seedValue ? Number(seedValue) : null;
+  }
+
+  renderWorldBuilderSummary();
+}
+
+function bindWorldBuilderInputs() {
+  const worldNameInput = document.getElementById(
+    "input-world-name",
+  ) as HTMLInputElement | null;
+  const seedInput = document.getElementById("input-seed") as HTMLInputElement | null;
+
+  if (worldNameInput && !worldNameInput.value.trim()) {
+    worldNameInput.value = wizardState.worldName || "The Balanced Realm";
+  }
+  if (seedInput && !seedInput.value.trim() && wizardState.seed) {
+    seedInput.value = String(wizardState.seed);
+  }
+
+  [worldNameInput, seedInput].forEach((input) => {
+    if (!input || input.dataset.bound === "true") return;
+    input.dataset.bound = "true";
+    input.addEventListener("input", syncWorldBuilderInputs);
+    input.addEventListener("change", syncWorldBuilderInputs);
+  });
+}
 
 function selectPreset(
   el: HTMLElement,
@@ -2226,16 +2319,18 @@ function selectPreset(
     .querySelectorAll(".preset-card")
     .forEach((c) => c.classList.remove("selected"));
   el.classList.add("selected");
+  wizardState.preset = el.dataset.preset || "balanced";
   wizardState.worldName = worldName;
   wizardState.charSuggestion = charName;
   wizardState.seed = seed;
 
-  // Show or hide seed row
-  const seedRow = document.getElementById("seed-row");
-  if (seedRow)
-    seedRow.style.display = el.dataset.preset === "custom" ? "flex" : "none";
-
+  const worldNameEl = document.getElementById(
+    "input-world-name",
+  ) as HTMLInputElement | null;
   const svEl = document.getElementById("input-seed") as HTMLInputElement;
+  if (worldNameEl) {
+    worldNameEl.value = worldName || worldPresetLabel(wizardState.preset);
+  }
   if (seed !== null) {
     svEl.value = String(seed);
   } else {
@@ -2245,6 +2340,7 @@ function selectPreset(
   // Update Biome & Monster Previews based on Selection
   renderThemeBiomes(el.dataset.preset || "balanced");
   renderThemeMonsters(el.dataset.preset || "balanced");
+  renderWorldBuilderSummary();
 }
 
 function toggleCustomTag(type: "biomes" | "monsters", name: string) {
@@ -2260,6 +2356,7 @@ function toggleCustomTag(type: "biomes" | "monsters", name: string) {
     renderThemeBiomes("custom");
     renderThemeMonsters("custom");
   }
+  renderWorldBuilderSummary();
 }
 
 function renderThemeMonsters(preset: string) {
@@ -2268,7 +2365,7 @@ function renderThemeMonsters(preset: string) {
   const headerEl = monEl.parentElement?.querySelector("h3");
 
   if (preset === "custom") {
-    if (headerEl) headerEl.textContent = "👾 Select Monsters for Your World";
+    if (headerEl) headerEl.textContent = "Threat Bias";
     if (G.allContent.monsters.length === 0) {
       monEl.innerHTML =
         '<div style="color:var(--muted); font-size:11px">Loading global database...</div>';
@@ -2289,7 +2386,7 @@ function renderThemeMonsters(preset: string) {
     return;
   }
 
-  if (headerEl) headerEl.textContent = "👾 Monsters in this World";
+  if (headerEl) headerEl.textContent = "Weighted Threat Pool";
 
   let filterBiomes: string[] = [];
   if (preset === "balanced")
@@ -2332,7 +2429,7 @@ function renderThemeBiomes(preset: string) {
   const headerEl = biomeEl.parentElement?.querySelector("h3");
 
   if (preset === "custom") {
-    if (headerEl) headerEl.textContent = "🌍 Select World Biomes (Tags)";
+    if (headerEl) headerEl.textContent = "Biome Bias";
     if (G.allContent.biomes.length === 0) {
       biomeEl.innerHTML =
         '<div style="color:var(--muted); font-size:11px">Loading global database...</div>';
@@ -2354,7 +2451,7 @@ function renderThemeBiomes(preset: string) {
     return;
   }
 
-  if (headerEl) headerEl.textContent = "🌍 World Biomes";
+  if (headerEl) headerEl.textContent = "Primary Geography Bias";
 
   let filterBiomes: string[] = [];
   if (preset === "balanced")
@@ -2393,6 +2490,8 @@ function renderThemeBiomes(preset: string) {
 function wizardGoStep(step: number) {
   if (step === 1) {
     fetchCreatedWorlds();
+    bindWorldBuilderInputs();
+    renderWorldBuilderSummary();
   }
 
   // Validate on forward to the final confirm step
@@ -2411,34 +2510,37 @@ function wizardGoStep(step: number) {
       ) as HTMLElement;
       const isCustom = selectedPreset?.dataset.preset === "custom";
 
-      if (isCustom) {
-        const customNameField = (
-          document.getElementById("input-world-name") as HTMLInputElement
-        )?.value.trim();
-        if (customNameField) worldName = customNameField;
-      }
+      const typedWorldName = (
+        document.getElementById("input-world-name") as HTMLInputElement
+      )?.value.trim();
+      if (typedWorldName) worldName = typedWorldName;
 
-      let tagSummary = "";
-      if (isCustom) {
-        const bTags =
-          G.customSelection.biomes.length > 0
-            ? formatWorldList("biomes", G.customSelection.biomes)
-            : "Default";
-        const mTags =
-          G.customSelection.monsters.length > 0
-            ? formatWorldList("monsters", G.customSelection.monsters)
-            : "Default";
-        tagSummary = `
-                    <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-size:10px;">
-                        <span style="color:var(--muted)">Biomes:</span> ${bTags}<br>
-                        <span style="color:var(--muted)">Monsters:</span> ${mTags}
-                    </div>
-                `;
-      }
+      const presetId = selectedPreset?.dataset.preset || "balanced";
+      const presetLabel = worldPresetLabel(presetId);
+      const bTags =
+        isCustom && G.customSelection.biomes.length > 0
+          ? formatWorldList("biomes", G.customSelection.biomes)
+          : formatWorldList(
+              "biomes",
+              isCustom ? [] : PRESET_WORLD_BIOMES[presetId] || [],
+            );
+      const mTags =
+        G.customSelection.monsters.length > 0
+          ? formatWorldList("monsters", G.customSelection.monsters)
+          : isCustom
+            ? "Open pool"
+            : "Preset weighted pool";
+      const tagSummary = `
+                  <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border); font-size:10px; line-height:1.7;">
+                      <span style="color:var(--muted)">Archetype:</span> ${escapeHtml(presetLabel)}<br>
+                      <span style="color:var(--muted)">Biome Bias:</span> ${escapeHtml(bTags)}<br>
+                      <span style="color:var(--muted)">Threat Bias:</span> ${escapeHtml(mTags)}
+                  </div>
+              `;
 
       summaryEl.innerHTML = `
                 <div style="text-align:left; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:15px; margin-bottom:10px">
-                    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Selected World</div>
+                    <div style="font-size:10px; color:var(--muted); text-transform:uppercase; margin-bottom:4px">Assembled World</div>
                     <div style="font-size:16px; font-weight:700">${worldName}</div>
                     <div style="font-size:11px; color:var(--muted)">Seed: ${wizardState.seed || "Random"}</div>
                     ${tagSummary}
@@ -2487,6 +2589,7 @@ function startWizard() {
     return;
   }
   showScreen("wizard");
+  bindWorldBuilderInputs();
   wizardGoStep(1);
 }
 
@@ -2498,6 +2601,7 @@ function startWizardWithLegend(legend: any) {
     return;
   }
   showScreen("wizard");
+  bindWorldBuilderInputs();
   wizardGoStep(1);
   showToast(`Legend selected: ${legend.name}. Choose a world to begin.`, "info");
 }
@@ -3532,6 +3636,7 @@ async function rollSkill() {
 function rollRandomSeed() {
   const svEl = document.getElementById("input-seed") as HTMLInputElement;
   svEl.value = String(Math.floor(Math.random() * 999999999));
+  syncWorldBuilderInputs();
 }
 
 async function loadWorldContent() {
@@ -3546,37 +3651,10 @@ async function loadWorldContent() {
     G.allContent.factions = factions || [];
     G.allContent.maps = maps || [];
 
-    // Factions and Maps can still be rendered directly if they aren't theme-dependent
-    const facEl = document.getElementById("faction-list");
-    if (facEl && factions && factions.length > 0) {
-      facEl.innerHTML = factions
-        .map(
-          (f: any) => `
-                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px">
-                    <div style="font-weight:700">${f.name}</div>
-                    <div style="color:var(--muted);font-size:10px;margin-top:2px">${f.ideology || f.type || ""}</div>
-                </div>
-            `,
-        )
-        .join("");
-    }
-
-    const mapEl = document.getElementById("map-list");
-    if (mapEl && maps && maps.length > 0) {
-      mapEl.innerHTML = maps
-        .map(
-          (m: any) => `
-                <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between">
-                    <span style="font-weight:600">${m.name}</span>
-                    <span style="color:var(--red);font-size:10px">⚠ Lv.${m.danger_level}</span>
-                </div>
-            `,
-        )
-        .join("");
-    }
-
     const preview = document.getElementById("content-preview");
     if (preview) preview.style.display = "block";
+    bindWorldBuilderInputs();
+    renderWorldBuilderSummary();
     renderCreatedWorlds();
   } catch (e) {
     console.warn("Could not load world content", e);
@@ -3604,12 +3682,10 @@ async function submitNewGame() {
   const isCustom = presetId === "custom";
 
   let finalWorldName = wizardState.worldName || presetName;
-  if (isCustom) {
-    const customName = (
-      document.getElementById("input-world-name") as HTMLInputElement
-    )?.value.trim();
-    if (customName) finalWorldName = customName;
-  }
+  const typedWorldName = (
+    document.getElementById("input-world-name") as HTMLInputElement
+  )?.value.trim();
+  if (typedWorldName) finalWorldName = typedWorldName;
   const activeCustomBiomes = isCustom
     ? [...G.customSelection.biomes]
     : [...(PRESET_WORLD_BIOMES[presetId] || [])];

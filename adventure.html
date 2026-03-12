@@ -418,7 +418,7 @@
             </div>
           </div>
 
-          <!-- STEP 1: Choose World -->
+          <!-- STEP 1: Build World -->
           <div id="wizard-step-1" class="fade-in">
             <div class="card">
               <div
@@ -429,7 +429,7 @@
                   margin-bottom: 12px;
                 "
               >
-                <h3>✨ Step 1: Choose a World</h3>
+                <h3>🗺️ Step 1: Build a World</h3>
                 <button
                   class="btn btn-action"
                   style="font-size: 10px"
@@ -438,135 +438,114 @@
                   ✖ Cancel
                 </button>
               </div>
+
+              <div class="world-builder-hero">
+                <div>
+                  <div class="world-builder-kicker">World Builder</div>
+                  <div class="world-builder-title">
+                    Shape the realm before your legend enters it
+                  </div>
+                  <div class="world-builder-copy">
+                    Pick a realm archetype, set the world's identity, and bias the
+                    generator with biomes and threats. This feeds the topology,
+                    geography, and future map-authoring tools directly.
+                  </div>
+                </div>
+                <div class="world-builder-pill-list">
+                  <span class="world-builder-pill">Topology First</span>
+                  <span class="world-builder-pill">Geography Aware</span>
+                  <span class="world-builder-pill">Override Ready</span>
+                </div>
+              </div>
+
+              <div class="world-builder-section-label">1. Realm Archetype</div>
               <div id="preset-grid" class="preset-grid">
                 <div
                   class="preset-card selected"
                   data-preset="balanced"
-                  onclick="
-                    selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)
-                  "
+                  onclick="selectPreset(this, 'The Balanced Realm', 'Hero', 500000000)"
                 >
                   <div class="preset-icon">⚖️</div>
                   <div class="preset-name">Balanced Realm</div>
                   <div class="preset-desc">
-                    Classic adventure with diverse biomes
+                    Mixed routes, steady geography, and a versatile opening world
                   </div>
                   <div class="preset-tags">
-                    <span class="tag">Medium</span
-                    ><span class="tag">Mixed</span>
+                    <span class="tag">Roads</span><span class="tag">Mixed Biomes</span>
                   </div>
                 </div>
                 <div
                   class="preset-card"
                   data-preset="inferno"
-                  onclick="
-                    selectPreset(
-                      this,
-                      'The Scorched World',
-                      'Ashborn',
-                      696969420,
-                    )
-                  "
+                  onclick="selectPreset(this, 'The Scorched World', 'Ashborn', 696969420)"
                 >
                   <div class="preset-icon">🔥</div>
                   <div class="preset-name">Inferno World</div>
                   <div class="preset-desc">
-                    Volcanic wastelands and fire-born horrors
+                    Harsh ridges, hazard routes, and scorched frontier pressure
                   </div>
                   <div class="preset-tags">
-                    <span class="tag tag-hard">Hard</span
-                    ><span class="tag">Volcanic</span>
+                    <span class="tag tag-hard">Hazards</span><span class="tag">Volcanic</span>
                   </div>
                 </div>
                 <div
                   class="preset-card"
                   data-preset="cursed"
-                  onclick="
-                    selectPreset(
-                      this,
-                      'The Cursed Lands',
-                      'Darkwalker',
-                      111222333,
-                    )
-                  "
+                  onclick="selectPreset(this, 'The Cursed Lands', 'Darkwalker', 111222333)"
                 >
                   <div class="preset-icon">💀</div>
                   <div class="preset-name">Cursed Lands</div>
                   <div class="preset-desc">
-                    Ancient evil permeates every shadow
+                    Fogged routes, corrupted terrain, and secret paths through ruin
                   </div>
                   <div class="preset-tags">
-                    <span class="tag tag-hard">Hard</span
-                    ><span class="tag">Dark</span>
+                    <span class="tag tag-hard">Secrets</span><span class="tag">Cursed</span>
                   </div>
                 </div>
                 <div
                   class="preset-card"
                   data-preset="ancient"
-                  onclick="
-                    selectPreset(
-                      this,
-                      'The Ancient World',
-                      'Lorekeeper',
-                      987654321,
-                    )
-                  "
+                  onclick="selectPreset(this, 'The Ancient World', 'Lorekeeper', 987654321)"
                 >
                   <div class="preset-icon">🏛️</div>
                   <div class="preset-name">Ancient Ruins</div>
                   <div class="preset-desc">
-                    Lost empires and hidden knowledge
+                    Broken empires, lore-rich nodes, and archaeological routes
                   </div>
                   <div class="preset-tags">
-                    <span class="tag tag-easy">Easy</span
-                    ><span class="tag">Lore</span>
+                    <span class="tag tag-easy">Lore</span><span class="tag">Ruins</span>
                   </div>
                 </div>
                 <div
                   class="preset-card"
                   data-preset="custom"
-                  onclick="selectPreset(this, '', '', null)"
+                  onclick="selectPreset(this, 'Custom World', '', null)"
                 >
                   <div class="preset-icon">🎲</div>
                   <div class="preset-name">Custom World</div>
                   <div class="preset-desc">
-                    Build your own adventure from scratch
+                    Define your own biome and threat bias for a generated realm
                   </div>
                   <div class="preset-tags">
-                    <span class="tag">Custom</span><span class="tag">Any</span>
+                    <span class="tag">Builder</span><span class="tag">Flexible</span>
                   </div>
                 </div>
               </div>
 
-              <!-- Seed & Name Row (shown only for custom) -->
-              <div
-                id="seed-row"
-                style="
-                  display: none;
-                  flex-direction: column;
-                  gap: 12px;
-                  margin-top: 12px;
-                  padding-top: 12px;
-                  border-top: 1px solid var(--border);
-                "
-              >
-                <div style="display: flex; gap: 10px; align-items: flex-end">
-                  <div style="flex: 2">
-                    <label>Custom World Name</label>
+              <div class="world-builder-section-label">2. World Identity</div>
+              <div id="seed-row" class="world-builder-input-shell">
+                <div class="world-builder-input-row">
+                  <div class="world-builder-field world-builder-field-wide">
+                    <label>World Name</label>
                     <input
                       type="text"
                       id="input-world-name"
-                      placeholder="E.g. The Unknown Realm"
+                      placeholder="Name the realm you are about to generate"
                       autocomplete="off"
                     />
                   </div>
-                  <div style="flex: 1">
-                    <label
-                      >Seed
-                      <span style="color: var(--muted); font-size: 9px"
-                        >(optional)</span
-                      ></label
-                    >
+                  <div class="world-builder-field">
+                    <label>Seed <span style="color: var(--muted); font-size: 9px">(optional)</span></label>
                     <input
                       type="number"
                       id="input-seed"
@@ -577,6 +556,7 @@
                   <button
                     type="button"
                     class="btn btn-action"
+                    id="btn-world-seed-roll"
                     onclick="rollRandomSeed()"
                   >
                     🎲 Roll
@@ -584,13 +564,8 @@
                 </div>
               </div>
 
-              <div
-                style="
-                  margin-top: 14px;
-                  padding-top: 12px;
-                  border-top: 1px solid var(--border);
-                "
-              >
+              <div class="world-builder-section-label">3. Saved Worlds</div>
+              <div class="world-archive-panel">
                 <div
                   style="
                     display: flex;
@@ -612,19 +587,18 @@
                 </div>
                 <div id="created-world-list" class="world-archive-list">
                   <div class="world-record-empty">
-                    No worlds recorded yet. Start an adventure and it will appear
-                    here.
+                    No worlds recorded yet. Start an adventure and it will appear here.
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- DB Content Preview (Monsters/Biomes) -->
-            <div id="content-preview" style="display: none">
-              <div class="card fade-in">
-                <h3>🌍 World Biomes</h3>
-                <div id="biome-list" class="biome-grid"></div>
-
+            <div id="content-preview" class="world-builder-preview-grid">
+              <div class="card fade-in world-builder-summary-card">
+                <div class="world-builder-section-label" style="margin-top: 0">
+                  4. Generation Outlook
+                </div>
+                <div id="world-builder-summary"></div>
                 <button
                   class="btn btn-primary"
                   id="btn-step1-next"
@@ -640,26 +614,16 @@
                 </button>
               </div>
               <div class="card fade-in">
-                <h3>👾 Monsters in this World</h3>
-                <div id="monster-list" class="monster-grid"></div>
+                <div class="world-builder-section-label" style="margin-top: 0">
+                  Biome Bias
+                </div>
+                <div id="biome-list" class="biome-grid"></div>
               </div>
-              <div
-                style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px"
-              >
-                <div class="card fade-in">
-                  <h3>⚔️ Factions</h3>
-                  <div
-                    id="faction-list"
-                    style="display: flex; flex-direction: column; gap: 6px"
-                  ></div>
+              <div class="card fade-in">
+                <div class="world-builder-section-label" style="margin-top: 0">
+                  Threat Bias
                 </div>
-                <div class="card fade-in">
-                  <h3>🗺️ Known Maps</h3>
-                  <div
-                    id="map-list"
-                    style="display: flex; flex-direction: column; gap: 6px"
-                  ></div>
-                </div>
+                <div id="monster-list" class="monster-grid"></div>
               </div>
             </div>
           </div>
@@ -687,7 +651,7 @@
                   margin-bottom: 15px;
                 "
               >
-                Select a character from your vault to begin this adventure.
+                Select the legend who will enter the realm you just assembled.
               </p>
 
               <div
@@ -725,7 +689,7 @@
                   style="flex: 2"
                   disabled
                 >
-                  Proceed with Legend
+                  Review Journey Setup
                 </button>
               </div>
             </div>
@@ -781,7 +745,7 @@
                 "
                 onclick="submitNewGame()"
               >
-                ⚔️ Enter the World
+                ⚔️ Launch the Expedition
               </button>
             </div>
           </div>
