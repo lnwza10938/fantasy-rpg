@@ -15,6 +15,7 @@ It currently has:
 - a dedicated `/map` route
 - an integrated `/adventure` map gameplay surface
 - guided `world_overrides` authoring inside the dev panel
+- a first visual node / path editor layered on top of override payloads
 
 In short:
 
@@ -147,14 +148,16 @@ That is the first practical authoring loop for map editing in the project.
 
 ### 1. Map Authoring
 
-Map authoring now exists, but it is still **payload-first**, not yet **visual editor-first**.
+Map authoring is now in a **hybrid stage**.
 
 That means:
 
 - we can patch regions and layouts intentionally
-- but we do not yet have a direct drag/edit UI for nodes and paths on the map surface
+- the dev panel now includes a first visual editor for nodes and paths
+- node/path edits still sync into override JSON under the hood
+- the editor is not yet a full atlas-grade map tool or geography painter
 
-This is a major improvement over raw JSON-only editing, but not the final target.
+This is the first version where topology editing is practical without hand-authoring the whole payload.
 
 ### 2. Traversal Progression
 
@@ -181,16 +184,26 @@ Still incomplete:
 
 These are the most important map-side missing pieces:
 
-### 1. Direct Node / Path Editor
+### 1. Direct Node / Path Editor - Phase 2
 
-The next map-specific milestone should be a direct authoring surface for:
+The first version is now in place inside the dev panel.
 
-- adding/removing nodes
-- editing node positions
-- editing path connections
-- editing path properties such as kind, difficulty, visibility, and requirements
+Current support:
 
-This should sit on top of the current canonical world and override system, not replace it.
+- inspect live topology for a selected canonical world
+- drag node positions
+- edit node metadata such as icon, landmark, tier, start, and goal
+- add paths between nodes
+- edit path kind, difficulty, visibility, and requirements
+- remove selected nodes or paths for layout overrides
+- sync all of the above back into `world_overrides`
+
+Still missing for the next pass:
+
+- better creation flow for brand-new regions
+- richer path visualization and route labels
+- stronger validation and conflict handling
+- direct geography editing alongside topology
 
 ### 2. Story Binding To World / Region
 
@@ -227,7 +240,7 @@ If we describe the current map stack in simple terms:
 
 The most efficient next order is now:
 
-1. build direct `node/path editor` tools on top of the new override authoring flow
+1. deepen the new `node/path editor` into a richer visual authoring workflow
 2. bind story/lore files to `world_definition_id` and target regions
 3. deepen travel/path gameplay rules
 4. add a richer geographic render layer behind the topology graph

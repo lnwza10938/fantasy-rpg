@@ -227,6 +227,7 @@ Now available:
 
 - direct `Override` entry from `World Definitions`
 - guided `World Override Builder`
+- visual `Node / Path Editor` inside the dev panel
 - world selection
 - override-type selection
 - region targeting
@@ -236,11 +237,25 @@ Now available:
 
 Still to do:
 
-- direct visual node/path editing
+- stronger node/path editing ergonomics and validation
 - stronger story binding through overrides
 - richer world-pack authoring flow on top of the new builder
 
-### 3. Dev Content Upload Workflow
+### 3. World Builder Refactor
+
+The world-start flow now matches the map-first plan more closely.
+
+Current changes:
+
+- step 1 is framed as a real `World Builder`
+- presets are treated as realm archetypes rather than simple world slots
+- world name and seed act as identity inputs for every archetype
+- biome and monster picks are treated as generation bias inputs
+- the setup screen now explains topology/geography intent more clearly
+
+This matters because the setup flow now matches the actual architecture of the project rather than an older prototype mental model.
+
+### 4. Dev Content Upload Workflow
 
 The project still needs the planned dev-facing page for:
 
@@ -256,7 +271,7 @@ The architecture now supports this direction much better than before, but the UI
 
 The most sensible next implementation order is:
 
-1. Build direct `node/path` editing on top of the new override workflow.
+1. Deepen the new `node/path` editor with stronger ergonomics and validation.
 2. Deepen the traversal engine with stronger route rules, gating, and hidden routes.
 3. Bind story/lore content directly to canonical world definitions and regions.
 4. Continue the dev panel flow for monster/world/story/media uploads.
@@ -284,5 +299,6 @@ It now has:
 - a first traversal layer on top of that topology
 - persistent world definitions in the database
 - a first guided world-override authoring workflow in the dev panel
+- a first visual node/path editor on top of that workflow
 
 That puts the project in a strong position for the next phase: direct topology editing, richer traversal design, and story binding on top of the now more coherent canonical world graph.

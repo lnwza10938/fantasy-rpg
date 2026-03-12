@@ -266,6 +266,165 @@
           </div>
           <div id="dev-override-world-summary" class="dev-override-summary"></div>
           <div id="dev-override-status" class="dev-inline-status"></div>
+          <section id="dev-topology-editor" class="dev-topology-editor">
+            <div class="dev-topology-toolbar">
+              <div class="dev-topology-mode-group">
+                <button
+                  id="dev-topology-mode-select"
+                  class="btn btn-action dev-topology-mode-btn active"
+                  type="button"
+                >
+                  Select
+                </button>
+                <button
+                  id="dev-topology-mode-add-node"
+                  class="btn btn-action dev-topology-mode-btn"
+                  type="button"
+                >
+                  Add Node
+                </button>
+                <button
+                  id="dev-topology-mode-add-path"
+                  class="btn btn-action dev-topology-mode-btn"
+                  type="button"
+                >
+                  Add Path
+                </button>
+              </div>
+              <div class="dev-topology-toolbar-actions">
+                <button id="dev-topology-auto-layout" class="btn btn-action" type="button">
+                  Auto Layout
+                </button>
+                <button id="dev-topology-remove" class="btn btn-action" type="button">
+                  Remove Selected
+                </button>
+              </div>
+            </div>
+
+            <div class="dev-topology-stage">
+              <div class="dev-topology-board-shell">
+                <div id="dev-topology-board" class="dev-topology-board"></div>
+              </div>
+
+              <aside class="dev-topology-inspector">
+                <div class="dev-topology-inspector-card">
+                  <div class="dev-panel-kicker">Selection</div>
+                  <div id="dev-topology-selection-title" class="dev-topology-selection-title">
+                    World Layout
+                  </div>
+                  <div id="dev-topology-selection-copy" class="dev-topology-selection-copy">
+                    Select a node or path to edit it, or use Add Path to connect two nodes.
+                  </div>
+                </div>
+
+                <div class="dev-topology-inspector-card">
+                  <div class="dev-panel-kicker">Layout</div>
+                  <div class="dev-topology-form-grid">
+                    <label class="dev-topology-field">
+                      <span>Width</span>
+                      <input id="dev-topology-width" type="number" min="320" step="10" />
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Height</span>
+                      <input id="dev-topology-height" type="number" min="240" step="10" />
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Start Region</span>
+                      <select id="dev-topology-start-region"></select>
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Goal Region</span>
+                      <select id="dev-topology-goal-region"></select>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="dev-topology-node-card" class="dev-topology-inspector-card">
+                  <div class="dev-panel-kicker">Node</div>
+                  <div class="dev-topology-form-grid">
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Region</span>
+                      <select id="dev-topology-node-region"></select>
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>X</span>
+                      <input id="dev-topology-node-x" type="number" step="1" />
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Y</span>
+                      <input id="dev-topology-node-y" type="number" step="1" />
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Tier</span>
+                      <input id="dev-topology-node-tier" type="number" min="0" step="1" />
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Icon</span>
+                      <input id="dev-topology-node-icon" type="text" maxlength="8" />
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Landmark</span>
+                      <input id="dev-topology-node-landmark" type="text" />
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Accent</span>
+                      <input id="dev-topology-node-accent" type="text" placeholder="#4fc3f7" />
+                    </label>
+                    <label class="dev-topology-check">
+                      <input id="dev-topology-node-start" type="checkbox" />
+                      <span>Start Node</span>
+                    </label>
+                    <label class="dev-topology-check">
+                      <input id="dev-topology-node-goal" type="checkbox" />
+                      <span>Goal Node</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div id="dev-topology-path-card" class="dev-topology-inspector-card">
+                  <div class="dev-panel-kicker">Path</div>
+                  <div class="dev-topology-form-grid">
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>From</span>
+                      <select id="dev-topology-path-from"></select>
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>To</span>
+                      <select id="dev-topology-path-to"></select>
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Kind</span>
+                      <select id="dev-topology-path-kind">
+                        <option value="road">Road</option>
+                        <option value="hazard">Hazard</option>
+                        <option value="secret">Secret</option>
+                      </select>
+                    </label>
+                    <label class="dev-topology-field">
+                      <span>Difficulty</span>
+                      <input id="dev-topology-path-difficulty" type="number" min="1" step="1" />
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Visibility</span>
+                      <select id="dev-topology-path-visibility">
+                        <option value="visible">Visible</option>
+                        <option value="fogged">Fogged</option>
+                        <option value="hidden">Hidden</option>
+                      </select>
+                    </label>
+                    <label class="dev-topology-field dev-topology-field-wide">
+                      <span>Requirements</span>
+                      <input
+                        id="dev-topology-path-requirements"
+                        type="text"
+                        placeholder="level_5, key_crystal"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
         </div>
 
         <textarea id="dev-editor-json" class="dev-editor-json"></textarea>

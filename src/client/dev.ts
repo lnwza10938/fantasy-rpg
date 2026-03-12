@@ -43,6 +43,37 @@ interface ParsedWorldDefinitionRecord {
   mapLayout: Record<string, unknown>;
 }
 
+interface TopologyNodeDraft {
+  regionId: string;
+  x: number;
+  y: number;
+  tier: number;
+  icon: string;
+  landmark: string;
+  accentColor: string;
+  isStart: boolean;
+  isGoal: boolean;
+}
+
+interface TopologyPathDraft {
+  id: string;
+  fromRegionId: string;
+  toRegionId: string;
+  kind: "road" | "hazard" | "secret";
+  difficulty: number;
+  visibility: "visible" | "hidden" | "fogged";
+  requirements: string[];
+}
+
+interface TopologyLayoutDraft {
+  width: number;
+  height: number;
+  startRegionId: string;
+  goalRegionId: string;
+  nodes: TopologyNodeDraft[];
+  paths: TopologyPathDraft[];
+}
+
 const DEV_KEY_STORAGE = "rpg_dev_panel_key";
 const DEV_SORT_STORAGE = "rpg_dev_panel_sort";
 const DEV_CATEGORY_STORAGE = "rpg_dev_panel_category";
@@ -64,6 +95,20 @@ const state: {
     source: null,
     recordId: null,
   },
+};
+
+const topologyState: {
+  mode: "select" | "add-node" | "add-path";
+  selectedNodeId: string | null;
+  selectedPathId: string | null;
+  pendingPathFrom: string | null;
+  dragNodeId: string | null;
+} = {
+  mode: "select",
+  selectedNodeId: null,
+  selectedPathId: null,
+  pendingPathFrom: null,
+  dragNodeId: null,
 };
 
 function escapeHtml(value: unknown) {
@@ -318,8 +363,341 @@ function buildOverrideMirrorRecord(
         ? "full_layout"
         : overrideType === "patch_metadata"
           ? "world_identity"
-          : "full_definition",
+      : "full_definition",
   );
+}
+
+function toFiniteNumber(value: unknown, fallback: number) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function buildFallbackNodeDrafts(world: ParsedWorldDefinitionRecord): TopologyNodeDraft[] {
+  const total = Math.max(world.regions.length, 1);
+  return world.regions.map((region, index) => {
+    const regionId = String(region.id || `region-${index}`);
+    const mapPosition = safeObject(region.mapPosition);
+    const fallbackX = 140 + ((index % 4) * 220);
+    const fallbackY = 120 + (Math.floor(index / 4) * 150);
+    return {
+      regionId,
+      x: toFiniteNumber(mapPosition.x, fallbackX),
+      y: toFiniteNumber(mapPosition.y, fallbackY),
+      tier: toFiniteNumber(region.tier, Math.floor((index / total) * 3)),
+      icon: String(region.icon || "🗺️"),
+      landmark: String(region.landmark || region.name || regionId),
+      accentColor: String(region.accentColor || "#4fc3f7"),
+      isStart: region.isStart === true || regionId === String(world.mapLayout.startRegionId || ""),
+      isGoal: region.isGoal === true || regionId === String(world.mapLayout.goalRegionId || ""),
+    };
+  });
+}
+
+function normalizeNodeDraft(
+  entry: Record<string, unknown>,
+  world: ParsedWorldDefinitionRecord,
+  index: number,
+): TopologyNodeDraft {
+  const regionId = String(entry.regionId || world.regions[index]?.id || `region-${index}`);
+  const region = world.regions.find((candidate) => String(candidate.id || "") === regionId) || {};
+  return {
+    regionId,
+    x: toFiniteNumber(entry.x, toFiniteNumber(safeObject(region.mapPosition).x, 140 + ((index % 4) * 220))),
+    y: toFiniteNumber(entry.y, toFiniteNumber(safeObject(region.mapPosition).y, 120 + (Math.floor(index / 4) * 150))),
+    tier: toFiniteNumber(entry.tier, toFiniteNumber(region.tier, 0)),
+    icon: String(entry.icon || region.icon || "🗺️"),
+    landmark: String(entry.landmark || region.landmark || region.name || regionId),
+    accentColor: String(entry.accentColor || region.accentColor || "#4fc3f7"),
+    isStart: entry.isStart === true || region.isStart === true,
+    isGoal: entry.isGoal === true || region.isGoal === true,
+  };
+}
+
+function normalizePathDraft(
+  entry: Record<string, unknown>,
+  index: number,
+): TopologyPathDraft {
+  const fromRegionId = String(entry.fromRegionId || "");
+  const toRegionId = String(entry.toRegionId || "");
+  const kind =
+    entry.kind === "hazard" || entry.kind === "secret" ? entry.kind : "road";
+  const visibility =
+    entry.visibility === "hidden" || entry.visibility === "fogged"
+      ? entry.visibility
+      : "visible";
+  return {
+    id:
+      String(entry.id || "").trim() ||
+      `${fromRegionId || "from"}::${toRegionId || "to"}::${index}`,
+    fromRegionId,
+    toRegionId,
+    kind,
+    difficulty: Math.max(1, Math.round(toFiniteNumber(entry.difficulty, 1))),
+    visibility,
+    requirements: safeArray(entry.requirements).map((value) => String(value)).filter(Boolean),
+  };
+}
+
+function deriveTopologyLayoutDraft(world: ParsedWorldDefinitionRecord | null) {
+  if (!world) return null;
+
+  const record = parseEditorJsonValue();
+  const overrideType = String(record.override_type || "patch_region");
+  const scopeRef = String(record.scope_ref || "");
+  const payload = safeObject(record.payload_json);
+  const baseLayout = safeObject(world.mapLayout);
+
+  let width = Math.max(320, Math.round(toFiniteNumber(baseLayout.width, 1040)));
+  let height = Math.max(240, Math.round(toFiniteNumber(baseLayout.height, 560)));
+  let nodes = safeArray(baseLayout.nodes)
+    .map((entry, index) => normalizeNodeDraft(safeObject(entry), world, index))
+    .filter((node) => node.regionId);
+  let paths = safeArray(baseLayout.paths)
+    .map((entry, index) => normalizePathDraft(safeObject(entry), index))
+    .filter((path) => path.fromRegionId && path.toRegionId);
+
+  if (!nodes.length) {
+    nodes = buildFallbackNodeDrafts(world);
+  }
+
+  if (overrideType === "set_map_layout") {
+    width = Math.max(320, Math.round(toFiniteNumber(payload.width, width)));
+    height = Math.max(240, Math.round(toFiniteNumber(payload.height, height)));
+    if (Array.isArray(payload.nodes)) {
+      nodes = payload.nodes
+        .map((entry, index) => normalizeNodeDraft(safeObject(entry), world, index))
+        .filter((node) => node.regionId);
+    }
+    if (Array.isArray(payload.paths)) {
+      paths = payload.paths
+        .map((entry, index) => normalizePathDraft(safeObject(entry), index))
+        .filter((path) => path.fromRegionId && path.toRegionId);
+    }
+  } else if (overrideType === "replace_definition") {
+    const layoutPayload = safeObject(payload.mapLayout);
+    if (Object.keys(layoutPayload).length) {
+      width = Math.max(320, Math.round(toFiniteNumber(layoutPayload.width, width)));
+      height = Math.max(240, Math.round(toFiniteNumber(layoutPayload.height, height)));
+      if (Array.isArray(layoutPayload.nodes)) {
+        nodes = layoutPayload.nodes
+          .map((entry, index) => normalizeNodeDraft(safeObject(entry), world, index))
+          .filter((node) => node.regionId);
+      }
+      if (Array.isArray(layoutPayload.paths)) {
+        paths = layoutPayload.paths
+          .map((entry, index) => normalizePathDraft(safeObject(entry), index))
+          .filter((path) => path.fromRegionId && path.toRegionId);
+      }
+    }
+  } else if (overrideType === "patch_region" && scopeRef) {
+    nodes = nodes.map((node) =>
+      node.regionId !== scopeRef
+        ? node
+        : {
+            ...node,
+            x: toFiniteNumber(safeObject(payload.mapPosition).x, node.x),
+            y: toFiniteNumber(safeObject(payload.mapPosition).y, node.y),
+            tier: toFiniteNumber(payload.tier, node.tier),
+            icon: String(payload.icon || node.icon),
+            landmark: String(payload.landmark || node.landmark),
+            accentColor: String(payload.accentColor || node.accentColor),
+            isStart: payload.isStart === true || node.isStart,
+            isGoal: payload.isGoal === true || node.isGoal,
+          },
+    );
+  }
+
+  const startRegionId =
+    String(
+      (overrideType === "set_map_layout" ? payload.startRegionId : "") ||
+        safeObject(payload.mapLayout).startRegionId ||
+        baseLayout.startRegionId ||
+        nodes.find((node) => node.isStart)?.regionId ||
+        nodes[0]?.regionId ||
+        "",
+    ) || "";
+  const goalRegionId =
+    String(
+      (overrideType === "set_map_layout" ? payload.goalRegionId : "") ||
+        safeObject(payload.mapLayout).goalRegionId ||
+        baseLayout.goalRegionId ||
+        nodes.find((node) => node.isGoal)?.regionId ||
+        nodes[nodes.length - 1]?.regionId ||
+        "",
+    ) || "";
+
+  return {
+    width,
+    height,
+    startRegionId,
+    goalRegionId,
+    nodes,
+    paths,
+  } satisfies TopologyLayoutDraft;
+}
+
+function syncTopologyDraftToEditor(layout: TopologyLayoutDraft) {
+  const record = parseEditorJsonValue();
+  const overrideType = String(record.override_type || "patch_region");
+  const payload = safeObject(record.payload_json);
+
+  let nextPayload: Record<string, unknown> = cloneRecord(payload);
+  if (overrideType === "set_map_layout") {
+    nextPayload = {
+      ...payload,
+      width: layout.width,
+      height: layout.height,
+      startRegionId: layout.startRegionId,
+      goalRegionId: layout.goalRegionId,
+      nodes: layout.nodes.map((node) => ({
+        regionId: node.regionId,
+        x: Math.round(node.x),
+        y: Math.round(node.y),
+        tier: node.tier,
+        icon: node.icon,
+        landmark: node.landmark,
+        accentColor: node.accentColor,
+        isStart: node.isStart,
+        isGoal: node.isGoal,
+      })),
+      paths: layout.paths.map((path) => ({
+        id: path.id,
+        fromRegionId: path.fromRegionId,
+        toRegionId: path.toRegionId,
+        kind: path.kind,
+        difficulty: path.difficulty,
+        visibility: path.visibility,
+        requirements: [...path.requirements],
+      })),
+    };
+  } else if (overrideType === "replace_definition") {
+    nextPayload = {
+      ...payload,
+      mapLayout: {
+        width: layout.width,
+        height: layout.height,
+        startRegionId: layout.startRegionId,
+        goalRegionId: layout.goalRegionId,
+        nodes: layout.nodes.map((node) => ({
+          regionId: node.regionId,
+          x: Math.round(node.x),
+          y: Math.round(node.y),
+          tier: node.tier,
+          icon: node.icon,
+          landmark: node.landmark,
+          accentColor: node.accentColor,
+          isStart: node.isStart,
+          isGoal: node.isGoal,
+        })),
+        paths: layout.paths.map((path) => ({
+          id: path.id,
+          fromRegionId: path.fromRegionId,
+          toRegionId: path.toRegionId,
+          kind: path.kind,
+          difficulty: path.difficulty,
+          visibility: path.visibility,
+          requirements: [...path.requirements],
+        })),
+      },
+    };
+  } else if (overrideType === "patch_region") {
+    const scopeRef = String(record.scope_ref || "");
+    const node = layout.nodes.find((entry) => entry.regionId === scopeRef);
+    if (!node) return;
+    nextPayload = {
+      ...payload,
+      tier: node.tier,
+      mapPosition: { x: Math.round(node.x), y: Math.round(node.y) },
+      icon: node.icon,
+      landmark: node.landmark,
+      accentColor: node.accentColor,
+      isStart: node.isStart,
+      isGoal: node.isGoal,
+    };
+  } else {
+    return;
+  }
+
+  setEditorJsonValue({
+    ...record,
+    payload_json: nextPayload,
+  });
+}
+
+function buildTopologyAutoLayout(layout: TopologyLayoutDraft) {
+  const laneCount = Math.max(1, Math.min(4, Math.ceil(layout.nodes.length / 3)));
+  const grouped = [...layout.nodes].sort((a, b) => a.tier - b.tier || a.regionId.localeCompare(b.regionId));
+  const tierMap = new Map<number, TopologyNodeDraft[]>();
+  grouped.forEach((node) => {
+    const tier = Number.isFinite(node.tier) ? node.tier : 0;
+    if (!tierMap.has(tier)) tierMap.set(tier, []);
+    tierMap.get(tier)!.push(node);
+  });
+
+  const tiers = [...tierMap.keys()].sort((a, b) => a - b);
+  const leftPad = 120;
+  const rightPad = 120;
+  const topPad = 100;
+  const bottomPad = 100;
+  const usableWidth = Math.max(300, layout.width - leftPad - rightPad);
+  const usableHeight = Math.max(240, layout.height - topPad - bottomPad);
+
+  tiers.forEach((tier, tierIndex) => {
+    const nodes = tierMap.get(tier) || [];
+    const x = leftPad + (tiers.length === 1 ? usableWidth / 2 : (usableWidth / Math.max(1, tiers.length - 1)) * tierIndex);
+    nodes.forEach((node, nodeIndex) => {
+      const y =
+        topPad +
+        (nodes.length === 1 ? usableHeight / 2 : (usableHeight / Math.max(1, nodes.length - 1)) * nodeIndex);
+      node.x = Math.round(x);
+      node.y = Math.round(y);
+    });
+  });
+
+  if (laneCount > 1 && layout.nodes.length >= 8) {
+    layout.nodes.forEach((node, index) => {
+      node.y = clampNumber(node.y + ((index % laneCount) - Math.floor(laneCount / 2)) * 24, 70, layout.height - 70);
+    });
+  }
+}
+
+function getTopologyBoardElements() {
+  return {
+    editorEl: document.getElementById("dev-topology-editor"),
+    boardEl: document.getElementById("dev-topology-board"),
+    selectionTitleEl: document.getElementById("dev-topology-selection-title"),
+    selectionCopyEl: document.getElementById("dev-topology-selection-copy"),
+    widthEl: document.getElementById("dev-topology-width") as HTMLInputElement | null,
+    heightEl: document.getElementById("dev-topology-height") as HTMLInputElement | null,
+    startRegionEl: document.getElementById("dev-topology-start-region") as HTMLSelectElement | null,
+    goalRegionEl: document.getElementById("dev-topology-goal-region") as HTMLSelectElement | null,
+    nodeCardEl: document.getElementById("dev-topology-node-card"),
+    pathCardEl: document.getElementById("dev-topology-path-card"),
+    nodeRegionEl: document.getElementById("dev-topology-node-region") as HTMLSelectElement | null,
+    nodeXEl: document.getElementById("dev-topology-node-x") as HTMLInputElement | null,
+    nodeYEl: document.getElementById("dev-topology-node-y") as HTMLInputElement | null,
+    nodeTierEl: document.getElementById("dev-topology-node-tier") as HTMLInputElement | null,
+    nodeIconEl: document.getElementById("dev-topology-node-icon") as HTMLInputElement | null,
+    nodeLandmarkEl: document.getElementById("dev-topology-node-landmark") as HTMLInputElement | null,
+    nodeAccentEl: document.getElementById("dev-topology-node-accent") as HTMLInputElement | null,
+    nodeStartEl: document.getElementById("dev-topology-node-start") as HTMLInputElement | null,
+    nodeGoalEl: document.getElementById("dev-topology-node-goal") as HTMLInputElement | null,
+    pathFromEl: document.getElementById("dev-topology-path-from") as HTMLSelectElement | null,
+    pathToEl: document.getElementById("dev-topology-path-to") as HTMLSelectElement | null,
+    pathKindEl: document.getElementById("dev-topology-path-kind") as HTMLSelectElement | null,
+    pathDifficultyEl: document.getElementById("dev-topology-path-difficulty") as HTMLInputElement | null,
+    pathVisibilityEl: document.getElementById("dev-topology-path-visibility") as HTMLSelectElement | null,
+    pathRequirementsEl: document.getElementById("dev-topology-path-requirements") as HTMLInputElement | null,
+  };
 }
 
 function renderOverrideWorldSummary(
@@ -356,6 +734,370 @@ function renderOverrideWorldSummary(
   `;
 }
 
+function renderTopologyInspector(
+  world: ParsedWorldDefinitionRecord | null,
+  layout: TopologyLayoutDraft | null,
+) {
+  const els = getTopologyBoardElements();
+  if (!els.editorEl) return;
+
+  const activeRecord = parseEditorJsonValue();
+  const overrideType = String(activeRecord.override_type || "patch_region");
+  const layoutEditable =
+    overrideType === "set_map_layout" || overrideType === "replace_definition";
+  const regionEditable = overrideType === "patch_region";
+  const allRegionOptions = world?.regions || [];
+
+  const nodeOptions = (layout?.nodes || []).map((node) => {
+    const region = allRegionOptions.find((entry) => String(entry.id || "") === node.regionId) || {};
+    const label = String(region.name || node.landmark || node.regionId);
+    return `<option value="${escapeHtml(node.regionId)}">${escapeHtml(label)}</option>`;
+  });
+
+  if (els.widthEl) {
+    els.widthEl.value = String(layout?.width || 1040);
+    els.widthEl.disabled = !layoutEditable;
+  }
+  if (els.heightEl) {
+    els.heightEl.value = String(layout?.height || 560);
+    els.heightEl.disabled = !layoutEditable;
+  }
+  if (els.startRegionEl) {
+    els.startRegionEl.innerHTML = nodeOptions.join("");
+    els.startRegionEl.value = layout?.startRegionId || "";
+    els.startRegionEl.disabled = !layoutEditable;
+  }
+  if (els.goalRegionEl) {
+    els.goalRegionEl.innerHTML = nodeOptions.join("");
+    els.goalRegionEl.value = layout?.goalRegionId || "";
+    els.goalRegionEl.disabled = !layoutEditable;
+  }
+
+  const selectedNode =
+    layout?.nodes.find((node) => node.regionId === topologyState.selectedNodeId) || null;
+  const selectedPath =
+    layout?.paths.find((path) => path.id === topologyState.selectedPathId) || null;
+
+  if (els.selectionTitleEl) {
+    els.selectionTitleEl.textContent = selectedNode
+      ? `Node • ${selectedNode.regionId}`
+      : selectedPath
+        ? `Path • ${selectedPath.fromRegionId} → ${selectedPath.toRegionId}`
+        : "World Layout";
+  }
+  if (els.selectionCopyEl) {
+    if (topologyState.mode === "add-path" && topologyState.pendingPathFrom) {
+      els.selectionCopyEl.textContent =
+        "Choose a second node to complete the new path.";
+    } else if (selectedNode) {
+      els.selectionCopyEl.textContent = regionEditable
+        ? "This node is also the region patch target. Drag it on the board or tune the fields here."
+        : "Adjust the node position, icon, tier, and start/goal flags.";
+    } else if (selectedPath) {
+      els.selectionCopyEl.textContent =
+        "Adjust path behavior here. Difficulty, visibility, and requirements will flow into the override payload.";
+    } else {
+      els.selectionCopyEl.textContent =
+        layoutEditable
+          ? "Select a node or path to edit it, or use Add Path to connect two nodes."
+          : "Patch Region mode edits one node at a time. Click the region node to target it.";
+    }
+  }
+
+  if (els.nodeCardEl) {
+    els.nodeCardEl.classList.toggle("is-disabled", !selectedNode);
+  }
+  if (els.pathCardEl) {
+    els.pathCardEl.classList.toggle("is-disabled", !selectedPath);
+  }
+
+  const nodeRegionOptions = allRegionOptions
+    .map((region) => {
+      const id = String(region.id || "");
+      const label = String(region.name || id);
+      return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
+    })
+    .join("");
+  if (els.nodeRegionEl) {
+    els.nodeRegionEl.innerHTML = nodeRegionOptions;
+    els.nodeRegionEl.value = selectedNode?.regionId || "";
+    els.nodeRegionEl.disabled = !layoutEditable || !selectedNode;
+  }
+  if (els.nodeXEl) {
+    els.nodeXEl.value = selectedNode ? String(Math.round(selectedNode.x)) : "";
+    els.nodeXEl.disabled = !selectedNode;
+  }
+  if (els.nodeYEl) {
+    els.nodeYEl.value = selectedNode ? String(Math.round(selectedNode.y)) : "";
+    els.nodeYEl.disabled = !selectedNode;
+  }
+  if (els.nodeTierEl) {
+    els.nodeTierEl.value = selectedNode ? String(selectedNode.tier) : "";
+    els.nodeTierEl.disabled = !selectedNode;
+  }
+  if (els.nodeIconEl) {
+    els.nodeIconEl.value = selectedNode?.icon || "";
+    els.nodeIconEl.disabled = !selectedNode;
+  }
+  if (els.nodeLandmarkEl) {
+    els.nodeLandmarkEl.value = selectedNode?.landmark || "";
+    els.nodeLandmarkEl.disabled = !selectedNode;
+  }
+  if (els.nodeAccentEl) {
+    els.nodeAccentEl.value = selectedNode?.accentColor || "";
+    els.nodeAccentEl.disabled = !selectedNode;
+  }
+  if (els.nodeStartEl) {
+    els.nodeStartEl.checked = !!selectedNode?.isStart;
+    els.nodeStartEl.disabled = !selectedNode;
+  }
+  if (els.nodeGoalEl) {
+    els.nodeGoalEl.checked = !!selectedNode?.isGoal;
+    els.nodeGoalEl.disabled = !selectedNode;
+  }
+
+  const pathNodeOptions = nodeOptions.join("");
+  if (els.pathFromEl) {
+    els.pathFromEl.innerHTML = pathNodeOptions;
+    els.pathFromEl.value = selectedPath?.fromRegionId || "";
+    els.pathFromEl.disabled = !layoutEditable || !selectedPath;
+  }
+  if (els.pathToEl) {
+    els.pathToEl.innerHTML = pathNodeOptions;
+    els.pathToEl.value = selectedPath?.toRegionId || "";
+    els.pathToEl.disabled = !layoutEditable || !selectedPath;
+  }
+  if (els.pathKindEl) {
+    els.pathKindEl.value = selectedPath?.kind || "road";
+    els.pathKindEl.disabled = !layoutEditable || !selectedPath;
+  }
+  if (els.pathDifficultyEl) {
+    els.pathDifficultyEl.value = selectedPath ? String(selectedPath.difficulty) : "";
+    els.pathDifficultyEl.disabled = !layoutEditable || !selectedPath;
+  }
+  if (els.pathVisibilityEl) {
+    els.pathVisibilityEl.value = selectedPath?.visibility || "visible";
+    els.pathVisibilityEl.disabled = !layoutEditable || !selectedPath;
+  }
+  if (els.pathRequirementsEl) {
+    els.pathRequirementsEl.value = selectedPath?.requirements.join(", ") || "";
+    els.pathRequirementsEl.disabled = !layoutEditable || !selectedPath;
+  }
+}
+
+function renderTopologyEditor() {
+  const els = getTopologyBoardElements();
+  if (!els.editorEl || !els.boardEl) return;
+
+  const activeRecord = parseEditorJsonValue();
+  const overrideType = String(activeRecord.override_type || "patch_region");
+  const supported =
+    overrideType === "patch_region" ||
+    overrideType === "set_map_layout" ||
+    overrideType === "replace_definition";
+  els.editorEl.classList.toggle("hidden", !supported);
+  if (!supported) return;
+
+  const worldDefinitionId = String(activeRecord.world_definition_id || "");
+  const world = getWorldDefinitionById(worldDefinitionId);
+  const layout = deriveTopologyLayoutDraft(world);
+  if (overrideType === "patch_region") {
+    const scopeRef = String(activeRecord.scope_ref || "");
+    if (scopeRef) {
+      topologyState.selectedNodeId = scopeRef;
+      topologyState.selectedPathId = null;
+    }
+  }
+  renderTopologyInspector(world, layout);
+
+  if (!world || !layout) {
+    els.boardEl.innerHTML =
+      '<div class="dev-topology-empty">Select a canonical world first to edit its topology.</div>';
+    return;
+  }
+
+  if (topologyState.selectedNodeId && !layout.nodes.some((node) => node.regionId === topologyState.selectedNodeId)) {
+    topologyState.selectedNodeId = null;
+  }
+  if (topologyState.selectedPathId && !layout.paths.some((path) => path.id === topologyState.selectedPathId)) {
+    topologyState.selectedPathId = null;
+  }
+
+  const layoutWidth = Math.max(320, layout.width);
+  const layoutHeight = Math.max(240, layout.height);
+  const scaleX = 100 / layoutWidth;
+  const scaleY = 100 / layoutHeight;
+  const regionMap = new Map(
+    world.regions.map((region) => [String(region.id || ""), region] as const),
+  );
+
+  const svgPaths = layout.paths
+    .map((path) => {
+      const fromNode = layout.nodes.find((node) => node.regionId === path.fromRegionId);
+      const toNode = layout.nodes.find((node) => node.regionId === path.toRegionId);
+      if (!fromNode || !toNode) return "";
+      return `
+        <g class="dev-topology-path-group">
+          <line
+            class="dev-topology-path-line kind-${escapeHtml(path.kind)} visibility-${escapeHtml(path.visibility)} ${path.id === topologyState.selectedPathId ? "selected" : ""}"
+            x1="${((fromNode.x / layoutWidth) * 100).toFixed(2)}%"
+            y1="${((fromNode.y / layoutHeight) * 100).toFixed(2)}%"
+            x2="${((toNode.x / layoutWidth) * 100).toFixed(2)}%"
+            y2="${((toNode.y / layoutHeight) * 100).toFixed(2)}%"
+          />
+          <line
+            class="dev-topology-path-hit"
+            data-path-id="${escapeHtml(path.id)}"
+            x1="${((fromNode.x / layoutWidth) * 100).toFixed(2)}%"
+            y1="${((fromNode.y / layoutHeight) * 100).toFixed(2)}%"
+            x2="${((toNode.x / layoutWidth) * 100).toFixed(2)}%"
+            y2="${((toNode.y / layoutHeight) * 100).toFixed(2)}%"
+          />
+        </g>
+      `;
+    })
+    .join("");
+
+  const nodeMarkup = layout.nodes
+    .map((node) => {
+      const region = regionMap.get(node.regionId) || {};
+      const name = String(region.name || node.landmark || node.regionId);
+      const pending = topologyState.pendingPathFrom === node.regionId;
+      return `
+        <button
+          type="button"
+          class="dev-topology-node ${node.regionId === topologyState.selectedNodeId ? "selected" : ""} ${pending ? "pending" : ""}"
+          data-node-id="${escapeHtml(node.regionId)}"
+          style="left: calc(${(node.x * scaleX).toFixed(4)}% - 28px); top: calc(${(node.y * scaleY).toFixed(4)}% - 28px); --node-accent: ${escapeHtml(node.accentColor)};"
+        >
+          <span class="dev-topology-node-icon">${escapeHtml(node.icon || "🗺️")}</span>
+          <span class="dev-topology-node-name">${escapeHtml(name)}</span>
+          <span class="dev-topology-node-meta">tier ${escapeHtml(String(node.tier))}</span>
+        </button>
+      `;
+    })
+    .join("");
+
+  const worldLabel = escapeHtml(world.name);
+  els.boardEl.innerHTML = `
+    <div class="dev-topology-board-sky"></div>
+    <div class="dev-topology-board-land"></div>
+    <div class="dev-topology-board-water"></div>
+    <div class="dev-topology-board-label">${worldLabel}</div>
+    <svg class="dev-topology-path-layer" viewBox="0 0 100 100" preserveAspectRatio="none">
+      ${svgPaths}
+    </svg>
+    ${nodeMarkup}
+  `;
+
+  els.boardEl.querySelectorAll<HTMLElement>("[data-path-id]").forEach((pathEl) => {
+    pathEl.addEventListener("click", () => {
+      topologyState.selectedPathId = pathEl.dataset.pathId || null;
+      topologyState.selectedNodeId = null;
+      topologyState.mode = "select";
+      renderTopologyEditor();
+    });
+  });
+
+  els.boardEl.querySelectorAll<HTMLElement>("[data-node-id]").forEach((nodeEl) => {
+    nodeEl.addEventListener("pointerdown", (event) => {
+      const nodeId = nodeEl.dataset.nodeId || "";
+      if (topologyState.mode === "add-path") {
+        if (!topologyState.pendingPathFrom) {
+          topologyState.pendingPathFrom = nodeId;
+          topologyState.selectedNodeId = nodeId;
+          topologyState.selectedPathId = null;
+          renderTopologyEditor();
+          return;
+        }
+        if (topologyState.pendingPathFrom !== nodeId) {
+          const nextLayout = deriveTopologyLayoutDraft(world);
+          if (nextLayout) {
+            nextLayout.paths.push({
+              id: `${topologyState.pendingPathFrom}::${nodeId}::${Date.now()}`,
+              fromRegionId: topologyState.pendingPathFrom,
+              toRegionId: nodeId,
+              kind: "road",
+              difficulty: 1,
+              visibility: "visible",
+              requirements: [],
+            });
+            syncTopologyDraftToEditor(nextLayout);
+          }
+          topologyState.pendingPathFrom = null;
+          topologyState.selectedNodeId = nodeId;
+          topologyState.mode = "select";
+          setInlineStatus("dev-override-status", "Path added to the override payload.");
+          renderTopologyEditor();
+        }
+        return;
+      }
+
+      topologyState.selectedNodeId = nodeId;
+      topologyState.selectedPathId = null;
+
+      if (overrideType === "patch_region") {
+        const regionSelect = document.getElementById("dev-override-region") as HTMLSelectElement | null;
+        if (regionSelect && regionSelect.value !== nodeId) {
+          regionSelect.value = nodeId;
+          syncEditorRecordWithOverrideControls(true);
+        }
+      }
+
+      topologyState.dragNodeId = nodeId;
+      event.preventDefault();
+      renderTopologyEditor();
+    });
+  });
+
+  const modeButtons: Array<[string, typeof topologyState.mode]> = [
+    ["dev-topology-mode-select", "select"],
+    ["dev-topology-mode-add-node", "add-node"],
+    ["dev-topology-mode-add-path", "add-path"],
+  ];
+  modeButtons.forEach(([id, mode]) => {
+    document.getElementById(id)?.classList.toggle("active", topologyState.mode === mode);
+  });
+}
+
+function updateSelectedNodeFromInspector(mutator: (node: TopologyNodeDraft) => void) {
+  const record = parseEditorJsonValue();
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  if (!world || !layout || !topologyState.selectedNodeId) return;
+  const node = layout.nodes.find((entry) => entry.regionId === topologyState.selectedNodeId);
+  if (!node) return;
+  mutator(node);
+
+  if (node.isStart) {
+    layout.startRegionId = node.regionId;
+    layout.nodes.forEach((entry) => {
+      if (entry.regionId !== node.regionId) entry.isStart = false;
+    });
+  }
+  if (node.isGoal) {
+    layout.goalRegionId = node.regionId;
+    layout.nodes.forEach((entry) => {
+      if (entry.regionId !== node.regionId) entry.isGoal = false;
+    });
+  }
+
+  syncTopologyDraftToEditor(layout);
+  renderTopologyEditor();
+}
+
+function updateSelectedPathFromInspector(mutator: (path: TopologyPathDraft) => void) {
+  const record = parseEditorJsonValue();
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  if (!world || !layout || !topologyState.selectedPathId) return;
+  const path = layout.paths.find((entry) => entry.id === topologyState.selectedPathId);
+  if (!path) return;
+  mutator(path);
+  syncTopologyDraftToEditor(layout);
+  renderTopologyEditor();
+}
+
 function syncOverrideBuilderFromJson() {
   const builderEl = document.getElementById("dev-override-builder");
   if (!builderEl || builderEl.classList.contains("hidden")) return;
@@ -388,6 +1130,7 @@ function syncOverrideBuilderFromJson() {
         ? templateSelect.value
         : defaultTemplateForOverrideType(overrideType),
   });
+  renderTopologyEditor();
 }
 
 function syncEditorRecordWithOverrideControls(preservePayload = true) {
@@ -494,6 +1237,7 @@ function populateOverrideBuilder(options?: {
     .join("");
 
   renderOverrideWorldSummary(selectedWorld, overrideType, selectedScopeRef);
+  renderTopologyEditor();
 }
 
 function getRecordTitle(source: DevSourceSnapshot, record: Record<string, unknown>) {
@@ -880,6 +1624,7 @@ function openEditor(
   }
 
   overlayEl.classList.add("open");
+  renderTopologyEditor();
 }
 
 function closeEditor() {
@@ -926,6 +1671,132 @@ function applyOverrideTemplateFromBuilder(useMirror = false) {
       ? "Loaded current world data into the override payload."
       : "Template applied to the override payload.",
   );
+  renderTopologyEditor();
+}
+
+function handleTopologyBoardPointerMove(event: PointerEvent) {
+  if (!topologyState.dragNodeId) return;
+  const boardEl = document.getElementById("dev-topology-board");
+  if (!boardEl) return;
+  const record = parseEditorJsonValue();
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  if (!world || !layout) return;
+  const node = layout.nodes.find((entry) => entry.regionId === topologyState.dragNodeId);
+  if (!node) return;
+
+  const rect = boardEl.getBoundingClientRect();
+  const nextX = clampNumber(((event.clientX - rect.left) / Math.max(rect.width, 1)) * layout.width, 56, layout.width - 56);
+  const nextY = clampNumber(((event.clientY - rect.top) / Math.max(rect.height, 1)) * layout.height, 56, layout.height - 56);
+  node.x = Math.round(nextX);
+  node.y = Math.round(nextY);
+  syncTopologyDraftToEditor(layout);
+  renderTopologyEditor();
+}
+
+function stopTopologyDrag() {
+  if (!topologyState.dragNodeId) return;
+  topologyState.dragNodeId = null;
+}
+
+function addNodeToTopology() {
+  const record = parseEditorJsonValue();
+  const overrideType = String(record.override_type || "patch_region");
+  if (overrideType !== "set_map_layout" && overrideType !== "replace_definition") {
+    setInlineStatus("dev-override-status", "Add Node is available for full layout overrides only.", true);
+    return;
+  }
+
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  if (!world || !layout) return;
+
+  const unusedRegion =
+    world.regions.find(
+      (region) =>
+        !layout.nodes.some((node) => node.regionId === String(region.id || "")),
+    ) || null;
+  if (!unusedRegion) {
+    setInlineStatus(
+      "dev-override-status",
+      "All known regions already have nodes. Remove one or add regions through the world definition first.",
+      true,
+    );
+    return;
+  }
+
+  layout.nodes.push({
+    regionId: String(unusedRegion.id || `region-${layout.nodes.length}`),
+    x: 100 + (layout.nodes.length % 4) * 180,
+    y: 100 + Math.floor(layout.nodes.length / 4) * 140,
+    tier: toFiniteNumber(unusedRegion.tier, layout.nodes.length),
+    icon: String(unusedRegion.icon || "🗺️"),
+    landmark: String(unusedRegion.landmark || unusedRegion.name || unusedRegion.id || "Waystation"),
+    accentColor: String(unusedRegion.accentColor || "#4fc3f7"),
+    isStart: false,
+    isGoal: false,
+  });
+  topologyState.selectedNodeId = String(unusedRegion.id || "");
+  topologyState.selectedPathId = null;
+  syncTopologyDraftToEditor(layout);
+  setInlineStatus("dev-override-status", "Node added to the current layout override.");
+  renderTopologyEditor();
+}
+
+function removeSelectedTopologyElement() {
+  const record = parseEditorJsonValue();
+  const overrideType = String(record.override_type || "patch_region");
+  if (overrideType !== "set_map_layout" && overrideType !== "replace_definition") {
+    setInlineStatus("dev-override-status", "Remove is available for full layout overrides only.", true);
+    return;
+  }
+
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  if (!world || !layout) return;
+
+  if (topologyState.selectedPathId) {
+    layout.paths = layout.paths.filter((path) => path.id !== topologyState.selectedPathId);
+    topologyState.selectedPathId = null;
+    syncTopologyDraftToEditor(layout);
+    setInlineStatus("dev-override-status", "Path removed from the current layout override.");
+    renderTopologyEditor();
+    return;
+  }
+
+  if (topologyState.selectedNodeId) {
+    layout.nodes = layout.nodes.filter((node) => node.regionId !== topologyState.selectedNodeId);
+    layout.paths = layout.paths.filter(
+      (path) =>
+        path.fromRegionId !== topologyState.selectedNodeId &&
+        path.toRegionId !== topologyState.selectedNodeId,
+    );
+    topologyState.selectedNodeId = null;
+    syncTopologyDraftToEditor(layout);
+    setInlineStatus("dev-override-status", "Node and connected paths removed.");
+    renderTopologyEditor();
+  }
+}
+
+function applyTopologyLayoutMetadataFromInspector() {
+  const record = parseEditorJsonValue();
+  const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+  const layout = deriveTopologyLayoutDraft(world);
+  const els = getTopologyBoardElements();
+  if (!world || !layout) return;
+
+  layout.width = Math.max(320, Math.round(toFiniteNumber(els.widthEl?.value, layout.width)));
+  layout.height = Math.max(240, Math.round(toFiniteNumber(els.heightEl?.value, layout.height)));
+  layout.startRegionId = String(els.startRegionEl?.value || layout.startRegionId || "");
+  layout.goalRegionId = String(els.goalRegionEl?.value || layout.goalRegionId || "");
+  layout.nodes = layout.nodes.map((node) => ({
+    ...node,
+    isStart: node.regionId === layout.startRegionId,
+    isGoal: node.regionId === layout.goalRegionId,
+  }));
+
+  syncTopologyDraftToEditor(layout);
+  renderTopologyEditor();
 }
 
 async function saveEditorRecord() {
@@ -1017,6 +1888,7 @@ function mergeEditorJson(nextRecord: Record<string, unknown>) {
   if (state.editor.sourceKey === "world_overrides") {
     syncOverrideBuilderFromJson();
   }
+  renderTopologyEditor();
 }
 
 function collectDraftTextFromRecord(record: Record<string, unknown>) {
@@ -1287,6 +2159,13 @@ function bindGlobalControls() {
     fileInput.value = "";
   });
 
+  const editorJsonEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
+  editorJsonEl?.addEventListener("input", () => {
+    if (state.editor.sourceKey === "world_overrides") {
+      syncOverrideBuilderFromJson();
+    }
+  });
+
   const overrideWorld = document.getElementById("dev-override-world") as HTMLSelectElement;
   const overrideType = document.getElementById("dev-override-type") as HTMLSelectElement;
   const overrideScope = document.getElementById("dev-override-scope") as HTMLSelectElement;
@@ -1365,6 +2244,169 @@ function bindGlobalControls() {
         "Builder synced from the JSON editor.",
       );
     });
+
+  document.getElementById("dev-topology-mode-select")?.addEventListener("click", () => {
+    topologyState.mode = "select";
+    topologyState.pendingPathFrom = null;
+    renderTopologyEditor();
+  });
+
+  document.getElementById("dev-topology-mode-add-node")?.addEventListener("click", () => {
+    topologyState.mode = "add-node";
+    topologyState.pendingPathFrom = null;
+    addNodeToTopology();
+    topologyState.mode = "select";
+    renderTopologyEditor();
+  });
+
+  document.getElementById("dev-topology-mode-add-path")?.addEventListener("click", () => {
+    topologyState.mode = "add-path";
+    topologyState.pendingPathFrom = null;
+    topologyState.selectedPathId = null;
+    renderTopologyEditor();
+  });
+
+  document.getElementById("dev-topology-auto-layout")?.addEventListener("click", () => {
+    const record = parseEditorJsonValue();
+    const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+    const layout = deriveTopologyLayoutDraft(world);
+    if (!layout) return;
+    buildTopologyAutoLayout(layout);
+    syncTopologyDraftToEditor(layout);
+    setInlineStatus("dev-override-status", "Auto layout applied to the current topology payload.");
+    renderTopologyEditor();
+  });
+
+  document.getElementById("dev-topology-remove")?.addEventListener("click", () => {
+    removeSelectedTopologyElement();
+  });
+
+  window.addEventListener("pointermove", (event) => {
+    handleTopologyBoardPointerMove(event);
+  });
+  window.addEventListener("pointerup", () => {
+    stopTopologyDrag();
+  });
+
+  const topologyEls = getTopologyBoardElements();
+  topologyEls.widthEl?.addEventListener("change", applyTopologyLayoutMetadataFromInspector);
+  topologyEls.heightEl?.addEventListener("change", applyTopologyLayoutMetadataFromInspector);
+  topologyEls.startRegionEl?.addEventListener("change", applyTopologyLayoutMetadataFromInspector);
+  topologyEls.goalRegionEl?.addEventListener("change", applyTopologyLayoutMetadataFromInspector);
+
+  topologyEls.nodeRegionEl?.addEventListener("change", () => {
+    const previousNodeId = topologyState.selectedNodeId;
+    const nextRegionId = topologyEls.nodeRegionEl?.value || previousNodeId || "";
+    updateSelectedNodeFromInspector((node) => {
+      node.regionId = nextRegionId || node.regionId;
+    });
+    const record = parseEditorJsonValue();
+    const world = getWorldDefinitionById(String(record.world_definition_id || ""));
+    const layout = deriveTopologyLayoutDraft(world);
+    if (layout && previousNodeId && nextRegionId && previousNodeId !== nextRegionId) {
+      layout.paths = layout.paths.map((path) => ({
+        ...path,
+        fromRegionId: path.fromRegionId === previousNodeId ? nextRegionId : path.fromRegionId,
+        toRegionId: path.toRegionId === previousNodeId ? nextRegionId : path.toRegionId,
+        id:
+          path.fromRegionId === previousNodeId || path.toRegionId === previousNodeId
+            ? `${path.fromRegionId === previousNodeId ? nextRegionId : path.fromRegionId}::${path.toRegionId === previousNodeId ? nextRegionId : path.toRegionId}::${Date.now()}`
+            : path.id,
+      }));
+      topologyState.selectedNodeId = nextRegionId;
+      syncTopologyDraftToEditor(layout);
+      renderTopologyEditor();
+    } else {
+      topologyState.selectedNodeId = nextRegionId;
+      renderTopologyEditor();
+    }
+  });
+  topologyEls.nodeXEl?.addEventListener("change", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.x = Math.round(toFiniteNumber(topologyEls.nodeXEl?.value, node.x));
+    });
+  });
+  topologyEls.nodeYEl?.addEventListener("change", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.y = Math.round(toFiniteNumber(topologyEls.nodeYEl?.value, node.y));
+    });
+  });
+  topologyEls.nodeTierEl?.addEventListener("change", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.tier = Math.max(0, Math.round(toFiniteNumber(topologyEls.nodeTierEl?.value, node.tier)));
+    });
+  });
+  topologyEls.nodeIconEl?.addEventListener("input", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.icon = String(topologyEls.nodeIconEl?.value || node.icon);
+    });
+  });
+  topologyEls.nodeLandmarkEl?.addEventListener("input", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.landmark = String(topologyEls.nodeLandmarkEl?.value || node.landmark);
+    });
+  });
+  topologyEls.nodeAccentEl?.addEventListener("input", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.accentColor = String(topologyEls.nodeAccentEl?.value || node.accentColor);
+    });
+  });
+  topologyEls.nodeStartEl?.addEventListener("change", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.isStart = topologyEls.nodeStartEl?.checked === true;
+    });
+  });
+  topologyEls.nodeGoalEl?.addEventListener("change", () => {
+    updateSelectedNodeFromInspector((node) => {
+      node.isGoal = topologyEls.nodeGoalEl?.checked === true;
+    });
+  });
+
+  topologyEls.pathFromEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      path.fromRegionId = String(topologyEls.pathFromEl?.value || path.fromRegionId);
+      path.id = `${path.fromRegionId}::${path.toRegionId}::${Date.now()}`;
+      topologyState.selectedPathId = path.id;
+    });
+  });
+  topologyEls.pathToEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      path.toRegionId = String(topologyEls.pathToEl?.value || path.toRegionId);
+      path.id = `${path.fromRegionId}::${path.toRegionId}::${Date.now()}`;
+      topologyState.selectedPathId = path.id;
+    });
+  });
+  topologyEls.pathKindEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      path.kind =
+        topologyEls.pathKindEl?.value === "hazard" ||
+        topologyEls.pathKindEl?.value === "secret"
+          ? topologyEls.pathKindEl.value
+          : "road";
+    });
+  });
+  topologyEls.pathDifficultyEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      path.difficulty = Math.max(
+        1,
+        Math.round(toFiniteNumber(topologyEls.pathDifficultyEl?.value, path.difficulty)),
+      );
+    });
+  });
+  topologyEls.pathVisibilityEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      const next = topologyEls.pathVisibilityEl?.value || path.visibility;
+      path.visibility = next === "hidden" || next === "fogged" ? next : "visible";
+    });
+  });
+  topologyEls.pathRequirementsEl?.addEventListener("change", () => {
+    updateSelectedPathFromInspector((path) => {
+      path.requirements = String(topologyEls.pathRequirementsEl?.value || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+    });
+  });
 
   document.getElementById("dev-editor-overlay")?.addEventListener("click", (event) => {
     if (event.target === event.currentTarget) {
