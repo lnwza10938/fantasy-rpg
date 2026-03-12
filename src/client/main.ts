@@ -39,7 +39,9 @@ const PENDING_LOAD_KEY = "rpg_pending_load";
 const NORMALIZED_PATH =
   window.location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/";
 const APP_PAGE =
-  NORMALIZED_PATH === "/map"
+  NORMALIZED_PATH === "/hub"
+    ? "hub"
+    : NORMALIZED_PATH === "/map"
     ? "map"
     : NORMALIZED_PATH === "/vault"
       ? "vault"
@@ -49,6 +51,7 @@ const APP_PAGE =
           ? "adventure"
           : document.documentElement.dataset.appPage || "menu";
 const IS_GAMEPLAY_PAGE = APP_PAGE === "adventure" || APP_PAGE === "map";
+document.documentElement.dataset.appPage = APP_PAGE;
 const PRESET_WORLD_BIOMES: Record<string, string[]> = {
   balanced: ["forest", "coast", "mountain", "desert"],
   inferno: ["volcanic"],
@@ -113,11 +116,36 @@ function buildIdentityQuery() {
 }
 
 function pageHref(page: string) {
+  if (page === "hub") return "/hub";
   if (page === "map") return "/map";
   if (page === "vault") return "/vault";
   if (page === "forge") return "/forge";
   if (page === "adventure") return "/adventure";
   return "/";
+}
+
+function setHubSummaryValue(id: string, value: string) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function updateHubAccessMode() {
+  if (!G.user) return;
+  const value = G.user.isGuest
+    ? "Guest"
+    : G.user.isInvite
+      ? "Invite Code"
+      : "Account";
+  setHubSummaryValue("hub-access-mode", value);
+}
+
+function syncPageChrome() {
+  const activePage =
+    APP_PAGE === "menu" || APP_PAGE === "hub" ? "hub" : APP_PAGE;
+  document.querySelectorAll<HTMLElement>("[data-nav-page]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.navPage === activePage);
+  });
+  updateHubAccessMode();
 }
 
 function normalizeRegions(regions: any[] | null | undefined) {
@@ -389,7 +417,27 @@ function showMapPage() {
   initializeMapPage(true);
 }
 
+function showHubPage() {
+  if (APP_PAGE !== "hub") {
+    navigateToPage("hub");
+    return;
+  }
+  showScreen("menu");
+}
+
+function showAdventurePage() {
+  if (APP_PAGE !== "adventure") {
+    navigateToPage("adventure");
+    return;
+  }
+  showScreen("world");
+}
+
 function enterCurrentPage() {
+  if (APP_PAGE === "hub") {
+    showScreen("menu");
+    return;
+  }
   if (APP_PAGE === "vault") {
     showScreen("vault");
     renderFullVault();
@@ -547,11 +595,16 @@ function onLoginSuccess() {
       : G.user.isInvite
         ? `Invite Access: ${G.user.label || "Streamer"}`
         : `Logged in as: ${G.user.email}`;
+  syncPageChrome();
   loadWorldContent(); // Load DB content for the world creation screen
   fetchSaveList(); // Fetch existing saves so user can see their data
   fetchCreatedWorlds(); // Fetch saved worlds for world archive / custom reuse
   renderThemeBiomes("balanced"); // Initial biome preview
   renderThemeMonsters("balanced"); // Initial monster preview
+  if (APP_PAGE === "menu") {
+    navigateToPage("hub");
+    return;
+  }
   enterCurrentPage();
 }
 
@@ -561,7 +614,7 @@ async function logout() {
   if (!G.user?.isGuest) {
     await supabase.auth.signOut();
   }
-  location.reload();
+  window.location.href = pageHref("menu");
 }
 
 // Initialize state check
@@ -610,6 +663,7 @@ window.addEventListener("load", async () => {
     const gameContainer = document.getElementById("game-container");
     if (authScreen) authScreen.style.display = "block";
     if (gameContainer) gameContainer.style.display = "none";
+    syncPageChrome();
   }
 });
 
@@ -620,7 +674,7 @@ function showScreen(name: string) {
     return;
   }
   if (name === "menu" && APP_PAGE !== "menu") {
-    navigateToPage("menu");
+    navigateToPage("hub");
     return;
   }
   if (name === "vault" && APP_PAGE !== "vault") {
@@ -899,6 +953,8 @@ function showToast(msg: string, type = "success") {
 (window as any).submitNewGame = submitNewGame;
 (window as any).showVault = showVault;
 (window as any).showForge = showForge;
+(window as any).showHubPage = showHubPage;
+(window as any).showAdventurePage = showAdventurePage;
 (window as any).showMapPage = showMapPage;
 (window as any).fetchCreatedWorlds = fetchCreatedWorlds;
 (window as any).rollForgeSkill = rollForgeSkill;
@@ -1276,6 +1332,11 @@ async function fetchCreatedWorlds() {
   } catch {
     G.createdWorlds = [];
   }
+
+  setHubSummaryValue(
+    "hub-world-count",
+    `${G.createdWorlds.length} ${G.createdWorlds.length === 1 ? "world" : "worlds"}`,
+  );
 
   renderCreatedWorlds();
   renderMapPreviewWorldSelector();
@@ -2239,9 +2300,14 @@ async function fetchSaveList() {
     if (!listEl) return;
 
     const saves = j.success ? j.data || [] : [];
+    setHubSummaryValue(
+      "hub-save-count",
+      `${saves.length} ${saves.length === 1 ? "journey" : "journeys"}`,
+    );
     const saveMap = new Map(saves.map((s: any) => [s.character_id, s]));
 
     if (legends.length === 0) {
+      setHubSummaryValue("hub-save-count", "0 journeys");
       listEl.innerHTML =
         '<p style="font-size:11px; color:var(--muted)">No legends found yet.</p>';
       return;
@@ -2283,6 +2349,7 @@ async function fetchSaveList() {
       listEl.appendChild(card);
     });
   } catch {
+    setHubSummaryValue("hub-save-count", "Unavailable");
     showToast("Could not fetch saves", "error");
   }
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Procedural Fantasy RPG</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&family=Orbitron:wght@500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
@@ -185,147 +185,181 @@
     <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
-        <h1>⚔ RPG Authentication</h1>
-        <p>Enter the realm safely</p>
+        <h1>⚔ Procedural Fantasy RPG</h1>
+        <p>A world that remembers every legend, route, and battle</p>
       </div>
-      <div class="container">
-        <div class="card fade-in" style="max-width: 400px; margin: 40px auto">
-          <h3 id="auth-title">🔐 Character Login</h3>
-          <form id="form-auth" onsubmit="handleAuth(event)">
-            <div style="display: flex; flex-direction: column; gap: 12px">
-              <div>
-                <label>Email Address</label>
-                <input
-                  type="email"
-                  id="auth-email"
-                  placeholder="hero@example.com"
-                  autocomplete="email"
-                  required
-                />
+      <div class="landing-shell">
+        <div class="landing-grid">
+          <div class="card landing-hero fade-in">
+            <div>
+              <div class="landing-kicker">Welcome to the Realm</div>
+              <h2 class="landing-title">
+                Forge a legend. Walk the map. Leave a world behind.
+              </h2>
+              <p class="landing-copy">
+                Build a hero, generate a persistent world, then travel node by
+                node through events, combat, and discoveries that remain tied to
+                your legend. Use an account, guest mode, or a protected invite
+                code to enter the same realm again later.
+              </p>
+            </div>
+            <div class="landing-pillars">
+              <div class="landing-pillar">
+                <strong>Legends</strong>
+                <span>Forge unique heroes with signature skills and archived histories.</span>
               </div>
-              <div>
-                <label>Password</label>
-                <input
-                  type="password"
-                  id="auth-password"
-                  placeholder="••••••••"
-                  autocomplete="current-password"
-                  required
-                />
+              <div class="landing-pillar">
+                <strong>Worlds</strong>
+                <span>Track seeded realms, custom worlds, and map progress from a shared hub.</span>
               </div>
-              <div
-                id="auth-error"
-                style="
-                  display: none;
-                  color: var(--red);
-                  font-size: 12px;
-                  padding: 8px 12px;
-                  background: rgba(239, 83, 80, 0.1);
-                  border-radius: 6px;
-                  border: 1px solid rgba(239, 83, 80, 0.3);
-                "
-              ></div>
-              <button
-                type="submit"
-                id="btn-auth"
-                class="btn btn-primary"
-                style="width: 100%"
-              >
-                Enter Realm
-              </button>
-              <button
-                type="button"
-                class="btn btn-action"
-                style="width: 100%"
-                onclick="enterGuestMode()"
-              >
-                Continue as Guest
-              </button>
-              <div
-                style="
-                  margin-top: 10px;
-                  padding-top: 10px;
-                  border-top: 1px solid var(--border);
-                "
-              >
-                <label>Invite Code</label>
-                <input
-                  type="text"
-                  id="auth-invite-code"
-                  placeholder="STREAMER-ACCESS"
-                  autocomplete="off"
-                  spellcheck="false"
-                />
+              <div class="landing-pillar">
+                <strong>Traversal</strong>
+                <span>Move through the world graph, trigger encounters, and resume the latest route.</span>
+              </div>
+            </div>
+          </div>
+          <div class="card fade-in auth-card">
+            <h3 id="auth-title">🔐 Enter the Realm</h3>
+            <p class="auth-copy">
+              Sign in with email, continue as a local guest, or use an invite
+              code for cross-device access without a traditional login.
+            </p>
+            <form id="form-auth" onsubmit="handleAuth(event)">
+              <div style="display: flex; flex-direction: column; gap: 12px">
+                <div>
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    id="auth-email"
+                    placeholder="hero@example.com"
+                    autocomplete="email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label>Password</label>
+                  <input
+                    type="password"
+                    id="auth-password"
+                    placeholder="••••••••"
+                    autocomplete="current-password"
+                    required
+                  />
+                </div>
+                <div
+                  id="auth-error"
+                  style="
+                    display: none;
+                    color: var(--red);
+                    font-size: 12px;
+                    padding: 8px 12px;
+                    background: rgba(216, 69, 69, 0.12);
+                    border-radius: 10px;
+                    border: 1px solid rgba(216, 69, 69, 0.24);
+                  "
+                ></div>
+                <button
+                  type="submit"
+                  id="btn-auth"
+                  class="btn btn-primary"
+                  style="width: 100%"
+                >
+                  Enter Realm
+                </button>
                 <button
                   type="button"
-                  id="btn-invite-auth"
                   class="btn btn-action"
-                  style="width: 100%; margin-top: 10px"
-                  onclick="enterInviteMode()"
+                  style="width: 100%"
+                  onclick="enterGuestMode()"
                 >
-                  Enter with Invite Code
+                  Continue as Guest
                 </button>
                 <div
                   style="
-                    margin-top: 8px;
-                    font-size: 11px;
-                    color: var(--muted);
-                    text-align: center;
+                    margin-top: 10px;
+                    padding-top: 10px;
+                    border-top: 1px solid var(--border);
                   "
                 >
-                  ใช้รหัสเดียวกันเพื่อเข้า account เดิมจากอุปกรณ์ไหนก็ได้
+                  <label>Invite Code</label>
+                  <input
+                    type="text"
+                    id="auth-invite-code"
+                    placeholder="STREAMER-ACCESS"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                  <button
+                    type="button"
+                    id="btn-invite-auth"
+                    class="btn btn-action"
+                    style="width: 100%; margin-top: 10px"
+                    onclick="enterInviteMode()"
+                  >
+                    Enter with Invite Code
+                  </button>
+                  <div
+                    style="
+                      margin-top: 8px;
+                      font-size: 11px;
+                      color: var(--muted);
+                      text-align: center;
+                    "
+                  >
+                    Use the same invite code to reopen the same profile from any device.
+                  </div>
+                </div>
+                <div style="text-align: center; font-size: 12px; margin-top: 8px">
+                  <a
+                    href="#"
+                    id="auth-toggle"
+                    onclick="
+                      toggleAuthMode();
+                      return false;
+                    "
+                    style="color: var(--accent); text-decoration: none"
+                    >Need an account? Sign Up</a
+                  >
                 </div>
               </div>
-              <div style="text-align: center; font-size: 12px; margin-top: 8px">
-                <a
-                  href="#"
-                  id="auth-toggle"
-                  onclick="
-                    toggleAuthMode();
-                    return false;
-                  "
-                  style="color: var(--accent); text-decoration: none"
-                  >Need an account? Sign Up</a
-                >
-              </div>
+            </form>
+            <div class="auth-footnote">
+              Guest mode stays on this device. Invite mode keeps a protected
+              shared identity. Full accounts keep ownership of your legends and
+              vault.
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
 
     <div id="game-container" style="display: none">
       <div class="header">
-        <div
-          style="
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 8px;
-          "
-        >
-          <button
-            class="btn btn-action"
-            style="font-size: 10px"
-            onclick="showMapPage()"
-          >
-            🗺️ World Map
+        <div class="top-nav-shell">
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">
+            🏰 Hub
           </button>
           <button
-            class="btn btn-action"
-            style="font-size: 10px"
-            onclick="showVault()"
+            class="btn btn-nav"
+            data-nav-page="adventure"
+            onclick="showAdventurePage()"
           >
-            📚 The Vault
+            ⚔ Adventure
+          </button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">
+            🗺 Map
           </button>
           <button
-            class="btn btn-action"
-            style="font-size: 10px"
-            onclick="logout()"
+            class="btn btn-nav"
+            data-nav-page="forge"
+            onclick="showForge('menu')"
           >
-            Logout
+            ⚒ Forge
           </button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">
+            📚 Vault
+          </button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Procedural Fantasy RPG</h1>
         <p id="user-display">A world that remembers</p>
@@ -334,63 +368,90 @@
       <div class="container">
         <!-- MAIN MENU -->
         <div id="screen-menu" class="screen fade-in">
-          <div class="card" style="text-align: center; padding: 40px 20px">
-            <div style="font-size: 48px; margin-bottom: 10px">🏰</div>
-            <h2>Welcome to the Realm</h2>
-            <p
-              style="
-                color: var(--muted);
-                font-size: 12px;
-                margin-top: 5px;
-                margin-bottom: 30px;
-              "
-            >
-              What is your destiny today?
-            </p>
+          <div class="hub-grid">
+            <div class="card hub-hero-card">
+              <div class="landing-kicker">Legend Hub</div>
+              <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)">
+                Welcome to the Realm
+              </h2>
+              <p class="landing-copy" style="max-width: 680px">
+                This hub keeps your legends, archived worlds, and active routes
+                in one place. Begin a fresh run, jump back into a saved journey,
+                or inspect the world graph before you travel.
+              </p>
 
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 14px;
-                max-width: 300px;
-                margin: 0 auto;
-              "
-            >
-              <button
-                class="btn btn-primary"
-                style="padding: 14px; font-size: 16px"
-                onclick="startWizard()"
-              >
-                ⚔️ New Adventure
-              </button>
-              <button
-                class="btn btn-action"
-                style="padding: 12px; font-size: 14px"
-                onclick="showMapPage()"
-              >
-                🗺️ World Map Progress
-              </button>
-              <button
-                class="btn btn-action"
-                style="padding: 12px; font-size: 14px"
-                onclick="showForge('menu')"
-              >
-                ⚒️ Forge Your Legend
-              </button>
-              <button
-                class="btn btn-action"
-                style="padding: 12px; font-size: 14px"
-                onclick="showVault()"
-              >
-                📚 The Legend Vault
-              </button>
+              <div class="hub-summary-row">
+                <div class="hub-summary-card">
+                  <div class="label">World Archive</div>
+                  <div class="value" id="hub-world-count">0 worlds</div>
+                </div>
+                <div class="hub-summary-card">
+                  <div class="label">Saved Journeys</div>
+                  <div class="value" id="hub-save-count">0 journeys</div>
+                </div>
+                <div class="hub-summary-card">
+                  <div class="label">Access Mode</div>
+                  <div class="value" id="hub-access-mode">Account</div>
+                </div>
+              </div>
+
+              <div class="hub-action-grid">
+                <button class="btn btn-primary" onclick="startWizard()">
+                  ⚔ Start New Adventure
+                </button>
+                <button class="btn btn-action" onclick="showMapPage()">
+                  🗺 View World Map
+                </button>
+                <button class="btn btn-action" onclick="showForge('menu')">
+                  ⚒ Forge Your Legend
+                </button>
+                <button class="btn btn-action" onclick="showVault()">
+                  📚 Open The Vault
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Realm Index</h3>
+              <div class="hub-action-grid" style="grid-template-columns: 1fr">
+                <div class="hub-action-card">
+                  <div class="label">Adventure</div>
+                  <div class="value">
+                    Enter the live gameplay route with traversal, exploration,
+                    and turn-based encounters.
+                  </div>
+                </div>
+                <div class="hub-action-card">
+                  <div class="label">World Map</div>
+                  <div class="value">
+                    Preview reachable nodes, stored worlds, and map-first
+                    progression tied to each legend.
+                  </div>
+                </div>
+                <div class="hub-action-card">
+                  <div class="label">Vault And Forge</div>
+                  <div class="value">
+                    Manage forged legends, inspect the archive, and build the
+                    next hero before entering a realm.
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
           <!-- Load Existing Save -->
           <div class="card fade-in" style="margin-top: 16px">
             <h3>📂 Resume Adventure</h3>
+            <p
+              style="
+                color: var(--muted);
+                font-size: 12px;
+                margin-bottom: 12px;
+              "
+            >
+              Reopen the most recent save attached to any forged legend, or
+              start the first journey for a newly created hero.
+            </p>
             <div
               id="save-list"
               style="

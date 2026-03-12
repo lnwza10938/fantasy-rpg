@@ -27,6 +27,10 @@
       "destination": "/vault.html"
     },
     {
+      "source": "/hub",
+      "destination": "/index.html"
+    },
+    {
       "source": "/forge",
       "destination": "/forge.html"
     },

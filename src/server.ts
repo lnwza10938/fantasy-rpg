@@ -32,6 +32,10 @@ app.get("/vault", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "vault.html"));
 });
 
+app.get("/hub", (_req, res) => {
+  res.sendFile(path.join(__dirname, "..", "dist", "index.html"));
+});
+
 app.get("/forge", (_req, res) => {
   res.sendFile(path.join(__dirname, "..", "dist", "forge.html"));
 });
