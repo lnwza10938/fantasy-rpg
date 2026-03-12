@@ -9,6 +9,7 @@ The project is now a deployed multi-page web RPG with:
 - email login
 - guest login
 - invite-code login
+- a dedicated `/hub` dashboard
 - independent legend forging
 - a persistent legend vault
 - world archive management
@@ -34,12 +35,26 @@ The app now uses separate entry pages instead of keeping every screen hidden in 
 Current routes include:
 
 - `/`
+- `/hub`
 - `/vault`
 - `/forge`
 - `/adventure`
 - `/map`
 
 This makes navigation clearer and gives the project room to grow into player-facing and dev-facing flows without overloading one page.
+
+### 1.5 Hub / Adventure Route Separation
+
+The product now treats `/hub` more clearly as a dashboard rather than a route that tries to host every subsystem at once.
+
+Current behavior:
+
+- `/hub` focuses on current journey snapshot, recent journeys, and world archive preview
+- `Start New Adventure` now pushes into the adventure flow instead of keeping world/legend setup on the hub itself
+- `/adventure` can open directly into the live gameplay surface or into the wizard flow when explicitly requested
+- the wizard copy and step numbering are now more consistent from the player point of view
+
+This strengthens route identity and reduces the chance that the hub drifts back into being a catch-all screen.
 
 ### 2. Forge / Vault / Resume Flow
 

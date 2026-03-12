@@ -32,6 +32,7 @@ let G: any = {
   worldDefinition: null as any,
   selectedLegend: null as any,
   createdWorlds: [] as any[],
+  recentJourneys: [] as any[],
   allContent: { biomes: [], monsters: [], factions: [], maps: [] },
   customSelection: { biomes: [] as string[], monsters: [] as string[] },
 };
@@ -1120,6 +1121,20 @@ function showAdventurePage() {
   showScreen("world");
 }
 
+function renderAdventureLandingState() {
+  G.activeCombat = null;
+  G.regions = normalizeRegions([]);
+  G.selectedRegion = null;
+  G.selectedRegionIndex = 0;
+  toggleMapCombatStage(false);
+  clearAdventureLog();
+  setMapEventState(
+    "⚔ Adventure Chamber",
+    "Resume a saved journey from the hub, or start a new adventure to choose a world and legend.",
+  );
+  renderRegions();
+}
+
 function enterCurrentPage() {
   if (APP_PAGE === "hub") {
     showScreen("menu");
@@ -1141,10 +1156,9 @@ function enterCurrentPage() {
     return;
   }
   if (APP_PAGE === "adventure") {
-    showScreen("wizard");
-    wizardGoStep(1);
     const pendingLoad = sessionStorage.getItem(PENDING_LOAD_KEY);
     if (pendingLoad) {
+      showScreen("world");
       try {
         const { characterId, characterName } = JSON.parse(pendingLoad);
         if (characterId) {
@@ -1155,7 +1169,16 @@ function enterCurrentPage() {
       } finally {
         sessionStorage.removeItem(PENDING_LOAD_KEY);
       }
+      return;
     }
+    const requestedView = new URLSearchParams(window.location.search).get("view");
+    if (requestedView === "wizard" || G.selectedLegend) {
+      showScreen("wizard");
+      wizardGoStep(1);
+      return;
+    }
+    showScreen("world");
+    renderAdventureLandingState();
     return;
   }
   if (APP_PAGE === "map") {
@@ -1672,6 +1695,7 @@ function showToast(msg: string, type = "success") {
 (window as any).applyWorldRecord = applyWorldRecord;
 (window as any).deleteWorldRecord = deleteWorldRecord;
 (window as any).openWorldInAdventure = openWorldInAdventure;
+(window as any).resumeLatestJourney = resumeLatestJourney;
 (window as any).clearAdventureLog = clearAdventureLog;
 (window as any).toggleCustomTag = toggleCustomTag;
 (window as any).forgeGoStep = forgeGoStep;
@@ -1864,7 +1888,7 @@ function wizardGoStep(step: number) {
     fetchCreatedWorlds();
   }
 
-  // Validate on forward to Step 4 (Confirm)
+  // Validate on forward to the final confirm step
   if (step === 4) {
     if (!G.selectedLegend) {
       alert("Please select a legend for this adventure.");
@@ -1952,7 +1976,7 @@ function wizardGoStep(step: number) {
 
 function startWizard() {
   if (APP_PAGE !== "adventure") {
-    navigateToPage("adventure");
+    navigateToPage("adventure", { view: "wizard" });
     return;
   }
   showScreen("wizard");
@@ -1963,7 +1987,7 @@ function startWizardWithLegend(legend: any) {
   G.selectedLegend = legend;
   if (APP_PAGE !== "adventure") {
     sessionStorage.setItem("rpg_selected_legend", JSON.stringify(legend));
-    navigateToPage("adventure");
+    navigateToPage("adventure", { view: "wizard" });
     return;
   }
   showScreen("wizard");
@@ -2046,6 +2070,9 @@ async function fetchCreatedWorlds() {
   );
 
   renderCreatedWorlds();
+  renderHubWorldArchivePreview();
+  renderHubCurrentJourney();
+  renderHubRecentJourneys();
   renderMapPreviewWorldSelector();
 }
 
@@ -3019,67 +3046,197 @@ async function submitNewGame() {
 }
 
 // --- LOAD ---
+function sortJourneyRecords(values: any[] | null | undefined) {
+  return [...(values || [])].sort((a, b) => {
+    const aTime = a?.updated_at ? new Date(a.updated_at).getTime() : 0;
+    const bTime = b?.updated_at ? new Date(b.updated_at).getTime() : 0;
+    return bTime - aTime;
+  });
+}
+
+function getWorldRecordForCharacter(characterId: string | null | undefined) {
+  if (!characterId) return null;
+  return (
+    (G.createdWorlds || []).find(
+      (world: any) => world.characterId === characterId,
+    ) || null
+  );
+}
+
+function getLatestJourney() {
+  return sortJourneyRecords(G.recentJourneys || [])[0] || null;
+}
+
+function renderHubCurrentJourney() {
+  const shell = document.getElementById("hub-current-journey");
+  if (!shell) return;
+
+  const latest = getLatestJourney();
+  if (!latest) {
+    shell.innerHTML = `
+      <div class="hub-current-empty">
+        <div class="hub-current-title">No active journey yet</div>
+        <div class="hub-current-copy">
+          Start a new adventure from the hall below, then return here to track the current expedition.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const world = getWorldRecordForCharacter(latest.character_id);
+  const characterName = escapeHtml(latest.character_name || "Hero");
+  const worldName = escapeHtml(world?.worldName || "Uncharted Realm");
+  const presetName = escapeHtml(
+    worldPresetLabel(world?.worldPreset || "custom"),
+  );
+  const lastLog = escapeHtml(
+    latest.last_action_log || "Resume the journey from the last recorded scene.",
+  );
+  const updatedAt = latest.updated_at
+    ? new Date(latest.updated_at).toLocaleString()
+    : "No recent timestamp";
+  const safeName = escapeJsSingleQuoted(latest.character_name || "Hero");
+
+  shell.innerHTML = `
+    <div class="hub-current-eyebrow">Latest Save</div>
+    <div class="hub-current-title">${characterName}</div>
+    <div class="hub-current-meta">${worldName} • ${presetName}</div>
+    <div class="hub-current-copy">${lastLog}</div>
+    <div class="hub-current-actions">
+      <button class="btn btn-primary" onclick="loadGame('${latest.character_id}', '${safeName}')">
+        ⚔ Resume Journey
+      </button>
+      <button class="btn btn-action" onclick="showMapPage()">
+        🗺 World Map
+      </button>
+    </div>
+    <div class="hub-current-foot">${escapeHtml(updatedAt)}</div>
+  `;
+}
+
+function renderHubRecentJourneys() {
+  const listEl = document.getElementById("save-list");
+  if (!listEl) return;
+
+  const journeys = sortJourneyRecords(G.recentJourneys || []);
+  if (journeys.length === 0) {
+    listEl.innerHTML = `
+      <div class="hub-list-empty">
+        <div class="hub-list-empty-title">No journeys recorded yet</div>
+        <div class="hub-list-empty-copy">
+          Forge a legend, then start an adventure to create the first save route.
+        </div>
+        <div class="hub-list-empty-actions">
+          <button class="btn btn-primary" onclick="startWizard()">⚔ Start New Adventure</button>
+          <button class="btn btn-action" onclick="showForge('menu')">⚒ Forge Legend</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = journeys
+    .slice(0, 4)
+    .map((save: any) => {
+      const world = getWorldRecordForCharacter(save.character_id);
+      const safeName = escapeJsSingleQuoted(save.character_name || "Hero");
+      const worldName = escapeHtml(world?.worldName || "Uncharted Realm");
+      const updatedAt = save.updated_at
+        ? new Date(save.updated_at).toLocaleString()
+        : "No timestamp";
+      return `
+        <button class="hub-list-card" onclick="loadGame('${save.character_id}', '${safeName}')">
+          <div class="hub-list-card-top">
+            <div>
+              <div class="hub-list-card-title">${escapeHtml(save.character_name || "Hero")}</div>
+              <div class="hub-list-card-subtitle">${worldName}</div>
+            </div>
+            <div class="hub-list-card-chip">Lv.${Number(save.level) || 1}</div>
+          </div>
+          <div class="hub-list-card-copy">${escapeHtml(save.last_action_log || "Resume the last recorded turn.")}</div>
+          <div class="hub-list-card-meta">
+            <span>${escapeHtml(updatedAt)}</span>
+            <span>Resume</span>
+          </div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderHubWorldArchivePreview() {
+  const listEl = document.getElementById("hub-world-preview");
+  if (!listEl) return;
+
+  const worlds = sortCreatedWorlds(G.createdWorlds || []);
+  if (worlds.length === 0) {
+    listEl.innerHTML = `
+      <div class="hub-list-empty">
+        <div class="hub-list-empty-title">No worlds archived yet</div>
+        <div class="hub-list-empty-copy">
+          Once a legend enters a realm, the saved world archive will surface here.
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = worlds
+    .slice(0, 4)
+    .map((world: any) => {
+      const safeName = escapeJsSingleQuoted(world.characterName || "Hero");
+      const updatedAt = world.updatedAt
+        ? new Date(world.updatedAt).toLocaleString()
+        : "No timestamp";
+      return `
+        <div class="hub-list-card hub-world-preview-card">
+          <div class="hub-list-card-top">
+            <div>
+              <div class="hub-list-card-title">${escapeHtml(world.worldName || "Unknown World")}</div>
+              <div class="hub-list-card-subtitle">${escapeHtml(worldPresetLabel(world.worldPreset || "custom"))} • ${escapeHtml(world.characterName || "Hero")}</div>
+            </div>
+            <div class="hub-list-card-chip">${escapeHtml(world.phase || "IDLE")}</div>
+          </div>
+          <div class="hub-list-card-copy">${escapeHtml(world.lastActionLog || "No recent action recorded.")}</div>
+          <div class="hub-list-card-meta">
+            <span>${escapeHtml(updatedAt)}</span>
+            <span class="hub-inline-actions">
+              <button class="btn-link-inline" onclick="openWorldInAdventure('${world.characterId}', '${safeName}')">Open</button>
+            </span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function resumeLatestJourney() {
+  const latest = getLatestJourney();
+  if (!latest) {
+    showToast("No saved journey is ready yet.", "info");
+    return;
+  }
+  loadGame(latest.character_id, latest.character_name || "Hero");
+}
+
 async function fetchSaveList() {
   try {
-    const [saveRes, legends] = await Promise.all([
-      fetch(`${API}/load/list/all?${buildIdentityQuery().toString()}`),
-      fetchUserCharacters(),
-    ]);
+    const saveRes = await fetch(`${API}/load/list/all?${buildIdentityQuery().toString()}`);
     const j = await saveRes.json();
-    const listEl = document.getElementById("save-list");
-    if (!listEl) return;
-
-    const saves = j.success ? j.data || [] : [];
+    const saves = sortJourneyRecords(j.success ? j.data || [] : []);
+    G.recentJourneys = saves;
     setHubSummaryValue(
       "hub-save-count",
       `${saves.length} ${saves.length === 1 ? "journey" : "journeys"}`,
     );
-    const saveMap = new Map(saves.map((s: any) => [s.character_id, s]));
-
-    if (legends.length === 0) {
-      setHubSummaryValue("hub-save-count", "0 journeys");
-      listEl.innerHTML =
-        '<p style="font-size:11px; color:var(--muted)">No legends found yet.</p>';
-      return;
-    }
-
-    listEl.innerHTML = "";
-    legends.forEach((legend: any) => {
-      const save = saveMap.get(legend.id) as any;
-      const hasSave = !!save;
-      const card = document.createElement("div");
-      card.className = "region-card";
-      card.style.cssText = "text-align:left; padding:8px 12px; position:relative;";
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-right:24px;">
-          <span class="name" style="cursor:${hasSave ? "pointer" : "default"}" ${hasSave ? `onclick="loadGame('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')"` : ""}>👤 ${legend.name}</span>
-          <span class="danger">Lv.${legend.level}</span>
-        </div>
-        <div class="enemies" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:${hasSave ? "pointer" : "default"}" ${hasSave ? `onclick="loadGame('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')"` : ""}>
-          ${hasSave ? (save.last_action_log || "Resume your journey.") : "Legend forged. Start a new adventure to create the first save."}
-        </div>
-        <div style="font-size:9px; color:var(--muted); margin-top:4px">
-          ${hasSave ? new Date(save.updated_at).toLocaleString() : "Not started yet"}
-        </div>
-        <div style="position:absolute; top:8px; right:8px; display:flex; gap:6px; align-items:center;">
-          ${
-            !hasSave
-              ? `<button class="btn btn-action" onclick="event.stopPropagation(); startWizardWithLegend(${JSON.stringify(legend).replace(/"/g, "&quot;")})"
-                style="font-size:10px; padding:6px 8px;">
-                Start
-              </button>`
-              : ""
-          }
-          <button class="btn-delete" title="Delete Legend" onclick="event.stopPropagation(); deleteLegend('${legend.id}', '${legend.name.replace(/'/g, "\\'")}')" 
-            style="background:none; border:none; color:var(--red); cursor:pointer; font-size:16px; padding:4px;">
-            🗑️
-          </button>
-        </div>
-      `;
-      listEl.appendChild(card);
-    });
+    renderHubCurrentJourney();
+    renderHubRecentJourneys();
   } catch {
+    G.recentJourneys = [];
     setHubSummaryValue("hub-save-count", "Unavailable");
+    renderHubCurrentJourney();
+    renderHubRecentJourneys();
     showToast("Could not fetch saves", "error");
   }
 }

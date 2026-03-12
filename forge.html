@@ -435,63 +435,61 @@
               </div>
             </div>
 
-            <div class="card">
-              <h3>Realm Index</h3>
-              <div class="hub-action-grid" style="grid-template-columns: 1fr">
-                <div class="hub-action-card">
-                  <div class="label">Adventure</div>
-                  <div class="value">
-                    Enter the live gameplay route with traversal, exploration,
-                    and turn-based encounters.
-                  </div>
-                </div>
-                <div class="hub-action-card">
-                  <div class="label">World Map</div>
-                  <div class="value">
-                    Preview reachable nodes, stored worlds, and map-first
-                    progression tied to each legend.
-                  </div>
-                </div>
-                <div class="hub-action-card">
-                  <div class="label">Vault And Forge</div>
-                  <div class="value">
-                    Manage forged legends, inspect the archive, and build the
-                    next hero before entering a realm.
-                  </div>
+            <div class="card hub-status-card">
+              <div class="landing-kicker">Current Expedition</div>
+              <h3 style="margin: 0 0 8px">Resume From The Last Route</h3>
+              <p class="hub-panel-copy">
+                The hub is now your dashboard. Use it to review the latest
+                save, then let the live map, traversal, and combat continue in
+                the dedicated adventure route.
+              </p>
+              <div id="hub-current-journey" class="hub-current-shell">
+                <div class="hub-current-empty">
+                  <div class="hub-current-title">Loading expedition data...</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Load Existing Save -->
-          <div class="card fade-in" style="margin-top: 16px">
-            <h3>📂 Resume Adventure</h3>
-            <p
-              style="
-                color: var(--muted);
-                font-size: 12px;
-                margin-bottom: 12px;
-              "
-            >
-              Reopen the most recent save attached to any forged legend, or
-              start the first journey for a newly created hero.
-            </p>
-            <div
-              id="save-list"
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                margin-top: 10px;
-              "
-            >
-              <button
-                class="btn btn-action"
-                onclick="fetchSaveList()"
-                style="width: 100%"
-              >
-                🔄 Refresh Saves
-              </button>
+          <div class="hub-lower-grid">
+            <div class="card fade-in" style="margin-top: 16px">
+              <div class="hub-panel-head">
+                <div>
+                  <h3>📂 Recent Journeys</h3>
+                  <p class="hub-panel-copy">
+                    The latest saved expeditions live here. Resume one and jump
+                    straight back into the dedicated adventure screen.
+                  </p>
+                </div>
+                <button class="btn btn-action" onclick="fetchSaveList()">
+                  🔄 Refresh
+                </button>
+              </div>
+              <div id="save-list" class="hub-dashboard-list">
+                <div class="hub-list-empty">
+                  <div class="hub-current-title">Loading journey archive...</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card fade-in" style="margin-top: 16px">
+              <div class="hub-panel-head">
+                <div>
+                  <h3>🗂️ World Archive Preview</h3>
+                  <p class="hub-panel-copy">
+                    A compact view of saved worlds before you inspect them in
+                    the world map or reopen the linked journey.
+                  </p>
+                </div>
+                <button class="btn btn-action" onclick="fetchCreatedWorlds()">
+                  🔄 Refresh
+                </button>
+              </div>
+              <div id="hub-world-preview" class="hub-dashboard-list">
+                <div class="hub-list-empty">
+                  <div class="hub-current-title">Loading world archive...</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -879,7 +877,7 @@
           <!-- STEP 4: Confirm & Start -->
           <div id="wizard-step-4" class="fade-in" style="display: none">
             <div class="card">
-              <h3>⚔️ Step 4: Begin Your Legend</h3>
+              <h3>⚔️ Step 3: Begin Your Legend</h3>
               <div
                 id="confirm-summary"
                 style="

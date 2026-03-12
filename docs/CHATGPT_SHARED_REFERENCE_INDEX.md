@@ -33,6 +33,13 @@ In practice, that means the next architecture-heavy work should focus on:
 3. adventure/map flow that respects reachable paths
 4. authoring and override tooling on top of that stable graph
 
+At the product-structure level, the current UI direction should also remain:
+
+- keep `/hub` as a dashboard, not a live gameplay surface
+- keep `/adventure` as the place for wizard + live traversal/combat flow
+- keep full forge and vault management on their dedicated routes
+- let the hub summarize current journey, recent journeys, and world archive state
+
 ## Reference Links
 
 ### 1. Core World Generation Design
@@ -89,6 +96,20 @@ In practice, that means the next architecture-heavy work should focus on:
   - informs current map/traversal decisions
   - should guide the next refactor of topology and adventure progression
 
+### 5. Hub / Dashboard Separation Review
+
+- Link: `https://chatgpt.com/s/t_69b2940673c88191bb0507895edbea16`
+- Published: March 12, 2026
+- Role: product-flow and route-separation review
+- Main value:
+  - recommends treating `/hub` as a dashboard instead of a page that tries to carry gameplay, wizard, forge, and vault concerns together
+  - recommends pushing new-adventure flow into `/adventure`
+  - recommends keeping full forge and vault management in `/forge` and `/vault`
+  - recommends showing current journey, recent journeys, and world archive previews on the hub
+- Local impact:
+  - informs the current hub refactor
+  - sharpens route intent across `/hub`, `/adventure`, `/forge`, and `/vault`
+
 ## How To Use These References
 
 When a future task touches the systems below, start from these links and then move to the local docs:
@@ -106,6 +127,9 @@ When a future task touches the systems below, start from these links and then mo
 
 - for map/traversal decisions:
   - use reference 4 before changing topology, region movement, or route rules
+
+- for hub/dashboard and route-boundary decisions:
+  - use reference 5 before mixing hub, wizard, gameplay, vault, or forge concerns again
 
 ## Notes
 
