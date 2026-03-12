@@ -20,8 +20,30 @@
   --orange: #ffb35c;
 }
 
+html {
+  background: #0a090d;
+}
+
 body {
   font-family: "Inter", sans-serif;
+  position: relative;
+  isolation: isolate;
+  background: transparent;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  z-index: -2;
   background:
     radial-gradient(
       circle at 50% -10%,
@@ -39,9 +61,13 @@ body {
       transparent 26%
     ),
     linear-gradient(180deg, #151117 0%, #0a090d 100%);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
+}
+
+body::after {
+  z-index: -1;
+  background:
+    radial-gradient(circle at center, rgba(255, 226, 183, 0.04), transparent 30%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.16));
 }
 
 .header {
@@ -1630,32 +1656,60 @@ input:focus {
   opacity: 0.82;
 }
 
-.sigil-point-label {
-  fill: #f6dfbf;
-  font-size: 6.7px;
-  letter-spacing: 1px;
+.sigil-point-orbit-circle {
+  fill: rgba(255, 245, 228, 0.03);
+  stroke: rgba(240, 204, 156, 0.5);
+  stroke-width: 0.85;
+}
+
+.sigil-point-orbit-core {
+  fill: rgba(251, 233, 204, 0.06);
+  stroke: rgba(214, 176, 255, 0.35);
+  stroke-width: 0.75;
+}
+
+.sigil-point-ring-text {
+  fill: rgba(246, 223, 191, 0.95);
+  font-size: 4.6px;
+  letter-spacing: 0.72px;
   text-transform: uppercase;
-  text-anchor: middle;
-  dominant-baseline: middle;
   font-family: "Times New Roman", "Georgia", serif;
 }
 
-.sigil-core-text {
+.sigil-core-orbit-circle {
+  fill: rgba(255, 245, 228, 0.035);
+  stroke: rgba(242, 195, 142, 0.42);
+  stroke-width: 1;
+}
+
+.sigil-core-orbit-circle-inner {
+  stroke: rgba(214, 176, 255, 0.38);
+}
+
+.sigil-core-ring-text {
+  fill: rgba(255, 240, 217, 0.9);
+  text-transform: uppercase;
+  font-family: "Times New Roman", "Georgia", serif;
+}
+
+.sigil-core-ring-text-outer {
+  font-size: 5px;
+  letter-spacing: 0.82px;
+}
+
+.sigil-core-ring-text-inner {
+  fill: rgba(228, 208, 255, 0.84);
+  font-size: 4.2px;
+  letter-spacing: 0.65px;
+}
+
+.sigil-core-glyph {
   fill: #fff0d9;
   text-anchor: middle;
   dominant-baseline: middle;
-  font-size: 10px;
-  letter-spacing: 1.4px;
+  font-size: 5.8px;
+  letter-spacing: 0.6px;
   font-family: "Times New Roman", "Georgia", serif;
-}
-
-.sigil-core-subtext {
-  fill: rgba(241, 228, 206, 0.78);
-  text-anchor: middle;
-  font-size: 6px;
-  letter-spacing: 2.8px;
-  text-transform: uppercase;
-  font-family: "Orbitron", sans-serif;
 }
 
 #forge-skill-box {
@@ -2403,7 +2457,7 @@ input:focus {
 
 body {
   top: 0 !important;
-  position: static !important;
+  position: relative !important;
 }
 
 .goog-te-gadget {

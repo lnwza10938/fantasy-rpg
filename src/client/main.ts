@@ -427,16 +427,106 @@ function buildRuneRingText(source: string | string[], minimumLength = 120) {
   return text;
 }
 
-function buildSigilPointLabels(segments: ReturnType<typeof getSigilSegments>) {
-  return segments
-    .map((segment, index) => {
-      const point = polarPoint(200, 200, 123, index * 40);
-      const label = escapeHtml(toRuneText(shortenSigilPhrase(segment.value, 2, 14)));
-      return `<text x="${point.x.toFixed(2)}" y="${point.y.toFixed(
-        2,
-      )}" class="sigil-point-label">${label}</text>`;
-    })
-    .join("");
+function buildSigilPointOrbits(segments: ReturnType<typeof getSigilSegments>) {
+  const defs: string[] = [];
+  const markup: string[] = [];
+
+  segments.forEach((segment, index) => {
+    const point = polarPoint(200, 200, 87, index * 40);
+    const orbitRadius = 15.5;
+    const orbitId = `sigil-point-orbit-${index}`;
+    const orbitText = escapeHtml(
+      buildRuneRingText(
+        [shortenSigilPhrase(segment.value, 1, 12), segment.category],
+        30,
+      ),
+    );
+
+    defs.push(
+      `<path id="${orbitId}" d="${buildCirclePath(
+        point.x,
+        point.y,
+        orbitRadius,
+        index % 2 === 1,
+      )}" />`,
+    );
+
+    markup.push(`
+      <g class="sigil-point-orbit">
+        <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(
+          2,
+        )}" r="18.5" class="sigil-point-orbit-circle" />
+        <circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(
+          2,
+        )}" r="10.5" class="sigil-point-orbit-core" />
+        <text class="sigil-point-ring-text">
+          <textPath href="#${orbitId}" startOffset="0%">${orbitText}</textPath>
+        </text>
+      </g>
+    `);
+  });
+
+  return {
+    defs: defs.join(""),
+    markup: markup.join(""),
+  };
+}
+
+function buildSigilCoreOrbits(
+  skillName: string,
+  loreText: string,
+  statusText: string,
+  skillData: any,
+  segments: ReturnType<typeof getSigilSegments>,
+) {
+  const outerText = escapeHtml(
+    buildRuneRingText(
+      [
+        shortenSigilPhrase(skillName, 2, 20),
+        humanizeSkillTerm(skillData?.target_type || segments[2].value),
+        humanizeSkillTerm(skillData?.scaling_stat || segments[4].value),
+      ],
+      54,
+    ),
+  );
+  const innerText = escapeHtml(
+    buildRuneRingText(
+      [
+        statusText,
+        shortenSigilPhrase(skillData?.mechanics || loreText, 3, 22),
+      ],
+      44,
+    ),
+  );
+  const centerGlyph = escapeHtml(
+    toRuneText(shortenSigilPhrase(skillName, 1, 8) || "Legend"),
+  );
+
+  return {
+    defs: `
+      <path id="sigil-core-orbit-outer" d="${buildCirclePath(
+        200,
+        200,
+        34,
+        true,
+      )}" />
+      <path id="sigil-core-orbit-inner" d="${buildCirclePath(200, 200, 22)}" />
+    `,
+    markup: `
+      <g class="sigil-core-orbit">
+        <circle cx="200" cy="200" r="38" class="sigil-core-orbit-circle" />
+        <circle cx="200" cy="200" r="26" class="sigil-core-orbit-circle sigil-core-orbit-circle-inner" />
+        <circle cx="200" cy="200" r="11.5" class="sigil-point-orbit-core" />
+        <text class="sigil-core-ring-text sigil-core-ring-text-outer">
+          <textPath href="#sigil-core-orbit-outer" startOffset="0%">${outerText}</textPath>
+        </text>
+        <text class="sigil-core-ring-text sigil-core-ring-text-inner">
+          <textPath href="#sigil-core-orbit-inner" startOffset="0%">${innerText}</textPath>
+        </text>
+        <text x="200" y="204" class="sigil-core-glyph">${centerGlyph}</text>
+      </g>
+    `,
+  };
 }
 
 function buildForgeSigilSvg(
@@ -466,18 +556,9 @@ function buildForgeSigilSvg(
     210,
   );
   const loreRingText = buildRuneRingText(loreText, 150);
-  const coreText = escapeHtml(
-    toRuneText(
-      phase === "rolling"
-        ? "Awakening"
-        : phase === "interpreting"
-          ? "Interpreting"
-          : shortenSigilPhrase(skillName, 3, 22),
-    ),
-  );
   const starPath = buildSigilStarPoints(200, 200, 104);
   const innerStarPath = buildSigilStarPoints(200, 200, 76, 2);
-  const runeLabels = buildSigilPointLabels(segments);
+  const pointOrbits = buildSigilPointOrbits(segments);
   const tickMarks = buildSigilTicks(200, 200, 182, 191, 108);
   const statusText =
     phase === "rolling"
@@ -485,6 +566,13 @@ function buildForgeSigilSvg(
       : phase === "interpreting"
         ? "Reading the runes"
         : shortenSigilPhrase(skillData?.name || "Legendary Sigil", 3, 20);
+  const coreOrbits = buildSigilCoreOrbits(
+    skillName,
+    loreText,
+    statusText,
+    skillData,
+    segments,
+  );
 
   return `
     <svg class="forge-sigil-svg" viewBox="0 0 400 400" aria-label="Legendary magic circle">
@@ -502,6 +590,8 @@ function buildForgeSigilSvg(
         <path id="sigil-ring-outer" d="${buildCirclePath(200, 200, 168)}" />
         <path id="sigil-ring-mid" d="${buildCirclePath(200, 200, 141, true)}" />
         <path id="sigil-ring-inner" d="${buildCirclePath(200, 200, 118)}" />
+        ${pointOrbits.defs}
+        ${coreOrbits.defs}
       </defs>
 
       <circle cx="200" cy="200" r="188" class="sigil-outline sigil-outline-outer" />
@@ -534,12 +624,8 @@ function buildForgeSigilSvg(
       <polygon points="${innerStarPath}" class="sigil-inner-web" />
       <circle cx="200" cy="200" r="46" class="sigil-outline sigil-outline-core" />
 
-      <g class="sigil-spoke-labels">${runeLabels}</g>
-
-      <text x="200" y="194" class="sigil-core-text">${coreText}</text>
-      <text x="200" y="220" class="sigil-core-subtext">${escapeHtml(
-        toRuneText(statusText),
-      )}</text>
+      <g class="sigil-spoke-labels">${pointOrbits.markup}</g>
+      ${coreOrbits.markup}
     </svg>
   `;
 }
