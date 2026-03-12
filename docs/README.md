@@ -16,7 +16,7 @@ This folder contains project-level documentation and planning materials.
 - `MAP_REFERENCE_GUIDE.md` - Visual reference guide for world maps, regional maps, and dungeon / interior map direction based on the latest user-provided map references.
 - `WORLD_GENERATION_SYSTEM_DESIGN.md` - Long-term system design for procedural/custom world generation, unified world data, and future map architecture.
 - `CODEX_PROMPT_STRATEGY_REPORT.md` - Pre-implementation understanding report for the staged Codex build strategy from the shared planning chat.
-- `FUTURE_ROADMAP.md` - Planned features and milestones.
+- `FUTURE_ROADMAP.md` - Primary post-stabilization roadmap covering UI cleanup, traversal depth, story binding, encounters, geography, AI generation, dev tools, content pipelines, player systems, and endgame direction.
 - `AI_DOCS.md` - Specific instructions and context for AI agents working on this project.
 
 ---

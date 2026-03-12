@@ -2,6 +2,8 @@
 
 This document focuses specifically on the current implementation status of the **map / world authoring** side of the project as of **March 13, 2026**.
 
+For the broader post-stabilization build order that now wraps map work, traversal depth, story binding, encounter systems, geography, AI generation, and content pipelines together, see [FUTURE_ROADMAP.md](/Users/mon/game_project/docs/FUTURE_ROADMAP.md).
+
 ## Current Stage
 
 The map system is now past the prototype stage.

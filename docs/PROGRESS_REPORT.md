@@ -2,6 +2,8 @@
 
 This report summarizes the current implementation status of the **Procedural Fantasy RPG** project as of **March 13, 2026**.
 
+The project now also has an updated sequencing plan in [FUTURE_ROADMAP.md](/Users/mon/game_project/docs/FUTURE_ROADMAP.md), and that roadmap should be treated as the main guide for post-stabilization work.
+
 ## Current Product State
 
 The project is now a deployed multi-page web RPG with:
