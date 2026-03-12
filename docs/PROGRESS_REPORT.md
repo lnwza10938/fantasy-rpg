@@ -1,6 +1,6 @@
-# Progress Report - March 12, 2026
+# Progress Report - March 13, 2026
 
-This report summarizes the current implementation status of the **Procedural Fantasy RPG** project as of **March 12, 2026**.
+This report summarizes the current implementation status of the **Procedural Fantasy RPG** project as of **March 13, 2026**.
 
 ## Current Product State
 
@@ -218,13 +218,26 @@ Still to do:
 
 ### 2. Override-Driven Authoring
 
-`world_overrides` is now part of the persistence plan, but the full authoring workflow is not built yet.
+`world_overrides` is no longer only part of the persistence plan.
+
+The project now has a first real authoring workflow for it inside the dev panel.
+
+Now available:
+
+- direct `Override` entry from `World Definitions`
+- guided `World Override Builder`
+- world selection
+- override-type selection
+- region targeting
+- safe payload templates
+- mirror-current-data helpers
+- stricter validation before saving override records
 
 Still to do:
 
-- create override records from tools/UI
-- patch regions and map layout intentionally
-- support world-pack authoring and story binding through overrides
+- direct visual node/path editing
+- stronger story binding through overrides
+- richer world-pack authoring flow on top of the new builder
 
 ### 3. Dev Content Upload Workflow
 
@@ -242,10 +255,10 @@ The architecture now supports this direction much better than before, but the UI
 
 The most sensible next implementation order is:
 
-1. Deepen the traversal engine with path rules, gating, and hidden routes.
-2. Add `world_overrides` authoring support for region and map edits.
-3. Build the dev panel flow for monster/world/story/media uploads.
-4. Bind story/lore content directly to canonical world definitions.
+1. Build direct `node/path` editing on top of the new override workflow.
+2. Deepen the traversal engine with stronger route rules, gating, and hidden routes.
+3. Bind story/lore content directly to canonical world definitions and regions.
+4. Continue the dev panel flow for monster/world/story/media uploads.
 
 ## Verification Notes
 
@@ -269,5 +282,6 @@ It now has:
 - deterministic map topology output
 - a first traversal layer on top of that topology
 - persistent world definitions in the database
+- a first guided world-override authoring workflow in the dev panel
 
-That puts the project in a strong position for the next phase: deepening traversal rules, then layering authoring tools and content pipelines on top of the now more coherent world graph.
+That puts the project in a strong position for the next phase: direct topology editing, richer traversal design, and story binding on top of the now more coherent canonical world graph.

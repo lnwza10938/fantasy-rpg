@@ -6,6 +6,7 @@ This folder contains project-level documentation and planning materials.
 
 - `walkthrough.md` - High-level guide on how the project works and how to use it.
 - `PROGRESS_REPORT.md` - Current implementation status and milestone report.
+- `MAP_IMPLEMENTATION_STATUS.md` - Focused status report for the map, traversal, canonical world, and world-override authoring layers.
 - `CHATGPT_SHARED_REFERENCE_INDEX.md` - Index of the shared ChatGPT planning links that informed the architecture and current build order.
 - `MAP_REFERENCE_GUIDE.md` - Visual reference guide for world maps, regional maps, and dungeon / interior map direction based on the latest user-provided map references.
 - `WORLD_GENERATION_SYSTEM_DESIGN.md` - Long-term system design for procedural/custom world generation, unified world data, and future map architecture.
