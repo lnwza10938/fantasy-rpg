@@ -57,6 +57,50 @@ export interface WorldMapLayout {
   paths: WorldMapPath[];
 }
 
+export interface WorldGeographyZone {
+  id: string;
+  regionId: string | null;
+  biome: string;
+  terrain:
+    | "plains"
+    | "forest"
+    | "coast"
+    | "highlands"
+    | "desert"
+    | "swamp"
+    | "volcanic"
+    | "ruins"
+    | "cursed"
+    | "tundra"
+    | "void";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+  color: string;
+  opacity: number;
+}
+
+export interface WorldGeographyFlow {
+  id: string;
+  kind: "river" | "ridge" | "mist";
+  points: WorldMapPosition[];
+  width: number;
+  color: string;
+  opacity: number;
+}
+
+export interface WorldGeographyLayer {
+  palette: {
+    sea: string;
+    fog: string;
+    glow: string;
+  };
+  zones: WorldGeographyZone[];
+  flows: WorldGeographyFlow[];
+}
+
 export interface WorldMapGenerationHints {
   regionBudget?: number;
   laneCount?: number;
@@ -88,6 +132,7 @@ export interface WorldDefinition {
   metadata: WorldMetadata;
   regions: WorldRegion[];
   mapLayout: WorldMapLayout;
+  geography: WorldGeographyLayer;
 }
 
 export const WORLD_META_PREFIX = "world_meta:";
@@ -116,6 +161,43 @@ function normalizePathVisibility(
   value: unknown,
 ): "visible" | "hidden" | "fogged" {
   return value === "hidden" || value === "fogged" ? value : "visible";
+}
+
+function normalizeTerrainKind(
+  biome: unknown,
+): WorldGeographyZone["terrain"] {
+  switch (String(biome || "").trim().toLowerCase()) {
+    case "forest":
+      return "forest";
+    case "coast":
+      return "coast";
+    case "mountain":
+      return "highlands";
+    case "desert":
+      return "desert";
+    case "swamp":
+      return "swamp";
+    case "volcanic":
+      return "volcanic";
+    case "ruins":
+      return "ruins";
+    case "cursed_land":
+      return "cursed";
+    case "tundra":
+      return "tundra";
+    case "abyss":
+    case "void":
+      return "void";
+    default:
+      return "plains";
+  }
+}
+
+function normalizeGeographyPointList(value: unknown): WorldMapPosition[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((point) => normalizePosition(point))
+    .filter((point): point is WorldMapPosition => !!point);
 }
 
 export function inferWorldPresetFromSeed(seed: number): string {
@@ -403,6 +485,194 @@ export function normalizeWorldMapLayout(
   };
 }
 
+export function buildFallbackWorldGeographyLayer(
+  regions: WorldRegion[],
+  mapLayout: WorldMapLayout,
+): WorldGeographyLayer {
+  const nodeById = new Map(
+    mapLayout.nodes.map((node) => [node.regionId, node] as const),
+  );
+
+  const zones = regions.map((region, index) => {
+    const node = nodeById.get(region.id);
+    const x = node?.x ?? region.mapPosition?.x ?? mapLayout.width / 2;
+    const y = node?.y ?? region.mapPosition?.y ?? mapLayout.height / 2;
+    const tier = Number.isFinite(region.tier) ? Number(region.tier) : 0;
+    return {
+      id: `zone-${region.id}`,
+      regionId: region.id,
+      biome: region.biome,
+      terrain: normalizeTerrainKind(region.biome),
+      x,
+      y,
+      width: Math.max(150, 180 + tier * 24 + ((index % 3) - 1) * 16),
+      height: Math.max(96, 112 + ((index + tier) % 4) * 18),
+      rotation: ((index % 5) - 2) * 8,
+      color: region.accentColor || "#5fa8d3",
+      opacity: 0.24,
+    };
+  });
+
+  const flows = mapLayout.paths
+    .map((path, index) => {
+      const from = nodeById.get(path.fromRegionId);
+      const to = nodeById.get(path.toRegionId);
+      if (!from || !to) return null;
+
+      return {
+        id: `flow-${path.id}`,
+        kind:
+          path.kind === "hazard"
+            ? ("ridge" as const)
+            : path.visibility === "fogged"
+              ? ("mist" as const)
+              : ("river" as const),
+        points: [
+          { x: from.x, y: from.y },
+          {
+            x: Math.round((from.x + to.x) / 2),
+            y: Math.round((from.y + to.y) / 2 + (((index % 3) - 1) * 18)),
+          },
+          { x: to.x, y: to.y },
+        ],
+        width:
+          path.kind === "hazard" ? 16 : path.visibility === "fogged" ? 28 : 10,
+        color:
+          path.kind === "hazard"
+            ? "rgba(98, 83, 76, 0.8)"
+            : path.visibility === "fogged"
+              ? "rgba(232, 242, 255, 0.72)"
+              : "rgba(132, 197, 231, 0.8)",
+        opacity:
+          path.kind === "hazard" ? 0.3 : path.visibility === "fogged" ? 0.18 : 0.36,
+      };
+    })
+    .filter((flow): flow is WorldGeographyFlow => !!flow);
+
+  return {
+    palette: {
+      sea: "#7fbde2",
+      fog: "rgba(228, 241, 255, 0.56)",
+      glow: "rgba(179, 224, 255, 0.2)",
+    },
+    zones,
+    flows,
+  };
+}
+
+export function normalizeWorldGeographyLayer(
+  input: Partial<WorldGeographyLayer> | null | undefined,
+  regions: WorldRegion[],
+  mapLayout: WorldMapLayout,
+): WorldGeographyLayer {
+  const fallback = buildFallbackWorldGeographyLayer(regions, mapLayout);
+  if (!input || typeof input !== "object") {
+    return fallback;
+  }
+
+  const zones = Array.isArray(input.zones)
+    ? input.zones
+        .filter((zone) => !!zone && typeof zone === "object")
+        .map<WorldGeographyZone>((zone, index) => {
+          const record = zone as unknown as Record<string, unknown>;
+          return {
+            id:
+              typeof record.id === "string" && record.id.trim()
+                ? record.id.trim()
+                : `zone-${index}`,
+            regionId:
+              typeof record.regionId === "string" && record.regionId.trim()
+                ? record.regionId.trim()
+                : null,
+            biome:
+              typeof record.biome === "string" && record.biome.trim()
+                ? record.biome.trim()
+                : "unknown",
+            terrain: normalizeTerrainKind(record.terrain || record.biome),
+            x:
+              typeof record.x === "number" && Number.isFinite(record.x)
+                ? record.x
+                : fallback.zones[index]?.x || mapLayout.width / 2,
+            y:
+              typeof record.y === "number" && Number.isFinite(record.y)
+                ? record.y
+                : fallback.zones[index]?.y || mapLayout.height / 2,
+            width:
+              typeof record.width === "number" && Number.isFinite(record.width)
+                ? Math.max(40, record.width)
+                : fallback.zones[index]?.width || 180,
+            height:
+              typeof record.height === "number" && Number.isFinite(record.height)
+                ? Math.max(40, record.height)
+                : fallback.zones[index]?.height || 120,
+            rotation:
+              typeof record.rotation === "number" && Number.isFinite(record.rotation)
+                ? record.rotation
+                : 0,
+            color:
+              typeof record.color === "string" && record.color.trim()
+                ? record.color
+                : fallback.zones[index]?.color || "#5fa8d3",
+            opacity:
+              typeof record.opacity === "number" && Number.isFinite(record.opacity)
+                ? Math.max(0.05, Math.min(1, record.opacity))
+                : fallback.zones[index]?.opacity || 0.24,
+          };
+        })
+    : fallback.zones;
+
+  const flows = Array.isArray(input.flows)
+    ? input.flows
+        .filter((flow) => !!flow && typeof flow === "object")
+        .map<WorldGeographyFlow>((flow, index) => {
+          const record = flow as unknown as Record<string, unknown>;
+          return {
+            id:
+              typeof record.id === "string" && record.id.trim()
+                ? record.id.trim()
+                : `flow-${index}`,
+            kind:
+              record.kind === "ridge" || record.kind === "mist"
+                ? record.kind
+                : "river",
+            points: normalizeGeographyPointList(record.points),
+            width:
+              typeof record.width === "number" && Number.isFinite(record.width)
+                ? Math.max(2, record.width)
+                : fallback.flows[index]?.width || 10,
+            color:
+              typeof record.color === "string" && record.color.trim()
+                ? record.color
+                : fallback.flows[index]?.color || "rgba(132, 197, 231, 0.8)",
+            opacity:
+              typeof record.opacity === "number" && Number.isFinite(record.opacity)
+                ? Math.max(0.04, Math.min(1, record.opacity))
+                : fallback.flows[index]?.opacity || 0.3,
+          };
+        })
+        .filter((flow) => flow.points.length >= 2)
+    : fallback.flows;
+
+  return {
+    palette: {
+      sea:
+        typeof input.palette?.sea === "string" && input.palette.sea.trim()
+          ? input.palette.sea
+          : fallback.palette.sea,
+      fog:
+        typeof input.palette?.fog === "string" && input.palette.fog.trim()
+          ? input.palette.fog
+          : fallback.palette.fog,
+      glow:
+        typeof input.palette?.glow === "string" && input.palette.glow.trim()
+          ? input.palette.glow
+          : fallback.palette.glow,
+    },
+    zones: zones.length > 0 ? zones : fallback.zones,
+    flows,
+  };
+}
+
 export function normalizeWorldDefinitionShape(
   input: Partial<WorldDefinition> | null | undefined,
   seed?: number,
@@ -416,6 +686,11 @@ export function normalizeWorldDefinitionShape(
     : [];
 
   const mapLayout = normalizeWorldMapLayout(input?.mapLayout, regions);
+  const geography = normalizeWorldGeographyLayer(
+    input?.geography,
+    regions,
+    mapLayout,
+  );
   const nodeById = new Map(
     mapLayout.nodes.map((node) => [node.regionId, node] as const),
   );
@@ -459,5 +734,6 @@ export function normalizeWorldDefinitionShape(
     metadata: normalizeWorldMetadata(input?.metadata, safeSeed),
     regions: normalizedRegions,
     mapLayout,
+    geography,
   };
 }

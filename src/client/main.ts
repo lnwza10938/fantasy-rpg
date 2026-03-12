@@ -828,6 +828,150 @@ function normalizeRegions(regions: any[] | null | undefined) {
   }));
 }
 
+function normalizeGeoPoint(point: any) {
+  if (
+    point &&
+    typeof point.x === "number" &&
+    typeof point.y === "number" &&
+    Number.isFinite(point.x) &&
+    Number.isFinite(point.y)
+  ) {
+    return { x: Number(point.x), y: Number(point.y) };
+  }
+  return null;
+}
+
+function buildFallbackGeographyLayer(regions: any[], mapLayout: any) {
+  const nodes = Array.isArray(mapLayout?.nodes) ? mapLayout.nodes : [];
+  const nodeById = new Map<string, any>(
+    nodes.map((node: any) => [String(node.regionId || ""), node]),
+  );
+  const zones = regions.map((region: any, index: number) => {
+    const node: any = nodeById.get(region.id);
+    const x = Number(node?.x ?? region?.mapPosition?.x ?? 520);
+    const y = Number(node?.y ?? region?.mapPosition?.y ?? 280);
+    return {
+      id: `zone-${region.id}`,
+      regionId: region.id || null,
+      biome: region.biome || "unknown",
+      terrain: region.biome || "plains",
+      x,
+      y,
+      width: 180 + ((Number(region?.tier) || index) % 3) * 28,
+      height: 112 + ((index + 1) % 4) * 18,
+      rotation: ((index % 5) - 2) * 8,
+      color: region.accentColor || "rgba(95, 168, 211, 0.74)",
+      opacity: 0.24,
+    };
+  });
+
+  const flows = (Array.isArray(mapLayout?.paths) ? mapLayout.paths : [])
+    .map((path: any, index: number) => {
+      const from: any = nodeById.get(path.fromRegionId);
+      const to: any = nodeById.get(path.toRegionId);
+      if (!from || !to) return null;
+      return {
+        id: `flow-${path.id || index}`,
+        kind:
+          path.kind === "hazard"
+            ? "ridge"
+            : path.visibility === "fogged"
+              ? "mist"
+              : "river",
+        points: [
+          { x: Number(from.x), y: Number(from.y) },
+          {
+            x: Math.round((Number(from.x) + Number(to.x)) / 2),
+            y:
+              Math.round((Number(from.y) + Number(to.y)) / 2) +
+              (((index % 3) - 1) * 18),
+          },
+          { x: Number(to.x), y: Number(to.y) },
+        ],
+        width:
+          path.kind === "hazard" ? 16 : path.visibility === "fogged" ? 28 : 10,
+        color:
+          path.kind === "hazard"
+            ? "rgba(98, 83, 76, 0.8)"
+            : path.visibility === "fogged"
+              ? "rgba(232, 242, 255, 0.72)"
+              : "rgba(132, 197, 231, 0.8)",
+        opacity:
+          path.kind === "hazard" ? 0.3 : path.visibility === "fogged" ? 0.18 : 0.36,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    palette: {
+      sea: "rgba(127, 189, 226, 0.42)",
+      fog: "rgba(228, 241, 255, 0.56)",
+      glow: "rgba(179, 224, 255, 0.2)",
+    },
+    zones,
+    flows,
+  };
+}
+
+function normalizeWorldGeography(geography: any, regions: any[], mapLayout: any) {
+  const fallback = buildFallbackGeographyLayer(regions, mapLayout);
+  if (!geography || typeof geography !== "object") return fallback;
+
+  const zones = Array.isArray(geography.zones)
+    ? geography.zones
+        .map((zone: any, index: number) => ({
+          id: zone?.id || `zone-${index}`,
+          regionId: zone?.regionId || null,
+          biome: zone?.biome || "unknown",
+          terrain: zone?.terrain || zone?.biome || "plains",
+          x: Number.isFinite(zone?.x) ? Number(zone.x) : fallback.zones[index]?.x || 520,
+          y: Number.isFinite(zone?.y) ? Number(zone.y) : fallback.zones[index]?.y || 280,
+          width: Number.isFinite(zone?.width)
+            ? Math.max(40, Number(zone.width))
+            : fallback.zones[index]?.width || 180,
+          height: Number.isFinite(zone?.height)
+            ? Math.max(40, Number(zone.height))
+            : fallback.zones[index]?.height || 120,
+          rotation: Number.isFinite(zone?.rotation) ? Number(zone.rotation) : 0,
+          color: zone?.color || fallback.zones[index]?.color || "rgba(95, 168, 211, 0.74)",
+          opacity: Number.isFinite(zone?.opacity)
+            ? Math.max(0.05, Math.min(1, Number(zone.opacity)))
+            : fallback.zones[index]?.opacity || 0.24,
+        }))
+        .filter((zone: any) => Number.isFinite(zone.x) && Number.isFinite(zone.y))
+    : fallback.zones;
+
+  const flows = Array.isArray(geography.flows)
+    ? geography.flows
+        .map((flow: any, index: number) => ({
+          id: flow?.id || `flow-${index}`,
+          kind:
+            flow?.kind === "ridge" || flow?.kind === "mist" ? flow.kind : "river",
+          points: Array.isArray(flow?.points)
+            ? flow.points.map((point: any) => normalizeGeoPoint(point)).filter(Boolean)
+            : [],
+          width: Number.isFinite(flow?.width)
+            ? Math.max(2, Number(flow.width))
+            : fallback.flows[index]?.width || 10,
+          color: flow?.color || fallback.flows[index]?.color || "rgba(132, 197, 231, 0.8)",
+          opacity: Number.isFinite(flow?.opacity)
+            ? Math.max(0.04, Math.min(1, Number(flow.opacity)))
+            : fallback.flows[index]?.opacity || 0.3,
+        }))
+        .filter((flow: any) => flow.points.length >= 2)
+    : fallback.flows;
+
+  return {
+    palette: {
+      sea: geography?.palette?.sea || fallback.palette.sea,
+      fog: geography?.palette?.fog || fallback.palette.fog,
+      glow: geography?.palette?.glow || fallback.palette.glow,
+    },
+    zones: zones.length ? zones : fallback.zones,
+    flows,
+  };
+}
+
 function normalizeWorldDefinition(definition: any, fallbackRegions?: any[]) {
   if (!definition && !fallbackRegions) return null;
   const normalizedRegions = normalizeRegions(
@@ -860,6 +1004,13 @@ function normalizeWorldDefinition(definition: any, fallbackRegions?: any[]) {
               : [],
           }
         : fallbackLayout,
+    geography: normalizeWorldGeography(
+      definition?.geography,
+      normalizedRegions,
+      definition?.mapLayout && Array.isArray(definition.mapLayout.nodes)
+        ? definition.mapLayout
+        : fallbackLayout,
+    ),
   };
 }
 
@@ -4017,6 +4168,51 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
     })
     .join("");
 
+  const geographyLayer = definition?.geography || getActiveWorldDefinition()?.geography;
+  const geometryZones = (geographyLayer?.zones || [])
+    .map((zone: any) => {
+      const zoneClass = escapeHtml(String(zone.terrain || zone.biome || "plains"));
+      return `
+        <ellipse
+          cx="${Number(zone.x) || 0}"
+          cy="${Number(zone.y) || 0}"
+          rx="${Math.max(20, Math.round((Number(zone.width) || 180) / 2))}"
+          ry="${Math.max(20, Math.round((Number(zone.height) || 120) / 2))}"
+          transform="rotate(${Number(zone.rotation) || 0} ${Number(zone.x) || 0} ${Number(zone.y) || 0})"
+          class="map-geography-zone ${zoneClass}"
+          fill="${escapeHtml(zone.color || "rgba(95, 168, 211, 0.74)")}"
+          fill-opacity="${Math.max(0.04, Math.min(1, Number(zone.opacity) || 0.24))}"
+        />
+      `;
+    })
+    .join("");
+
+  const geometryFlows = (geographyLayer?.flows || [])
+    .map((flow: any) => {
+      const points = Array.isArray(flow.points) ? flow.points : [];
+      if (points.length < 2) return "";
+      const first = points[0];
+      const rest = points.slice(1);
+      const curve = rest
+        .map((point: any, index: number) => {
+          const previous = points[index];
+          const controlX = Math.round((Number(previous?.x) + Number(point?.x)) / 2);
+          const controlY = Math.round((Number(previous?.y) + Number(point?.y)) / 2);
+          return `Q ${controlX} ${controlY} ${Number(point?.x) || 0} ${Number(point?.y) || 0}`;
+        })
+        .join(" ");
+      return `
+        <path
+          d="M ${Number(first?.x) || 0} ${Number(first?.y) || 0} ${curve}"
+          class="map-geography-flow ${escapeHtml(String(flow.kind || "river"))}"
+          stroke="${escapeHtml(flow.color || "rgba(132, 197, 231, 0.8)")}"
+          stroke-width="${Math.max(2, Number(flow.width) || 10)}"
+          stroke-opacity="${Math.max(0.04, Math.min(1, Number(flow.opacity) || 0.3))}"
+        />
+      `;
+    })
+    .join("");
+
   const nodeMarkup = renderedRegions
     .map((region: any) => {
       const node = nodeById.get(region.id);
@@ -4079,6 +4275,15 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
     <div class="map-topology-board">
       <div class="map-topology-viewport">
         <div class="map-topology-canvas">
+          <svg
+            class="map-geography-layer"
+            viewBox="0 0 ${layout.width || 1040} ${layout.height || 560}"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            ${geometryZones}
+            ${geometryFlows}
+          </svg>
           <svg
             class="map-topology-lines"
             viewBox="0 0 ${layout.width || 1040} ${layout.height || 560}"

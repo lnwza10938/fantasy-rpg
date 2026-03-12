@@ -10,6 +10,7 @@ It currently has:
 
 - canonical world definitions stored in the database
 - deterministic node-and-path topology generation
+- a first geography render layer generated from world data
 - traversal-aware runtime state
 - a dedicated `/map` route
 - an integrated `/adventure` map gameplay surface
@@ -118,6 +119,21 @@ This matters because map authoring is now modifying canonical world data, so bad
 
 Inside the dev panel, `World Definitions` can now open directly into a new override flow.
 
+### 4. Geography Render Layer - Phase 1
+
+The map now has a first geography-aware background layer generated from the canonical world itself.
+
+Current behavior:
+
+- each region can project a terrain zone behind the topology graph
+- paths can seed background rivers, ridges, or mist bands
+- biome and accent metadata now influence the visual look of the map surface
+- older worlds still fall back safely to generated geography if no explicit layer exists yet
+
+This does **not** replace topology as gameplay truth.
+
+It is a render layer behind the graph, which is the correct direction for eventually reaching more atlas-like world maps.
+
 This is important because it turns the workflow into:
 
 1. inspect a canonical world
@@ -153,11 +169,11 @@ Still incomplete:
 
 ### 3. Geography Layer
 
-The current system is topology-aware, but not yet geography-rich enough.
+The current system is now beginning to render geography, but it is not yet geography-rich enough.
 
 Still incomplete:
 
-- landmass-aware map rendering
+- landmass-aware continent shaping
 - more believable route placement against geography
 - separation between world map, regional map, and local tactical map
 

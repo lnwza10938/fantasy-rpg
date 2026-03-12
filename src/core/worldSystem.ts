@@ -4,6 +4,9 @@
 import type { CharacterStats } from "../models/combatTypes.js";
 import type {
   WorldDefinition,
+  WorldGeographyFlow,
+  WorldGeographyLayer,
+  WorldGeographyZone,
   WorldGenerationSelection,
   WorldMapGenerationHints,
   WorldMapLayout,
@@ -45,6 +48,19 @@ interface BiomeVisualStyle {
   icon: string;
   accentColor: string;
   landmarks: string[];
+  geographyColor: string;
+  terrain:
+    | "plains"
+    | "forest"
+    | "coast"
+    | "highlands"
+    | "desert"
+    | "swamp"
+    | "volcanic"
+    | "ruins"
+    | "cursed"
+    | "tundra"
+    | "void";
 }
 
 const DEFAULT_MAP_WIDTH = 1040;
@@ -53,6 +69,8 @@ const DEFAULT_BIOME_STYLE: BiomeVisualStyle = {
   icon: "🗺️",
   accentColor: "#4fc3f7",
   landmarks: ["Outpost", "Crossing", "Frontier"],
+  geographyColor: "rgba(102, 174, 117, 0.74)",
+  terrain: "plains",
 };
 
 const BIOME_VISUALS: Record<string, BiomeVisualStyle> = {
@@ -60,41 +78,71 @@ const BIOME_VISUALS: Record<string, BiomeVisualStyle> = {
     icon: "🌲",
     accentColor: "#6cc56c",
     landmarks: ["Whispergrove", "Old Hollow", "Verdant Gate"],
+    geographyColor: "rgba(116, 168, 102, 0.78)",
+    terrain: "forest",
   },
   coast: {
     icon: "🌊",
     accentColor: "#4fc3f7",
     landmarks: ["Tidewatch", "Foamreach", "Salt Beacon"],
+    geographyColor: "rgba(123, 190, 222, 0.82)",
+    terrain: "coast",
   },
   mountain: {
     icon: "⛰️",
     accentColor: "#9fb3c8",
     landmarks: ["High Pass", "Stone Crown", "Sky Gate"],
+    geographyColor: "rgba(118, 128, 138, 0.78)",
+    terrain: "highlands",
   },
   desert: {
     icon: "🏜️",
     accentColor: "#f5c16c",
     landmarks: ["Sunspire", "Dune Gate", "Mirage Camp"],
+    geographyColor: "rgba(228, 196, 122, 0.82)",
+    terrain: "desert",
   },
   volcanic: {
     icon: "🌋",
     accentColor: "#ff875f",
     landmarks: ["Ash Spire", "Cinder Gate", "Magma Scar"],
+    geographyColor: "rgba(161, 91, 70, 0.82)",
+    terrain: "volcanic",
   },
   ruins: {
     icon: "🏛️",
     accentColor: "#b9a9ff",
     landmarks: ["Fallen Archive", "Broken Forum", "Pale Reliquary"],
+    geographyColor: "rgba(151, 142, 178, 0.76)",
+    terrain: "ruins",
   },
   swamp: {
     icon: "🪷",
     accentColor: "#7abf88",
     landmarks: ["Bog Lantern", "Mire Fork", "Fen Shrine"],
+    geographyColor: "rgba(92, 130, 102, 0.78)",
+    terrain: "swamp",
   },
   cursed_land: {
     icon: "💀",
     accentColor: "#d47cff",
     landmarks: ["Grief Gate", "Woe Hollow", "Black Reliquary"],
+    geographyColor: "rgba(134, 97, 159, 0.74)",
+    terrain: "cursed",
+  },
+  tundra: {
+    icon: "❄️",
+    accentColor: "#d7e6ff",
+    landmarks: ["Frost March", "White Gate", "Ice Hollow"],
+    geographyColor: "rgba(203, 219, 242, 0.8)",
+    terrain: "tundra",
+  },
+  abyss: {
+    icon: "🕳️",
+    accentColor: "#6d5cff",
+    landmarks: ["Void Rim", "Night Maw", "Null Verge"],
+    geographyColor: "rgba(82, 77, 121, 0.78)",
+    terrain: "void",
   },
 };
 
@@ -141,6 +189,16 @@ function pickNearestByY<T extends { mapPosition?: { y: number } }>(
     const originY = origin.mapPosition?.y ?? 0;
     return Math.abs(aY - originY) - Math.abs(bY - originY);
   });
+}
+
+function midpoint(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
+  return {
+    x: Math.round((from.x + to.x) / 2),
+    y: Math.round((from.y + to.y) / 2),
+  };
 }
 
 // --- Seeded PRNG (Deterministic) ---
@@ -499,6 +557,145 @@ export class WorldSystem {
     };
   }
 
+  private buildGeographyLayer(
+    seed: number,
+    regions: WorldRegion[],
+    mapLayout: WorldMapLayout,
+  ): WorldGeographyLayer {
+    const geographyRng = new SeededRNG(seed ^ 0x5b9d4f21);
+    const zoneByRegionId = new Map<string, WorldGeographyZone>();
+    const regionById = new Map(regions.map((region) => [region.id, region] as const));
+
+    const zones = regions.map((region, index) => {
+      const style = biomeStyleFor(region.biome);
+      const position = region.mapPosition || {
+        x: Math.round(mapLayout.width / 2),
+        y: Math.round(mapLayout.height / 2),
+      };
+      const tier = Number.isFinite(region.tier) ? Number(region.tier) : 0;
+      const zone: WorldGeographyZone = {
+        id: `zone-${region.id}`,
+        regionId: region.id,
+        biome: region.biome,
+        terrain: style.terrain,
+        x: clamp(position.x + geographyRng.nextInt(-32, 32), 70, mapLayout.width - 70),
+        y: clamp(position.y + geographyRng.nextInt(-26, 26), 65, mapLayout.height - 65),
+        width: clamp(170 + tier * 28 + geographyRng.nextInt(0, 78), 150, 340),
+        height: clamp(100 + geographyRng.nextInt(0, 84), 92, 236),
+        rotation: geographyRng.nextInt(-24, 24),
+        color: style.geographyColor,
+        opacity: clamp(0.2 + geographyRng.next() * 0.12, 0.18, 0.38),
+      };
+      zoneByRegionId.set(region.id, zone);
+      return zone;
+    });
+
+    const flows: WorldGeographyFlow[] = [];
+    mapLayout.paths.forEach((path, index) => {
+      const from = regionById.get(path.fromRegionId);
+      const to = regionById.get(path.toRegionId);
+      if (!from?.mapPosition || !to?.mapPosition) return;
+
+      const fromStyle = biomeStyleFor(from.biome);
+      const toStyle = biomeStyleFor(to.biome);
+      const center = midpoint(from.mapPosition, to.mapPosition);
+      const wobble = {
+        x: clamp(center.x + geographyRng.nextInt(-46, 46), 40, mapLayout.width - 40),
+        y: clamp(center.y + geographyRng.nextInt(-42, 42), 40, mapLayout.height - 40),
+      };
+
+      const waterish = new Set(["coast", "swamp", "forest", "desert"]);
+      const highlands = new Set(["highlands", "volcanic", "tundra"]);
+      const haunted = new Set(["ruins", "cursed", "void"]);
+      const terrainSet = new Set([fromStyle.terrain, toStyle.terrain]);
+
+      if (
+        [...terrainSet].some((terrain) => waterish.has(terrain)) &&
+        path.kind !== "secret"
+      ) {
+        flows.push({
+          id: `river-${path.id}`,
+          kind: "river",
+          points: [from.mapPosition, wobble, to.mapPosition],
+          width: 8 + Math.round(path.difficulty / 2),
+          color: "rgba(120, 196, 233, 0.8)",
+          opacity: 0.34,
+        });
+      }
+
+      if (
+        [...terrainSet].some((terrain) => highlands.has(terrain)) ||
+        path.kind === "hazard"
+      ) {
+        flows.push({
+          id: `ridge-${path.id}`,
+          kind: "ridge",
+          points: [
+            from.mapPosition,
+            {
+              x: wobble.x + geographyRng.nextInt(-22, 22),
+              y: wobble.y + geographyRng.nextInt(-16, 16),
+            },
+            to.mapPosition,
+          ],
+          width: 14 + Math.round(path.difficulty / 2),
+          color: "rgba(92, 88, 84, 0.72)",
+          opacity: 0.26,
+        });
+      }
+
+      if (
+        [...terrainSet].some((terrain) => haunted.has(terrain)) ||
+        path.visibility === "fogged" ||
+        path.kind === "secret"
+      ) {
+        flows.push({
+          id: `mist-${path.id}`,
+          kind: "mist",
+          points: [
+            from.mapPosition,
+            {
+              x: wobble.x + geographyRng.nextInt(-38, 38),
+              y: wobble.y + geographyRng.nextInt(-28, 28),
+            },
+            to.mapPosition,
+          ],
+          width: 26 + Math.round(path.difficulty / 2),
+          color: "rgba(232, 242, 255, 0.76)",
+          opacity: path.kind === "secret" ? 0.2 : 0.14,
+        });
+      }
+
+      const fromZone = zoneByRegionId.get(path.fromRegionId);
+      const toZone = zoneByRegionId.get(path.toRegionId);
+      if (fromZone && toZone && geographyRng.next() < 0.28) {
+        const sharedColor = fromStyle.geographyColor || toStyle.geographyColor;
+        flows.push({
+          id: `land-bridge-${index}`,
+          kind: "mist",
+          points: [
+            { x: fromZone.x, y: fromZone.y },
+            wobble,
+            { x: toZone.x, y: toZone.y },
+          ],
+          width: Math.round((fromZone.height + toZone.height) / 10),
+          color: sharedColor,
+          opacity: 0.08,
+        });
+      }
+    });
+
+    return {
+      palette: {
+        sea: "rgba(101, 177, 214, 0.42)",
+        fog: "rgba(231, 242, 255, 0.42)",
+        glow: "rgba(184, 225, 242, 0.22)",
+      },
+      zones,
+      flows,
+    };
+  }
+
   public async generateWorld(
     seed: number,
     customSelection?: WorldGenerationSelection,
@@ -556,6 +753,7 @@ export class WorldSystem {
       selection,
     );
     const mapLayout = this.buildMapLayout(seed, regions, hints);
+    const geography = this.buildGeographyLayer(seed, regions, mapLayout);
 
     const metadata: WorldMetadata = {
       worldName: defaultWorldNameFromPreset(inferWorldPresetFromSeed(seed), seed),
@@ -569,6 +767,7 @@ export class WorldSystem {
       metadata,
       regions,
       mapLayout,
+      geography,
     });
 
     this.worldInstance = new WorldInstance(

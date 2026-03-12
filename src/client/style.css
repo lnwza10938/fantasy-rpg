@@ -969,9 +969,9 @@ body.force-mobile .map-node {
   overflow: hidden;
   border: 1px solid rgba(79, 195, 247, 0.14);
   background:
-    radial-gradient(circle at 20% 18%, rgba(79, 195, 247, 0.16), transparent 26%),
-    radial-gradient(circle at 82% 74%, rgba(124, 77, 255, 0.16), transparent 28%),
-    linear-gradient(180deg, rgba(15, 23, 36, 0.98), rgba(9, 14, 24, 0.98));
+    radial-gradient(circle at 20% 18%, rgba(176, 223, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 82% 74%, rgba(104, 163, 123, 0.18), transparent 30%),
+    linear-gradient(180deg, rgba(111, 181, 218, 0.94) 0%, rgba(126, 190, 226, 0.92) 34%, rgba(119, 180, 154, 0.94) 68%, rgba(77, 123, 102, 0.96) 100%);
 }
 
 .map-topology-canvas::before {
@@ -979,10 +979,67 @@ body.force-mobile .map-node {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 84px 84px;
+    radial-gradient(circle at 50% 14%, rgba(255, 255, 255, 0.34), transparent 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 28%);
   pointer-events: none;
+}
+
+.map-geography-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+  filter: saturate(1.05);
+}
+
+.map-geography-zone {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1.6;
+  filter: blur(1px);
+}
+
+.map-geography-zone.forest {
+  stroke: rgba(58, 91, 53, 0.3);
+}
+
+.map-geography-zone.coast,
+.map-geography-zone.swamp {
+  stroke: rgba(146, 208, 238, 0.28);
+}
+
+.map-geography-zone.highlands,
+.map-geography-zone.volcanic,
+.map-geography-zone.tundra {
+  stroke: rgba(83, 90, 94, 0.28);
+}
+
+.map-geography-zone.cursed,
+.map-geography-zone.ruins,
+.map-geography-zone.void {
+  stroke: rgba(204, 214, 255, 0.2);
+}
+
+.map-geography-flow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.map-geography-flow.river {
+  filter: blur(0.5px);
+}
+
+.map-geography-flow.ridge {
+  stroke-dasharray: 10 14;
+}
+
+.map-geography-flow.mist {
+  filter: blur(10px);
 }
 
 .map-topology-lines {
@@ -992,6 +1049,7 @@ body.force-mobile .map-node {
   height: 100%;
   overflow: visible;
   pointer-events: none;
+  z-index: 1;
 }
 
 .map-route {

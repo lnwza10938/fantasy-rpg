@@ -127,6 +127,7 @@ Generated worlds now include:
 - biome icons and accent colors
 - deterministic node positions
 - route/path topology
+- first-pass geography render data behind the topology graph
 - start/goal regions
 - connection lists between regions
 
