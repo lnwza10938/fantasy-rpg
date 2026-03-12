@@ -1151,19 +1151,6 @@
             class="gp"
             style="display: flex; flex-direction: column; min-height: 0"
           >
-            <div class="map-panel-toolbar">
-              <div class="gp-tabs map-panel-tabs">
-                <button class="gp-tab active" id="tab-map" onclick="gpTab('map')">
-                  🗺️ Map
-                </button>
-              </div>
-              <div class="map-panel-actions">
-                <div id="map-region-chip" class="map-region-chip">
-                  No region selected
-                </div>
-              </div>
-            </div>
-
             <div
               class="gp-sub active"
               id="sub-map"
@@ -1184,35 +1171,50 @@
                   </div>
                 </div>
                 <div id="map-world-selector" class="map-world-selector"></div>
-              </div>
-
-              <div class="map-region-header">
-                <div class="map-section-kicker">World Map</div>
-                <div id="map-region-heading" class="map-region-heading">
-                  Choose your next route
                 </div>
-                <div id="map-region-copy" class="map-region-copy">
-                  Follow connected routes from your current node. Travel and the
-                  next event resolve right here on the map.
+
+              <div class="map-world-board">
+                <div class="map-world-board-main">
+                  <div class="map-section-kicker">World Map</div>
+                  <div class="map-world-board-top">
+                    <div>
+                      <div id="map-world-name" class="map-world-name">
+                        Uncharted Realm
+                      </div>
+                      <div id="map-world-meta" class="map-world-meta">
+                        No world loaded yet
+                      </div>
+                    </div>
+                    <div id="map-region-chip" class="map-region-chip">
+                      No region selected
+                    </div>
+                  </div>
+                  <div id="map-region-heading" class="map-region-heading">
+                    Choose your next route
+                  </div>
+                  <div id="map-region-copy" class="map-region-copy">
+                    Follow connected routes from your current node. Travel and the
+                    next event resolve right here on the map.
+                  </div>
                 </div>
-              </div>
 
-              <div id="region-list" class="region-grid map-region-grid"></div>
-
-              <div class="map-event-stage">
-                <div class="map-event-card">
+                <div class="map-world-board-event">
                   <div class="map-section-kicker">Current Event</div>
-                  <div id="explore-title" class="map-event-title">
+                  <div id="explore-title" class="map-world-event-title">
                     🧭 Select a region first
                   </div>
-                  <div id="map-event-copy" class="map-event-copy">
+                  <div id="map-event-copy" class="map-world-event-copy">
                     Events, discoveries, and monster encounters appear here.
                   </div>
                 </div>
+              </div>
+
+              <div class="map-scene-shell">
+                <div id="region-list" class="region-grid map-region-grid"></div>
 
                 <div
                   id="map-combat-stage"
-                  class="map-combat-stage"
+                  class="map-combat-stage map-scene-overlay"
                   style="display: none"
                 >
                   <h3
@@ -1303,27 +1305,127 @@
 
           <!-- ═══ CENTER BOTTOM: Command Deck ═══ -->
           <div id="gp-center-bot" class="gp command-deck-panel">
-            <div class="command-deck-header">
-              <div>
-                <div class="map-section-kicker">Command Deck</div>
-                <div id="command-deck-title" class="command-deck-title">
-                  Choose your next move
+            <div class="command-deck-shell">
+              <div class="command-deck-main">
+                <div class="command-deck-header">
+                  <div>
+                    <div class="map-section-kicker">Command Deck</div>
+                    <div id="command-deck-title" class="command-deck-title">
+                      Choose your next move
+                    </div>
+                    <div id="command-deck-copy" class="command-deck-copy">
+                      Select a reachable region to unlock travel, exploration, and
+                      combat commands here.
+                    </div>
+                  </div>
+                  <div id="command-deck-state" class="command-deck-state">Idle</div>
                 </div>
-                <div id="command-deck-copy" class="command-deck-copy">
-                  Select a reachable region to unlock travel, exploration, and combat commands here.
+
+                <div id="combat-result" class="battle-dialogue command-deck-dialogue">
+                  Select a reachable region to begin exploring, or focus the current
+                  node to act in place.
                 </div>
+
+                <div
+                  id="combat-actions"
+                  class="battle-actions-grid command-actions-grid"
+                ></div>
               </div>
-              <div id="command-deck-state" class="command-deck-state">Idle</div>
-            </div>
 
-            <div id="combat-result" class="battle-dialogue command-deck-dialogue">
-              Select a reachable region to begin exploring, or focus the current node to act in place.
+              <aside class="map-camera-panel">
+                <div class="map-section-kicker">Map Controls</div>
+                <div class="map-camera-title">View Controls</div>
+                <div class="map-camera-copy">
+                  Move around the map and zoom in or out without leaving the
+                  adventure screen.
+                </div>
+                <div class="map-camera-dpad">
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-spacer"
+                    aria-hidden="true"
+                    tabindex="-1"
+                  ></button>
+                  <button
+                    type="button"
+                    class="map-camera-btn"
+                    data-map-control
+                    onclick="panMap('up')"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-spacer"
+                    aria-hidden="true"
+                    tabindex="-1"
+                  ></button>
+                  <button
+                    type="button"
+                    class="map-camera-btn"
+                    data-map-control
+                    onclick="panMap('left')"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    class="map-camera-btn"
+                    data-map-control
+                    onclick="resetMapCamera()"
+                  >
+                    •
+                  </button>
+                  <button
+                    type="button"
+                    class="map-camera-btn"
+                    data-map-control
+                    onclick="panMap('right')"
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-spacer"
+                    aria-hidden="true"
+                    tabindex="-1"
+                  ></button>
+                  <button
+                    type="button"
+                    class="map-camera-btn"
+                    data-map-control
+                    onclick="panMap('down')"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-spacer"
+                    aria-hidden="true"
+                    tabindex="-1"
+                  ></button>
+                </div>
+                <div class="map-camera-zoom-row">
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-zoom-btn"
+                    data-map-control
+                    onclick="zoomMap(-0.12)"
+                  >
+                    －
+                  </button>
+                  <div id="map-camera-status" class="map-camera-status">100%</div>
+                  <button
+                    type="button"
+                    class="map-camera-btn map-camera-zoom-btn"
+                    data-map-control
+                    onclick="zoomMap(0.12)"
+                  >
+                    ＋
+                  </button>
+                </div>
+              </aside>
             </div>
-
-            <div
-              id="combat-actions"
-              class="battle-actions-grid command-actions-grid"
-            ></div>
           </div>
 
           <!-- ═══ RIGHT: Equipment + Inventory ═══ -->

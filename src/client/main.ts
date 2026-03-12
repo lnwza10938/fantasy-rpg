@@ -35,12 +35,14 @@ let G: any = {
   recentJourneys: [] as any[],
   allContent: { biomes: [], monsters: [], factions: [], maps: [] },
   customSelection: { biomes: [] as string[], monsters: [] as string[] },
+  mapCamera: { x: 0, y: 0, scale: 1 },
 };
 
 const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
 const PENDING_LOAD_KEY = "rpg_pending_load";
+const DEFAULT_MAP_CAMERA = Object.freeze({ x: 0, y: 0, scale: 1 });
 const NORMALIZED_PATH =
   window.location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/";
 const APP_PAGE =
@@ -1003,6 +1005,75 @@ function getActiveWorldDefinition() {
   return normalizeWorldDefinition(null, G.regions);
 }
 
+function getMapCamera() {
+  if (!G.mapCamera || typeof G.mapCamera !== "object") {
+    G.mapCamera = { ...DEFAULT_MAP_CAMERA };
+  }
+  return G.mapCamera;
+}
+
+function clampMapCamera(camera = getMapCamera()) {
+  camera.scale = Math.max(0.8, Math.min(2.1, Number(camera.scale) || 1));
+  if (camera.scale <= 1.01) {
+    camera.x = 0;
+    camera.y = 0;
+    return camera;
+  }
+  const travelRange = Math.round((camera.scale - 1) * 420);
+  camera.x = Math.max(-travelRange, Math.min(travelRange, Number(camera.x) || 0));
+  camera.y = Math.max(-travelRange, Math.min(travelRange, Number(camera.y) || 0));
+  return camera;
+}
+
+function applyMapCamera() {
+  const camera = clampMapCamera();
+  const canvas = document.querySelector(
+    "#region-list .map-topology-canvas",
+  ) as HTMLElement | null;
+  const controlButtons = document.querySelectorAll(
+    "[data-map-control]",
+  ) as NodeListOf<HTMLButtonElement>;
+  const statusEl = document.getElementById("map-camera-status");
+  const hasTopologyMap = !!canvas;
+
+  controlButtons.forEach((button) => {
+    button.disabled = !hasTopologyMap;
+  });
+
+  if (canvas) {
+    canvas.style.setProperty("--map-camera-x", `${camera.x}px`);
+    canvas.style.setProperty("--map-camera-y", `${camera.y}px`);
+    canvas.style.setProperty("--map-camera-scale", `${camera.scale}`);
+  }
+
+  if (statusEl) {
+    statusEl.textContent = hasTopologyMap
+      ? `${Math.round(camera.scale * 100)}%`
+      : "No map";
+  }
+}
+
+function resetMapCameraState() {
+  G.mapCamera = { ...DEFAULT_MAP_CAMERA };
+  applyMapCamera();
+}
+
+function panMap(direction: "up" | "down" | "left" | "right") {
+  const camera = getMapCamera();
+  const step = Math.round(84 / Math.max(camera.scale, 0.8));
+  if (direction === "up") camera.y += step;
+  if (direction === "down") camera.y -= step;
+  if (direction === "left") camera.x += step;
+  if (direction === "right") camera.x -= step;
+  applyMapCamera();
+}
+
+function zoomMap(delta: number) {
+  const camera = getMapCamera();
+  camera.scale = (Number(camera.scale) || 1) + delta;
+  applyMapCamera();
+}
+
 function getTraversalState() {
   const definition = getActiveWorldDefinition();
   const baseState = {
@@ -1143,6 +1214,7 @@ function renderAdventureLandingState() {
   G.regions = normalizeRegions([]);
   G.selectedRegion = null;
   G.selectedRegionIndex = 0;
+  resetMapCameraState();
   toggleMapCombatStage(false);
   clearAdventureLog();
   setMapEventState(
@@ -1539,6 +1611,46 @@ function toggleMapCombatStage(visible: boolean) {
   if (stage) stage.style.display = visible ? "block" : "none";
 }
 
+function syncMapWorldBoard() {
+  const worldNameEl = document.getElementById("map-world-name");
+  const worldMetaEl = document.getElementById("map-world-meta");
+  if (!worldNameEl || !worldMetaEl) return;
+
+  const definition = getActiveWorldDefinition();
+  const layout = getActiveMapLayout();
+  const metadata = definition?.metadata || {};
+  const activeWorldRecord = (G.createdWorlds || []).find(
+    (entry: any) => entry.characterId === G.characterId,
+  );
+  const traversal = getTraversalState();
+  const currentRegion = getCurrentRegion();
+  const nodeCount = Array.isArray(layout?.nodes)
+    ? layout.nodes.length
+    : normalizeRegions(G.regions).length;
+  const routeCount = Array.isArray(layout?.paths) ? layout.paths.length : 0;
+  const seedValue =
+    G.worldSeed || definition?.seed || activeWorldRecord?.worldSeed || "—";
+  const worldName =
+    metadata.worldName ||
+    activeWorldRecord?.worldName ||
+    "Uncharted Realm";
+  const worldPreset =
+    metadata.worldPreset || activeWorldRecord?.worldPreset || "custom";
+  const clearedCount = Array.isArray(traversal.clearedRegionIds)
+    ? traversal.clearedRegionIds.length
+    : 0;
+
+  worldNameEl.textContent = worldName;
+  worldMetaEl.textContent = [
+    worldPresetLabel(worldPreset),
+    `${nodeCount} nodes`,
+    `${routeCount} routes`,
+    `Cleared ${clearedCount}`,
+    currentRegion ? `Current ${currentRegion.name}` : "No active node",
+    `Seed ${seedValue}`,
+  ].join(" • ");
+}
+
 function syncMapSelectionState() {
   const headingEl = document.getElementById("map-region-heading");
   const copyEl = document.getElementById("map-region-copy");
@@ -1549,6 +1661,8 @@ function syncMapSelectionState() {
   const isSelectedCurrent =
     !!G.selectedRegion && !!currentRegionId && G.selectedRegion.id === currentRegionId;
   const isSelectedReachable = !!selectedPathContext?.evaluation?.traversable;
+
+  syncMapWorldBoard();
 
   if (!G.selectedRegion) {
     if (headingEl)
@@ -1564,6 +1678,7 @@ function syncMapSelectionState() {
         : "No region selected";
     }
     renderAdventureCommandDeck();
+    applyMapCamera();
     return;
   }
 
@@ -1602,6 +1717,7 @@ function syncMapSelectionState() {
         : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
   renderAdventureCommandDeck();
+  applyMapCamera();
 }
 
 function focusCurrentRegionSelection() {
@@ -2462,6 +2578,7 @@ async function initializeMapPage(forceReload = false) {
   if (APP_PAGE !== "map") return;
 
   showScreen("world");
+  resetMapCameraState();
   clearAdventureLog();
   setMapEventState(
     "🗺️ Loading world map progress",
@@ -3499,6 +3616,7 @@ async function loadGame(cid: string, charName?: string) {
   G.selectedRegion = null;
   G.selectedRegionIndex = 0;
   G.worldDefinition = null;
+  resetMapCameraState();
   G.gs = G.gs || {
     characterName: charName || "Hero",
     level: 1,
@@ -3639,7 +3757,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
   );
   if (renderedRegions.length === 0) return false;
 
-  listEl.className = "map-topology-board";
+  listEl.className = "map-region-grid map-region-map-shell";
 
   const routeMarkup = (layout.paths || [])
     .map((path: any) => {
@@ -3738,17 +3856,22 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
     .join("");
 
   listEl.innerHTML = `
-    <div class="map-topology-canvas">
-      <svg
-        class="map-topology-lines"
-        viewBox="0 0 ${layout.width || 1040} ${layout.height || 560}"
-        preserveAspectRatio="none"
-      >
-        ${routeMarkup}
-      </svg>
-      ${nodeMarkup}
+    <div class="map-topology-board">
+      <div class="map-topology-viewport">
+        <div class="map-topology-canvas">
+          <svg
+            class="map-topology-lines"
+            viewBox="0 0 ${layout.width || 1040} ${layout.height || 560}"
+            preserveAspectRatio="none"
+          >
+            ${routeMarkup}
+          </svg>
+          ${nodeMarkup}
+        </div>
+      </div>
     </div>
   `;
+  applyMapCamera();
   return true;
 }
 
@@ -3761,7 +3884,7 @@ function renderRegions() {
   syncSelectedRegionFromSession();
 
   if (regions.length === 0) {
-    listEl.className = "region-grid map-region-grid";
+    listEl.className = "region-grid map-region-grid map-region-map-shell";
     listEl.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:26px 18px;color:var(--muted)">
         <div style="font-size:34px;margin-bottom:10px">🗺️</div>
@@ -3795,6 +3918,7 @@ function renderRegions() {
     listEl.appendChild(card);
   });
   syncMapSelectionState();
+  applyMapCamera();
 }
 
 function selectRegion(i: number) {
@@ -4443,3 +4567,6 @@ async function executeCombatTurn() {
 }
 
 (window as any).selectRegion = selectRegion;
+(window as any).panMap = panMap;
+(window as any).zoomMap = zoomMap;
+(window as any).resetMapCamera = resetMapCameraState;
