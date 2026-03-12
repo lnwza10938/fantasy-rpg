@@ -20,197 +20,57 @@
     <div id="google_translate_element" style="display: none"></div>
 
     <!-- Custom Translate Button -->
-    <button id="translate-btn" onclick="toggleTranslatePanel()">
-      🌐 Translate ▾
-    </button>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
     <div id="translate-panel">
       <h4>🌍 Choose Language</h4>
       <div class="lang-list">
-        <button class="lang-btn active" data-lang="" onclick="translateTo('')">
+        <button class="lang-btn active" data-lang="" type="button">
           🇺🇸 English
         </button>
-        <button class="lang-btn" data-lang="th" onclick="translateTo('th')">
+        <button class="lang-btn" data-lang="th" type="button">
           🇹🇭 ไทย
         </button>
-        <button class="lang-btn" data-lang="ja" onclick="translateTo('ja')">
+        <button class="lang-btn" data-lang="ja" type="button">
           🇯🇵 日本語
         </button>
-        <button
-          class="lang-btn"
-          data-lang="zh-CN"
-          onclick="translateTo('zh-CN')"
-        >
+        <button class="lang-btn" data-lang="zh-CN" type="button">
           🇨🇳 中文
         </button>
-        <button class="lang-btn" data-lang="ko" onclick="translateTo('ko')">
+        <button class="lang-btn" data-lang="ko" type="button">
           🇰🇷 한국어
         </button>
-        <button class="lang-btn" data-lang="fr" onclick="translateTo('fr')">
+        <button class="lang-btn" data-lang="fr" type="button">
           🇫🇷 Français
         </button>
-        <button class="lang-btn" data-lang="es" onclick="translateTo('es')">
+        <button class="lang-btn" data-lang="es" type="button">
           🇪🇸 Español
         </button>
-        <button class="lang-btn" data-lang="de" onclick="translateTo('de')">
+        <button class="lang-btn" data-lang="de" type="button">
           🇩🇪 Deutsch
         </button>
-        <button class="lang-btn" data-lang="ru" onclick="translateTo('ru')">
+        <button class="lang-btn" data-lang="ru" type="button">
           🇷🇺 Русский
         </button>
-        <button class="lang-btn" data-lang="ar" onclick="translateTo('ar')">
+        <button class="lang-btn" data-lang="ar" type="button">
           🇸🇦 العربية
         </button>
       </div>
       <div class="auto-toggle">
         <span style="color: var(--muted)">Auto-translate on load</span>
         <label class="toggle-switch">
-          <input
-            type="checkbox"
-            id="auto-translate-toggle"
-            onchange="toggleAutoTranslate(this.checked)"
-          />
+          <input type="checkbox" id="auto-translate-toggle" />
           <span class="toggle-track"></span>
         </label>
       </div>
       <div class="auto-toggle" style="border-top: none; margin-top: 0">
         <span style="color: var(--accent)">Mobile Layout (Force)</span>
         <label class="toggle-switch">
-          <input
-            type="checkbox"
-            id="ui-mode-toggle"
-            onchange="toggleUIMode(this.checked)"
-          />
+          <input type="checkbox" id="ui-mode-toggle" />
           <span class="toggle-track"></span>
         </label>
       </div>
     </div>
-
-    <!-- Google Translate Script -->
-    <script>
-      // Translate panel toggle
-      function toggleTranslatePanel() {
-        document.getElementById("translate-panel").classList.toggle("open");
-      }
-      // Close panel when clicking outside
-      document.addEventListener("click", function (e) {
-        const btn = document.getElementById("translate-btn");
-        const panel = document.getElementById("translate-panel");
-        if (!btn.contains(e.target) && !panel.contains(e.target)) {
-          panel.classList.remove("open");
-        }
-      });
-
-      // Active language state
-      let currentLang = localStorage.getItem("rpg_lang") || "";
-      let autoTranslate = localStorage.getItem("rpg_auto_translate") === "true";
-
-      function updateLanguageButtons() {
-        document.querySelectorAll(".lang-btn").forEach((b) => {
-          b.classList.toggle("active", b.dataset.lang === currentLang);
-        });
-      }
-
-      function setTranslateCookie(lang) {
-        const val = lang ? "/auto/" + lang : "";
-        const expire = lang ? "" : "expires=Thu, 01 Jan 1970 00:00:00 UTC; ";
-        const domain = location.hostname;
-
-        if (domain && domain !== "localhost") {
-          document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
-        }
-        document.cookie = `googtrans=${val}; ${expire}path=/`;
-      }
-
-      function withTranslateCombo(callback, attempts = 24) {
-        const select = document.querySelector(".goog-te-combo");
-        if (select) {
-          callback(select);
-          return;
-        }
-        if (attempts <= 0) return;
-        window.setTimeout(() => withTranslateCombo(callback, attempts - 1), 250);
-      }
-
-      function applyStoredTranslation(force = false) {
-        if (!currentLang) return;
-        if (!force && !autoTranslate) return;
-
-        withTranslateCombo((select) => {
-          if (select.value !== currentLang) {
-            select.value = currentLang;
-            select.dispatchEvent(new Event("change"));
-          }
-        });
-      }
-
-      function translateTo(lang) {
-        currentLang = lang;
-        if (lang) {
-          localStorage.setItem("rpg_lang", lang);
-        } else {
-          localStorage.removeItem("rpg_lang");
-        }
-
-        updateLanguageButtons();
-        setTranslateCookie(lang);
-        document.getElementById("translate-panel").classList.remove("open");
-
-        if (!lang) {
-          location.reload();
-          return;
-        }
-
-        withTranslateCombo((select) => {
-          if (select.value !== lang) {
-            select.value = lang;
-            select.dispatchEvent(new Event("change"));
-          }
-        });
-      }
-
-      function toggleAutoTranslate(enabled) {
-        autoTranslate = enabled;
-        localStorage.setItem("rpg_auto_translate", enabled ? "true" : "false");
-        if (enabled) {
-          applyStoredTranslation(true);
-        }
-      }
-
-      function toggleUIMode(isMobile) {
-        if (isMobile) {
-          document.body.classList.add("force-mobile");
-        } else {
-          document.body.classList.remove("force-mobile");
-        }
-        localStorage.setItem("rpg_ui_mobile", isMobile ? "true" : "false");
-      }
-
-      // Google Translate init callback
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement(
-          {
-            pageLanguage: "en",
-            autoDisplay: false,
-          },
-          "google_translate_element",
-        );
-      }
-
-      // Restore auto-translate state on load
-      window.addEventListener("DOMContentLoaded", function () {
-        const toggle = document.getElementById("auto-translate-toggle");
-        if (toggle) toggle.checked = autoTranslate;
-
-        const uiToggle = document.getElementById("ui-mode-toggle");
-        const forceMobile = localStorage.getItem("rpg_ui_mobile") === "true";
-        if (uiToggle) uiToggle.checked = forceMobile;
-        if (forceMobile) document.body.classList.add("force-mobile");
-
-        updateLanguageButtons();
-        window.setTimeout(() => applyStoredTranslation(), 400);
-      });
-    </script>
-    <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script type="module" src="/src/client/translateWidget.ts"></script>
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
         <h1>⚔ Procedural Fantasy RPG</h1>

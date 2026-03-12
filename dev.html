@@ -12,6 +12,51 @@
   </head>
   <body class="dev-panel-page">
     <a href="/hub" class="dev-launch-btn dev-launch-btn-inline">← Hub</a>
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">
+          🇺🇸 English
+        </button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">
+          🇨🇳 中文
+        </button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+        <button class="lang-btn" data-lang="fr" type="button">
+          🇫🇷 Français
+        </button>
+        <button class="lang-btn" data-lang="es" type="button">
+          🇪🇸 Español
+        </button>
+        <button class="lang-btn" data-lang="de" type="button">
+          🇩🇪 Deutsch
+        </button>
+        <button class="lang-btn" data-lang="ru" type="button">
+          🇷🇺 Русский
+        </button>
+        <button class="lang-btn" data-lang="ar" type="button">
+          🇸🇦 العربية
+        </button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="auto-toggle" style="border-top: none; margin-top: 0">
+        <span style="color: var(--accent)">Mobile Layout (Force)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ui-mode-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
 
     <div class="dev-panel-shell">
       <header class="dev-panel-hero">
@@ -168,6 +213,7 @@
       </div>
     </div>
 
+    <script type="module" src="/src/client/translateWidget.ts"></script>
     <script type="module" src="/src/client/dev.ts"></script>
   </body>
 </html>
