@@ -100,38 +100,76 @@
       let currentLang = localStorage.getItem("rpg_lang") || "";
       let autoTranslate = localStorage.getItem("rpg_auto_translate") === "true";
 
-      function translateTo(lang) {
-        currentLang = lang;
-        localStorage.setItem("rpg_lang", lang);
-
-        // Update UI
+      function updateLanguageButtons() {
         document.querySelectorAll(".lang-btn").forEach((b) => {
-          b.classList.toggle("active", b.dataset.lang === lang);
+          b.classList.toggle("active", b.dataset.lang === currentLang);
         });
+      }
 
-        // Set cookies for persistence
-        const domain =
-          location.hostname === "localhost" ? "localhost" : location.hostname;
+      function setTranslateCookie(lang) {
         const val = lang ? "/auto/" + lang : "";
         const expire = lang ? "" : "expires=Thu, 01 Jan 1970 00:00:00 UTC; ";
+        const domain = location.hostname;
 
-        document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
+        if (domain && domain !== "localhost") {
+          document.cookie = `googtrans=${val}; ${expire}path=/; domain=${domain}`;
+        }
         document.cookie = `googtrans=${val}; ${expire}path=/`;
+      }
 
-        // Trigger translation without reload
+      function withTranslateCombo(callback, attempts = 24) {
         const select = document.querySelector(".goog-te-combo");
         if (select) {
-          select.value = lang;
-          select.dispatchEvent(new Event("change"));
-        } else {
-          // Fallback for first time or if widget not ready
-          location.reload();
+          callback(select);
+          return;
         }
+        if (attempts <= 0) return;
+        window.setTimeout(() => withTranslateCombo(callback, attempts - 1), 250);
+      }
+
+      function applyStoredTranslation(force = false) {
+        if (!currentLang) return;
+        if (!force && !autoTranslate) return;
+
+        withTranslateCombo((select) => {
+          if (select.value !== currentLang) {
+            select.value = currentLang;
+            select.dispatchEvent(new Event("change"));
+          }
+        });
+      }
+
+      function translateTo(lang) {
+        currentLang = lang;
+        if (lang) {
+          localStorage.setItem("rpg_lang", lang);
+        } else {
+          localStorage.removeItem("rpg_lang");
+        }
+
+        updateLanguageButtons();
+        setTranslateCookie(lang);
+        document.getElementById("translate-panel").classList.remove("open");
+
+        if (!lang) {
+          location.reload();
+          return;
+        }
+
+        withTranslateCombo((select) => {
+          if (select.value !== lang) {
+            select.value = lang;
+            select.dispatchEvent(new Event("change"));
+          }
+        });
       }
 
       function toggleAutoTranslate(enabled) {
         autoTranslate = enabled;
         localStorage.setItem("rpg_auto_translate", enabled ? "true" : "false");
+        if (enabled) {
+          applyStoredTranslation(true);
+        }
       }
 
       function toggleUIMode(isMobile) {
@@ -143,18 +181,8 @@
         localStorage.setItem("rpg_ui_mobile", isMobile ? "true" : "false");
       }
 
-      // Google Translate init callback — skip if reset was requested
+      // Google Translate init callback
       function googleTranslateElementInit() {
-        if (location.search.includes("notranslate=1")) {
-          // Clean URL silently
-          history.replaceState(null, "", location.pathname);
-          // Hide any leftover Google Translate bars
-          const style = document.createElement("style");
-          style.textContent =
-            ".goog-te-banner-frame,.skiptranslate{display:none!important;}body{top:0!important;}";
-          document.head.appendChild(style);
-          return; // Skip Google Translate entirely
-        }
         new google.translate.TranslateElement(
           {
             pageLanguage: "en",
@@ -174,12 +202,8 @@
         if (uiToggle) uiToggle.checked = forceMobile;
         if (forceMobile) document.body.classList.add("force-mobile");
 
-        // Highlight active lang button
-        if (currentLang) {
-          document.querySelectorAll(".lang-btn").forEach((b) => {
-            b.classList.toggle("active", b.dataset.lang === currentLang);
-          });
-        }
+        updateLanguageButtons();
+        window.setTimeout(() => applyStoredTranslation(), 400);
       });
     </script>
     <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
