@@ -1504,16 +1504,26 @@ input:focus {
     drop-shadow(0 0 24px rgba(160, 108, 255, 0.12));
 }
 
+.star-container #skill-code-forge {
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.forging .star-container #skill-code-forge {
+  animation: rotateStar 14s linear infinite;
+}
+
 .forging .star-container svg {
-  animation:
-    rotateStar 5s linear infinite,
-    pulseGlow 2s ease-in-out infinite;
+  animation: pulseGlow 2s ease-in-out infinite;
 }
 
 .forge-sigil-svg {
+  display: block;
   width: 100%;
   height: 100%;
   overflow: visible;
+  transform-box: view-box;
+  transform-origin: center center;
 }
 
 .sigil-outline {
