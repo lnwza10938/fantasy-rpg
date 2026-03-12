@@ -1316,6 +1316,7 @@ function onLoginSuccess() {
 
   if (authScreen) authScreen.style.display = "none";
   if (gameContainer) gameContainer.style.display = "block";
+  document.documentElement.classList.remove("app-booting");
   if (userDisplay && G.user)
     userDisplay.textContent = G.user.isGuest
       ? "Playing as Guest"
@@ -1344,8 +1345,16 @@ async function logout() {
   window.location.href = pageHref("menu");
 }
 
-// Initialize state check
-window.addEventListener("load", async () => {
+function enterLoggedOutState() {
+  const authScreen = document.getElementById("screen-auth");
+  const gameContainer = document.getElementById("game-container");
+  if (authScreen) authScreen.style.display = "block";
+  if (gameContainer) gameContainer.style.display = "none";
+  document.documentElement.classList.remove("app-booting");
+  syncPageChrome();
+}
+
+async function bootstrapAuthState() {
   const storedLegend = sessionStorage.getItem("rpg_selected_legend");
   if (storedLegend) {
     try {
@@ -1385,14 +1394,26 @@ window.addEventListener("load", async () => {
     G.user = data.session.user;
     onLoginSuccess();
   } else {
-    // Not logged in: ensure auth screen is visible
-    const authScreen = document.getElementById("screen-auth");
-    const gameContainer = document.getElementById("game-container");
-    if (authScreen) authScreen.style.display = "block";
-    if (gameContainer) gameContainer.style.display = "none";
-    syncPageChrome();
+    enterLoggedOutState();
   }
-});
+}
+
+async function initializeAuthState() {
+  try {
+    await bootstrapAuthState();
+  } catch (error) {
+    console.error("Failed to bootstrap auth state", error);
+    enterLoggedOutState();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    void initializeAuthState();
+  });
+} else {
+  void initializeAuthState();
+}
 
 // --- SCREEN ---
 function showScreen(name: string) {

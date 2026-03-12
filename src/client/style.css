@@ -508,6 +508,13 @@ body::after {
   display: block;
 }
 
+html.app-booting #screen-auth,
+html.app-booting #game-container,
+html.app-booting #translate-btn,
+html.app-booting #translate-panel {
+  display: none !important;
+}
+
 /* ======= 4-PANEL GAME LAYOUT ======= */
 #game-ui-screen {
   display: none;
