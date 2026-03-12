@@ -58,6 +58,7 @@ const APP_PAGE =
           ? "adventure"
           : document.documentElement.dataset.appPage || "menu";
 const IS_GAMEPLAY_PAGE = APP_PAGE === "adventure" || APP_PAGE === "map";
+const IS_PRIVATE_APP_PAGE = ["hub", "vault", "forge", "adventure", "map"].includes(APP_PAGE);
 document.documentElement.dataset.appPage = APP_PAGE;
 const PRESET_WORLD_BIOMES: Record<string, string[]> = {
   balanced: ["forest", "coast", "mountain", "desert"],
@@ -1580,6 +1581,10 @@ async function logout() {
 }
 
 function enterLoggedOutState() {
+  if (IS_PRIVATE_APP_PAGE) {
+    window.location.replace(pageHref("menu"));
+    return;
+  }
   const authScreen = document.getElementById("screen-auth");
   const gameContainer = document.getElementById("game-container");
   if (authScreen) authScreen.style.display = "block";

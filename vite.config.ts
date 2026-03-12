@@ -24,6 +24,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        hub: resolve(__dirname, "hub.html"),
         vault: resolve(__dirname, "vault.html"),
         forge: resolve(__dirname, "forge.html"),
         adventure: resolve(__dirname, "adventure.html"),

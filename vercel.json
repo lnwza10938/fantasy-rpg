@@ -48,7 +48,7 @@
     },
     {
       "source": "/hub",
-      "destination": "/index.html"
+      "destination": "/hub.html"
     },
     {
       "source": "/forge",
