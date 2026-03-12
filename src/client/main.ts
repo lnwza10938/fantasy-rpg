@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 import { createClient } from "@supabase/supabase-js";
 import {
+  evaluatePathTraversal,
+  formatTraversalBlockedReason,
+  formatTraversalRequirement,
+  getPathBetweenRegions,
   getReachableRegionIds,
   getRegionIndexById,
   getVisiblePathIds,
@@ -948,6 +952,9 @@ function buildFallbackMapLayout(regions: any[]) {
     fromRegionId: node.regionId,
     toRegionId: nodes[index + 1].regionId,
     kind: "road",
+    difficulty: 1,
+    visibility: "visible",
+    requirements: [],
   }));
 
   return {
@@ -994,6 +1001,12 @@ function getTraversalState() {
     lockedRegionIds: Array.isArray(G.gs?.lockedRegionIds)
       ? G.gs.lockedRegionIds
       : [],
+    revealedPathIds: Array.isArray(G.gs?.revealedPathIds)
+      ? G.gs.revealedPathIds
+      : [],
+    traversedPathIds: Array.isArray(G.gs?.traversedPathIds)
+      ? G.gs.traversedPathIds
+      : [],
   };
   return definition
     ? hydrateTraversalRuntimeState(definition, baseState, baseState.currentRegionId)
@@ -1013,6 +1026,31 @@ function getReachableRegionIdsForUI() {
   const definition = getActiveWorldDefinition();
   if (!definition || !G.gs) return [];
   return getReachableRegionIds(definition, getTraversalState(), G.gs.level || 1);
+}
+
+function getSelectedPathContext() {
+  const definition = getActiveWorldDefinition();
+  const selectedRegion = G.selectedRegion;
+  const currentRegionId = getCurrentRegionId();
+  if (!definition || !selectedRegion || !currentRegionId) return null;
+  if (selectedRegion.id === currentRegionId) return null;
+  const path = getPathBetweenRegions(definition, currentRegionId, selectedRegion.id);
+  if (!path) return null;
+  return {
+    path,
+    evaluation: evaluatePathTraversal(
+      definition,
+      getTraversalState(),
+      path,
+      G.gs?.level || 1,
+    ),
+  };
+}
+
+function pathKindLabel(kind: string) {
+  if (kind === "hazard") return "Hazard Route";
+  if (kind === "secret") return "Secret Route";
+  return "Road";
 }
 
 function syncSelectedRegionFromSession(preferCurrent = false) {
@@ -1449,11 +1487,10 @@ function syncMapSelectionState() {
   ) as HTMLButtonElement | null;
   const currentRegion = getCurrentRegion();
   const currentRegionId = currentRegion?.id || getCurrentRegionId();
-  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
+  const selectedPathContext = getSelectedPathContext();
   const isSelectedCurrent =
     !!G.selectedRegion && !!currentRegionId && G.selectedRegion.id === currentRegionId;
-  const isSelectedReachable =
-    !!G.selectedRegion && reachableRegionIds.has(G.selectedRegion.id);
+  const isSelectedReachable = !!selectedPathContext?.evaluation?.traversable;
 
   if (!G.selectedRegion) {
     if (headingEl)
@@ -1486,17 +1523,32 @@ function syncMapSelectionState() {
     : 0;
   if (headingEl) headingEl.textContent = G.selectedRegion.name;
   if (copyEl) {
+    const routeSummary = selectedPathContext
+      ? `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty} • ${selectedPathContext.path.visibility === "fogged" ? "Fogged" : selectedPathContext.path.visibility === "hidden" ? "Hidden" : "Visible"}`
+      : "Current node";
+    const requirementSummary =
+      selectedPathContext?.path.requirements?.length
+        ? `Requirements: ${selectedPathContext.path.requirements
+            .map((entry: string) => formatTraversalRequirement(entry))
+            .join(" • ")}.`
+        : "";
     const routeState = isSelectedCurrent
       ? "You are already here. Explore this node to trigger the next event."
       : isSelectedReachable
-        ? "This route is reachable from your current node. Traveling there will immediately continue the adventure."
-        : "This node is not reachable yet. Advance through connected routes first.";
-    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. ${routeState}`;
+        ? "This route is reachable from your current node. Traveling there will trigger a travel step before the regional event resolves."
+        : selectedPathContext
+          ? formatTraversalBlockedReason(
+              selectedPathContext.evaluation.blockedReason,
+            )
+          : "This node is not directly connected to your current position.";
+    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
   }
   if (chipEl) {
     chipEl.textContent = isSelectedCurrent
       ? `Current Node • ${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel}`
-      : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
+      : selectedPathContext
+        ? `${G.selectedRegion.name} • ${pathKindLabel(selectedPathContext.path.kind)} • Danger ${G.selectedRegion.dangerLevel}`
+        : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
   if (exploreBtn) {
     exploreBtn.disabled =
@@ -1506,8 +1558,14 @@ function syncMapSelectionState() {
       : isSelectedCurrent
         ? "🧭 Explore Current Region"
         : isSelectedReachable
-          ? "🧭 Travel and Explore"
-          : "🚫 Route Not Reachable";
+          ? selectedPathContext?.path.kind === "hazard"
+            ? "🧭 Brave the Hazard Route"
+            : selectedPathContext?.path.kind === "secret"
+              ? "🧭 Take the Secret Route"
+              : "🧭 Travel and Explore"
+          : selectedPathContext
+            ? "🚫 Route Blocked"
+            : "🚫 No Direct Route";
   }
 }
 
@@ -3200,6 +3258,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
   const visitedRegionIds = new Set(traversal.visitedRegionIds || []);
   const clearedRegionIds = new Set(traversal.clearedRegionIds || []);
   const lockedRegionIds = new Set(traversal.lockedRegionIds || []);
+  const traversedPathIds = new Set(traversal.traversedPathIds || []);
   const visiblePathIds = new Set(
     definition ? getVisiblePathIds(definition, traversal) : (layout.paths || []).map((path: any) => path.id),
   );
@@ -3227,20 +3286,27 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       const isCurrentPath =
         currentRegionId &&
         (path.fromRegionId === currentRegionId || path.toRegionId === currentRegionId);
+      const evaluation =
+        definition && isCurrentPath
+          ? evaluatePathTraversal(definition, traversal, path, G.gs?.level || 1)
+          : null;
       const isReachablePath =
-        isCurrentPath &&
-        ((path.fromRegionId === currentRegionId &&
-          reachableRegionIds.has(path.toRegionId)) ||
-          (path.toRegionId === currentRegionId &&
-            reachableRegionIds.has(path.fromRegionId)));
+        !!evaluation?.traversable;
+      const isBlockedPath =
+        !!evaluation && evaluation.visible && !evaluation.traversable;
+      const isTraversedPath = traversedPathIds.has(path.id);
       return `
         <line
           x1="${from.x}"
           y1="${from.y}"
           x2="${to.x}"
           y2="${to.y}"
-          class="map-route ${path.kind || "road"} ${isSelected ? "selected" : ""} ${isCurrentPath ? "current" : ""} ${isReachablePath ? "reachable" : ""}"
-        />
+          class="map-route ${path.kind || "road"} ${path.visibility || "visible"} ${isSelected ? "selected" : ""} ${isCurrentPath ? "current" : ""} ${isReachablePath ? "reachable" : ""} ${isBlockedPath ? "blocked" : ""} ${isTraversedPath ? "traversed" : ""}"
+        >
+          <title>${escapeHtml(
+            `${pathKindLabel(path.kind || "road")} • Difficulty ${path.difficulty || 1}${evaluation?.blockedReason ? ` • ${formatTraversalBlockedReason(evaluation.blockedReason)}` : ""}`,
+          )}</title>
+        </line>
       `;
     })
     .join("");
@@ -3264,7 +3330,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       const isVisited = visitedRegionIds.has(region.id);
       const isCleared = clearedRegionIds.has(region.id);
       const isLocked = lockedRegionIds.has(region.id);
-      const disabled = !isCurrent && !isReachable;
+      const inactive = !isCurrent && !isReachable;
       const nodeStateClasses = [
         selected,
         isCurrent ? "current" : "",
@@ -3273,7 +3339,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
         isVisited ? "visited" : "",
         isCleared ? "cleared" : "",
         isLocked ? "locked" : "",
-        disabled ? "disabled" : "",
+        inactive ? "inactive" : "",
       ]
         .filter(Boolean)
         .join(" ");
@@ -3282,8 +3348,8 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           class="map-node ${nodeStateClasses}"
           style="left:${left}%; top:${top}%; --map-node-accent:${escapeHtml(node.accentColor || region.accentColor || "#4fc3f7")}"
           onclick="selectRegion(${regionIndex})"
-          ${disabled || isLocked ? "disabled" : ""}
-          ${isLocked ? "data-node-state=\"locked\"" : disabled ? "data-node-state=\"disabled\"" : ""}
+          ${isLocked ? "disabled" : ""}
+          ${isLocked ? "data-node-state=\"locked\"" : ""}
         >
           <div class="map-node-head">
             <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
@@ -3375,24 +3441,22 @@ function selectRegion(i: number) {
     return;
   }
   const region = G.regions[i];
-  const currentRegionId = getCurrentRegionId();
-  const reachableRegionIds = new Set(getReachableRegionIdsForUI());
-  if (
-    region &&
-    currentRegionId &&
-    region.id !== currentRegionId &&
-    !reachableRegionIds.has(region.id)
-  ) {
-    showToast("That route is not reachable yet.", "info");
-    return;
-  }
+  if (!region) return;
   G.selectedRegion = region;
   G.selectedRegionIndex = i;
   renderRegions();
   updateAllStatusBars();
+  const selectedPathContext = getSelectedPathContext();
+  const selectionCopy = selectedPathContext
+    ? `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. ${
+        selectedPathContext.evaluation.traversable
+          ? "This route is ready."
+          : formatTraversalBlockedReason(selectedPathContext.evaluation.blockedReason)
+      }`
+    : `${G.selectedRegion.landmark || "Waystation"} • Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`;
   setMapEventState(
     `🧭 ${G.selectedRegion.name} is ready`,
-    `${G.selectedRegion.landmark || "Waystation"} • Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`,
+    selectionCopy,
   );
   toggleMapCombatStage(false);
   showScreen("world");
@@ -3635,6 +3699,25 @@ async function exploreRegion() {
       syncSelectedRegionFromSession(true);
       renderRegions();
       updateAllStatusBars();
+    }
+
+    if (ev.travel) {
+      appendSharedLog(
+        `<div class="log-info">🛤️ ${ev.travel.description}</div>`,
+        ["gp-log", "event-log"],
+      );
+      if (ev.travel.hpLoss || ev.travel.manaLoss) {
+        appendSharedLog(
+          `<div class="log-combat">Travel toll: -${ev.travel.hpLoss || 0} HP, -${ev.travel.manaLoss || 0} MP.</div>`,
+          ["gp-log", "event-log"],
+        );
+      }
+      if (Array.isArray(ev.travel.newlyRevealedPathIds) && ev.travel.newlyRevealedPathIds.length > 0) {
+        appendSharedLog(
+          `<div class="log-rare">✨ New routes revealed: ${ev.travel.newlyRevealedPathIds.length}</div>`,
+          ["gp-log", "event-log"],
+        );
+      }
     }
 
     if (ev.type === "enemy_encounter" && ev.enemy) {

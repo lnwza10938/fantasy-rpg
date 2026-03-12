@@ -43,6 +43,8 @@ export interface GameStateData {
   visitedRegionIds: string[];
   clearedRegionIds: string[];
   lockedRegionIds: string[];
+  revealedPathIds: string[];
+  traversedPathIds: string[];
 
   // Live character state
   hp: number;
@@ -217,6 +219,8 @@ export class GameStateManager {
       visitedRegionIds: [...this.worldState.traversal.visitedRegionIds],
       clearedRegionIds: [...this.worldState.traversal.clearedRegionIds],
       lockedRegionIds: [...this.worldState.traversal.lockedRegionIds],
+      revealedPathIds: [...this.worldState.traversal.revealedPathIds],
+      traversedPathIds: [...this.worldState.traversal.traversedPathIds],
       hp: this.runtimeState.hp,
       maxHP: this.runtimeState.maxHP,
       mana: this.runtimeState.mana,
@@ -248,6 +252,8 @@ export class GameStateManager {
         visitedRegionIds: [...this.worldState.traversal.visitedRegionIds],
         clearedRegionIds: [...this.worldState.traversal.clearedRegionIds],
         lockedRegionIds: [...this.worldState.traversal.lockedRegionIds],
+        revealedPathIds: [...this.worldState.traversal.revealedPathIds],
+        traversedPathIds: [...this.worldState.traversal.traversedPathIds],
       },
     };
   }
@@ -561,6 +567,8 @@ export class GameStateManager {
       visitedRegionIds: data.visitedRegionIds || [],
       clearedRegionIds: data.clearedRegionIds || [],
       lockedRegionIds: data.lockedRegionIds || [],
+      revealedPathIds: data.revealedPathIds || [],
+      traversedPathIds: data.traversedPathIds || [],
     });
     mgr.runtimeState = {
       hp: data.hp,

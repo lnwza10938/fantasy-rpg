@@ -404,14 +404,34 @@ export class WorldSystem {
         1,
         Math.round((fromRegion.dangerLevel + toRegion.dangerLevel) / 2),
       );
+      const highestTier = Math.max(fromRegion.tier || 0, toRegion.tier || 0);
+      const requirements: string[] = [];
+
+      if (kind === "hazard" && baseDifficulty >= 5) {
+        requirements.push(`level:${Math.max(2, baseDifficulty - 2)}`);
+      } else if (
+        kind === "road" &&
+        highestTier >= 2 &&
+        topologyRng.next() < 0.24
+      ) {
+        requirements.push(`cleared:${fromRegion.id}`);
+      }
+
+      const visibility =
+        kind === "secret"
+          ? "hidden"
+          : highestTier >= 2 && topologyRng.next() < 0.18
+            ? "fogged"
+            : "visible";
+
       paths.push({
         id: key,
         fromRegionId: fromRegion.id,
         toRegionId: toRegion.id,
         kind,
         difficulty: kind === "hazard" ? baseDifficulty + 2 : baseDifficulty,
-        visibility: kind === "secret" ? "hidden" : "visible",
-        requirements: [],
+        visibility,
+        requirements,
       });
     };
 

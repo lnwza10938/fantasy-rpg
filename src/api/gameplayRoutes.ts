@@ -30,11 +30,15 @@ import {
   serializeSessionForSave,
 } from "../core/sessionPersistence.js";
 import {
-  getReachableRegionIds,
+  evaluatePathTraversal,
+  formatTraversalBlockedReason,
+  getPathBetweenRegions,
   getRegionById,
   getRegionIndexById,
   hydrateTraversalRuntimeState,
+  syncTraversalKnowledge,
 } from "../models/worldTraversal.js";
+import type { WorldDefinition, WorldMapPath, WorldRegion } from "../models/worldTypes.js";
 import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 import type { CharacterStats } from "../models/combatTypes.js";
@@ -106,6 +110,17 @@ interface ActiveCombatSession {
   regionName: string;
   regionDangerLevel: number;
   logs: string[];
+}
+
+interface TravelResolution {
+  pathId: string;
+  kind: WorldMapPath["kind"];
+  difficulty: number;
+  description: string;
+  hpLoss: number;
+  manaLoss: number;
+  newlyRevealedPathIds: string[];
+  newlyDiscoveredRegionIds: string[];
 }
 
 function normalizeInviteCode(code: string): string {
@@ -207,10 +222,81 @@ function getCombatOutcome(
   return { isFinished: false, winnerId: null };
 }
 
+function clampTravelLoss(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveTravelTransition(params: {
+  gsm: GameStateManager;
+  definition: WorldDefinition;
+  path: WorldMapPath;
+  fromRegion: WorldRegion;
+  toRegion: WorldRegion;
+}): TravelResolution {
+  const { gsm, definition, path, fromRegion, toRegion } = params;
+  const currentState = gsm.getState();
+  const hpBefore = currentState.hp;
+  const manaBefore = currentState.mana;
+  let hpLoss = 0;
+  let manaLoss = 0;
+  let description = `The party travels from ${fromRegion.name} to ${toRegion.name}.`;
+
+  if (path.kind === "hazard") {
+    hpLoss = clampTravelLoss(
+      Math.round(path.difficulty * 2.4) - currentState.level,
+      2,
+      18,
+    );
+    manaLoss = clampTravelLoss(
+      Math.round(path.difficulty * 0.9) - Math.floor(currentState.level / 2),
+      0,
+      10,
+    );
+    description = `The hazardous route to ${toRegion.name} batters the party before the next encounter begins.`;
+  } else if (path.kind === "secret") {
+    manaLoss = clampTravelLoss(Math.round(path.difficulty * 0.5), 0, 4);
+    description = `A concealed route unfolds between ${fromRegion.name} and ${toRegion.name}. The party slips through hidden ground.`;
+  } else if (path.visibility === "fogged") {
+    manaLoss = clampTravelLoss(Math.round(path.difficulty * 0.35), 0, 3);
+    description = `The fog-laced road to ${toRegion.name} forces a cautious advance before the next event resolves.`;
+  }
+
+  if (hpLoss > 0 || manaLoss > 0) {
+    gsm.updateCharacter({
+      hp: Math.max(1, hpBefore - hpLoss),
+      mana: Math.max(0, manaBefore - manaLoss),
+    });
+  }
+
+  const beforeTraversal = gsm.getWorldState().traversal;
+  const nextTraversal = syncTraversalKnowledge(definition, {
+    ...beforeTraversal,
+    currentRegionId: toRegion.id,
+    traversedPathIds: [...beforeTraversal.traversedPathIds, path.id],
+  });
+  gsm.setTraversalState(nextTraversal);
+
+  return {
+    pathId: path.id,
+    kind: path.kind,
+    difficulty: path.difficulty,
+    description,
+    hpLoss,
+    manaLoss,
+    newlyRevealedPathIds: nextTraversal.revealedPathIds.filter(
+      (pathId) => !beforeTraversal.revealedPathIds.includes(pathId),
+    ),
+    newlyDiscoveredRegionIds: nextTraversal.discoveredRegionIds.filter(
+      (regionId) => !beforeTraversal.discoveredRegionIds.includes(regionId),
+    ),
+  };
+}
+
 async function finalizeCombat(
   gsm: GameStateManager,
   playerStats: CharacterStats,
   combat: ActiveCombatSession,
+  definition?: WorldDefinition,
 ): Promise<{
   winnerId: string | null;
   rewards: { exp: number; gold: number };
@@ -258,6 +344,11 @@ async function finalizeCombat(
     gsm.transition(GamePhase.EXPLORING);
     if (gsm.getWorldState().traversal.currentRegionId) {
       gsm.markRegionCleared(gsm.getWorldState().traversal.currentRegionId!);
+      if (definition) {
+        gsm.setTraversalState(
+          syncTraversalKnowledge(definition, gsm.getWorldState().traversal),
+        );
+      }
     }
 
     if (combat.regionDangerLevel >= 7) {
@@ -735,26 +826,56 @@ router.post("/event", async (req, res) => {
       return;
     }
 
-    if (currentRegion && region.id !== currentRegion.id) {
-      const reachableRegionIds = getReachableRegionIds(
-        instance.definition,
-        traversal,
-        gsm.getState().level,
-      );
-      if (!reachableRegionIds.includes(region.id)) {
-        res.status(400).json({
-          success: false,
-          error: "That region is not reachable from your current position.",
-        });
-        return;
-      }
-    }
-
     const targetRegionIndex = Math.max(
       0,
       getRegionIndexById(instance.definition, region.id),
     );
-    gsm.visitRegion(region.id, targetRegionIndex);
+    let travel: TravelResolution | null = null;
+    let selectedPath: WorldMapPath | null = null;
+
+    if (currentRegion && region.id !== currentRegion.id) {
+      selectedPath = getPathBetweenRegions(
+        instance.definition,
+        currentRegion.id,
+        region.id,
+      );
+
+      if (!selectedPath) {
+        res.status(400).json({
+          success: false,
+          error: formatTraversalBlockedReason("Path is not adjacent"),
+        });
+        return;
+      }
+
+      const pathEvaluation = evaluatePathTraversal(
+        instance.definition,
+        traversal,
+        selectedPath,
+        gsm.getState().level,
+      );
+      if (!pathEvaluation.traversable) {
+        res.status(400).json({
+          success: false,
+          error: formatTraversalBlockedReason(pathEvaluation.blockedReason),
+        });
+        return;
+      }
+
+      gsm.visitRegion(region.id, targetRegionIndex);
+      travel = resolveTravelTransition({
+        gsm,
+        definition: instance.definition,
+        path: selectedPath,
+        fromRegion: currentRegion,
+        toRegion: region,
+      });
+    } else {
+      gsm.visitRegion(region.id, targetRegionIndex);
+      gsm.setTraversalState(
+        syncTraversalKnowledge(instance.definition, gsm.getWorldState().traversal),
+      );
+    }
 
     const event = await eventSystem.generateEvent(stats, region);
 
@@ -771,6 +892,16 @@ router.post("/event", async (req, res) => {
           regionName: region.name,
           regionDangerLevel: region.dangerLevel,
           logs: [
+            ...(travel
+              ? [
+                  travel.description,
+                  ...(travel.hpLoss > 0 || travel.manaLoss > 0
+                    ? [
+                        `Travel toll: -${travel.hpLoss} HP, -${travel.manaLoss} MP.`,
+                      ]
+                    : []),
+                ]
+              : []),
             `You explore ${region.name}...`,
             `A ${event.enemy.name} (Lv.${event.enemy.level}) appears!`,
             `Choose your action.`,
@@ -797,12 +928,13 @@ router.post("/event", async (req, res) => {
     }
 
     // Auto-save after event
-    await autoSave(characterId, event.description);
+    await autoSave(characterId, travel?.description || event.description);
     const activeCombat = combatSessions.get(characterId);
     res.json({
       success: true,
       data: {
         ...event,
+        travel,
         battleId: activeCombat?.battleId || null,
         combatLogs: activeCombat?.logs || [],
         gameState: gsm.getState(),
@@ -874,7 +1006,26 @@ router.post("/combat/turn", async (req, res) => {
     combat.enemy.mana = enemy.mana;
     gsm.updateCharacter({ hp: player.hp, mana: player.mana });
 
-    const outcome = await finalizeCombat(gsm, player, combat);
+    const traversalBeforeCombat = gsm.getWorldState().traversal;
+    const outcome = await finalizeCombat(
+      gsm,
+      player,
+      combat,
+      worldSystem.getInstance()?.definition,
+    );
+    const traversalAfterCombat = gsm.getWorldState().traversal;
+    const newlyRevealedPaths = traversalAfterCombat.revealedPathIds.filter(
+      (pathId) => !traversalBeforeCombat.revealedPathIds.includes(pathId),
+    );
+    const newlyDiscoveredRegions = traversalAfterCombat.discoveredRegionIds.filter(
+      (regionId) => !traversalBeforeCombat.discoveredRegionIds.includes(regionId),
+    );
+    if (newlyRevealedPaths.length > 0) {
+      turnLogs.push(`New routes revealed: ${newlyRevealedPaths.length}.`);
+    }
+    if (newlyDiscoveredRegions.length > 0) {
+      turnLogs.push(`New regions sighted: ${newlyDiscoveredRegions.length}.`);
+    }
     combat.logs.push(...turnLogs);
 
     if (outcome.winnerId) {

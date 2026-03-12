@@ -832,6 +832,11 @@ body.force-mobile .map-node {
   stroke-dasharray: 5 12;
 }
 
+.map-route.fogged {
+  stroke-dasharray: 3 9;
+  stroke-opacity: 0.42;
+}
+
 .map-route.selected {
   stroke: rgba(79, 195, 247, 0.92);
   stroke-width: 5;
@@ -844,6 +849,16 @@ body.force-mobile .map-node {
 .map-route.reachable {
   stroke: rgba(102, 187, 106, 0.72);
   stroke-width: 5;
+}
+
+.map-route.blocked {
+  stroke: rgba(255, 193, 7, 0.52);
+  stroke-dasharray: 7 12;
+}
+
+.map-route.traversed {
+  stroke-opacity: 0.95;
+  filter: drop-shadow(0 0 8px rgba(242, 195, 142, 0.18));
 }
 
 .map-node {
@@ -896,15 +911,24 @@ body.force-mobile .map-node {
     linear-gradient(180deg, rgba(18, 33, 26, 0.98), rgba(10, 19, 15, 0.98));
 }
 
-.map-node.disabled,
-.map-node:disabled {
+.map-node.inactive {
   opacity: 0.58;
-  cursor: not-allowed;
+  cursor: pointer;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.18);
 }
 
+.map-node.inactive:hover {
+  transform: translate(-50%, calc(-50% - 2px));
+}
+
+.map-node:disabled,
+.map-node.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .map-node:disabled:hover,
-.map-node.disabled:hover {
+.map-node.locked:hover {
   transform: translate(-50%, -50%);
   border-color: color-mix(in srgb, var(--map-node-accent) 28%, rgba(255, 255, 255, 0.08));
 }
