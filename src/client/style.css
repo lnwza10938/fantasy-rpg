@@ -3840,3 +3840,457 @@ body.force-mobile #gp-center-bot {
 body.force-mobile .command-actions-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+/* Apply the landing visual language to all dedicated pages */
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) body::before {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.34), transparent 7%),
+    radial-gradient(circle at 72% 16%, rgba(255, 255, 255, 0.28), transparent 6%),
+    radial-gradient(circle at 54% 28%, rgba(255, 255, 255, 0.18), transparent 5%),
+    linear-gradient(180deg, #2f87ff 0%, #3e9ef8 42%, #73c6e6 78%, #9ed3c2 100%);
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) body::after {
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0 58%,
+      rgba(44, 104, 101, 0.16) 58%,
+      rgba(30, 80, 70, 0.22) 100%
+    ),
+    linear-gradient(
+      to top,
+      rgba(28, 67, 58, 0.88) 0 11%,
+      transparent 11% 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(27, 78, 60, 0.82) 0 8px,
+      rgba(19, 61, 46, 0.82) 8px 12px,
+      transparent 12px 30px
+    ),
+    radial-gradient(circle at 50% 120%, rgba(244, 236, 193, 0.18), transparent 34%);
+  background-size: auto, auto, 100% 34%, auto;
+  background-position: center, center, bottom, center;
+  background-repeat: no-repeat;
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .header {
+  padding: 36px 20px 18px;
+  background: none;
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .header h1 {
+  font-family: "Silkscreen", sans-serif;
+  font-size: clamp(26px, 4vw, 40px);
+  color: #f4f8ea;
+  text-shadow:
+    -2px 0 #214733,
+    0 2px #214733,
+    2px 0 #214733,
+    0 -2px #214733,
+    0 5px 0 rgba(26, 57, 42, 0.36);
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .header p {
+  color: rgba(243, 250, 232, 0.86);
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .top-nav-shell {
+  position: static;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto 14px;
+  padding: 6px 8px;
+  background: rgba(31, 69, 47, 0.42);
+  border-color: rgba(233, 245, 216, 0.14);
+  box-shadow: 0 10px 18px rgba(13, 33, 23, 0.14);
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-nav {
+  background: rgba(34, 87, 52, 0.78);
+  color: rgba(245, 251, 235, 0.88);
+  border-color: rgba(230, 244, 215, 0.14);
+  font-size: 9px;
+}
+
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-nav:hover,
+:is(
+    html[data-app-page="menu"],
+    html[data-app-page="hub"],
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-nav.active {
+  background: linear-gradient(180deg, #5ea13c, #3e7d2a);
+  color: #f9ffef;
+  box-shadow:
+    inset 0 1px 0 rgba(238, 248, 221, 0.32),
+    0 8px 16px rgba(20, 55, 26, 0.24);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .gp,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-event-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-combat-stage,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-log-panel,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .command-deck-panel,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .world-record-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .legend-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .preset-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-world-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-card,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-empty,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-current-shell {
+  background: rgba(28, 56, 36, 0.68);
+  border: 2px solid rgba(235, 248, 216, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(247, 255, 238, 0.12),
+    0 12px 22px rgba(19, 43, 25, 0.18);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .landing-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-panel-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-current-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-card-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-current-meta,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-current-foot,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-card-meta,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-empty-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-region-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-event-copy,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .command-deck-copy {
+  color: rgba(241, 249, 229, 0.84);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-current-title,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-card-title,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .hub-list-empty-title,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .command-deck-title {
+  font-family: "Silkscreen", sans-serif;
+  font-size: 15px;
+  color: #f4f8ea;
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-topology-canvas,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battlefield-stage {
+  border-color: rgba(235, 248, 216, 0.14);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.24), transparent 12%),
+    linear-gradient(180deg, #3590ff 0%, #53b0f7 44%, #8bc69c 45%, #3a7c49 100%);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-route {
+  stroke: rgba(255, 247, 215, 0.5);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-node {
+  background: linear-gradient(180deg, rgba(249, 241, 221, 0.96), rgba(212, 195, 146, 0.94));
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battle-status,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battle-dialogue,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .map-log-box {
+  background: rgba(18, 37, 24, 0.48);
+  border: 1px solid rgba(235, 248, 216, 0.1);
+  color: rgba(243, 250, 232, 0.86);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battle-action-btn,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-action {
+  background: linear-gradient(180deg, #4c9137, #2f6824);
+  border: 2px solid rgba(233, 245, 216, 0.16);
+  color: #f7ffea;
+  box-shadow:
+    inset 0 1px 0 rgba(241, 252, 226, 0.18),
+    0 6px 0 rgba(24, 63, 21, 0.34);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battle-action-btn.primary,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-primary,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-gold {
+  background: linear-gradient(180deg, #d8bf79, #bd8f43);
+  border: 2px solid rgba(255, 239, 193, 0.24);
+  color: #2a2115;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 214, 0.34),
+    0 6px 0 rgba(88, 63, 24, 0.26);
+}
+
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-primary:hover,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .btn-action:hover,
+:is(
+    html[data-app-page="forge"],
+    html[data-app-page="vault"],
+    html[data-app-page="adventure"],
+    html[data-app-page="map"]
+  ) .battle-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
