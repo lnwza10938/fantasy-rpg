@@ -3886,6 +3886,9 @@ body.force-mobile .command-actions-grid {
   background-size: auto, auto, auto, cover, cover;
   background-position: center, center, center, center, center;
   background-repeat: no-repeat;
+  filter: blur(10px) saturate(0.94);
+  transform: scale(1.035);
+  transform-origin: center;
 }
 
 :is(
@@ -3911,6 +3914,9 @@ body.force-mobile .command-actions-grid {
   background-size: auto, auto, auto, auto;
   background-position: center, center, center, center;
   background-repeat: no-repeat;
+  filter: blur(3px);
+  transform: scale(1.015);
+  transform-origin: center;
 }
 
 :is(
@@ -4722,6 +4728,9 @@ html[data-app-page="dev"] body::before {
   background-size: auto, cover, cover;
   background-position: center, center, center;
   background-repeat: no-repeat;
+  filter: blur(11px) saturate(0.9);
+  transform: scale(1.04);
+  transform-origin: center;
 }
 
 html[data-app-page="dev"] body::after {
@@ -4732,6 +4741,9 @@ html[data-app-page="dev"] body::after {
   background-size: auto, auto, auto;
   background-position: center, center, center;
   background-repeat: no-repeat;
+  filter: blur(4px);
+  transform: scale(1.02);
+  transform-origin: center;
 }
 
 .dev-panel-page {
