@@ -256,6 +256,12 @@ export class GameStateManager {
     return this.phase;
   }
 
+  public setPhase(phase: GamePhase) {
+    this.phase = Object.values(GamePhase).includes(phase)
+      ? phase
+      : GamePhase.IDLE;
+  }
+
   /** Transition to a new phase with validation */
   public transition(to: GamePhase): boolean {
     const allowed = TRANSITIONS[this.phase];
@@ -345,6 +351,21 @@ export class GameStateManager {
   /** Equip item to slot */
   public equip(slot: keyof EquipmentSlots, itemId: string) {
     this.runtimeState.equipment[slot] = itemId;
+    this.refreshEffectiveStats();
+  }
+
+  public setInventory(inventory: InventorySlot[]) {
+    this.runtimeState.inventory = Array.isArray(inventory)
+      ? inventory.map((slot) => ({ itemId: slot.itemId, qty: slot.qty }))
+      : [];
+  }
+
+  public setEquipment(equipment: EquipmentSlots) {
+    this.runtimeState.equipment = {
+      weapon: equipment?.weapon ?? null,
+      armor: equipment?.armor ?? null,
+      accessory: equipment?.accessory ?? null,
+    };
     this.refreshEffectiveStats();
   }
 

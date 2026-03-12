@@ -17,14 +17,17 @@ import { eventSystem } from "../core/eventSystem.js";
 import { combatSystem } from "../core/combatSystem.js";
 import { legendSystem } from "../core/legendSystem.js";
 import { GameStateManager, GamePhase } from "../core/gameState.js";
+import {
+  hydrateGameStateFromSave,
+  mapSaveToWorldArchive,
+  serializeSessionForSave,
+} from "../core/sessionPersistence.js";
 import { supabase } from "../db/supabase.js";
 import { v4 as uuidv4 } from "uuid";
 import type { CharacterStats } from "../models/combatTypes.js";
 import {
   defaultWorldNameFromPreset,
   inferWorldPresetFromSeed,
-  parseWorldMeta,
-  serializeWorldMeta,
 } from "../models/worldTypes.js";
 import {
   getItems,
@@ -291,23 +294,7 @@ async function getSession(
 
   if (error || !save) return null;
 
-  const gsm = new GameStateManager(
-    save.character_id,
-    save.character_id,
-    Number(save.world_seed),
-  );
-  gsm.updateCharacter({
-    hp: save.hp,
-    maxHP: save.max_hp,
-    mana: save.mana,
-    maxMana: save.max_mana,
-    exp: save.exp,
-    level: save.level,
-    gold: save.gold,
-    characterName: save.character_name || "Hero",
-  });
-  gsm.setLocation(save.current_region, save.current_map ?? undefined);
-  gsm.setWorldMeta(parseWorldMeta(save.last_event, Number(save.world_seed)));
+  const gsm = hydrateGameStateFromSave(save);
 
   // Refresh with actual DB equipment data
   const allEquipment = await getEquipment();
@@ -325,33 +312,10 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
   if (!gsm) return;
 
   const session = gsm.getStructuredState();
-  const worldMeta = serializeWorldMeta(
-    session.world.metadata,
-    session.world.seed,
-  );
-  const { error } = await supabase.from("player_states").upsert(
-    {
-      character_id: session.characterId,
-      current_region: session.world.location.regionIndex,
-      current_map: session.world.location.mapId,
-      hp: session.runtime.hp,
-      mana: session.runtime.mana,
-      max_hp: session.runtime.maxHP,
-      max_mana: session.runtime.maxMana,
-      exp: session.runtime.exp,
-      level: session.runtime.level,
-      gold: session.runtime.gold,
-      inventory_json: session.runtime.inventory,
-      equipment_json: session.runtime.equipment,
-      world_seed: session.world.seed,
-      phase: session.phase,
-      character_name: session.runtime.characterName,
-      last_event: worldMeta,
-      last_action_log: lastLog || null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "character_id" },
-  );
+  const payload = serializeSessionForSave(session, lastLog);
+  const { error } = await supabase
+    .from("player_states")
+    .upsert(payload, { onConflict: "character_id" });
 
   if (error) console.error(`[AutoSave Error] ${characterId}:`, error.message);
 }
@@ -468,7 +432,7 @@ router.post("/start", async (req, res) => {
         ? customSelection.monsters
         : [],
     });
-    instance.definition.metadata = gsm.getWorldState().metadata;
+    instance.setMetadata(gsm.getWorldState().metadata);
     sessions.set(character.id, gsm);
 
     // Initial save
@@ -902,23 +866,12 @@ router.get("/worlds", async (req, res) => {
 
     if (saveError) throw saveError;
 
-    const worlds = (saves || []).map((save: any) => {
-      const meta = parseWorldMeta(save.last_event, Number(save.world_seed));
-      return {
-        characterId: save.character_id,
-        characterName:
-          save.character_name || characterMap.get(save.character_id) || "Hero",
-        worldSeed: Number(save.world_seed),
-        worldName: meta.worldName,
-        worldPreset: meta.worldPreset,
-        customBiomes: meta.customBiomes,
-        customMonsters: meta.customMonsters,
-        regionIndex: save.current_region ?? 0,
-        phase: save.phase || "IDLE",
-        lastActionLog: save.last_action_log || null,
-        updatedAt: save.updated_at || null,
-      };
-    });
+    const worlds = (saves || []).map((save: any) =>
+      mapSaveToWorldArchive(
+        save,
+        characterMap.get(save.character_id) || undefined,
+      ),
+    );
 
     res.json({ success: true, data: worlds });
   } catch (err: any) {
@@ -943,23 +896,7 @@ router.get("/load/:characterId", async (req, res) => {
     }
 
     // Restore session
-    const gsm = new GameStateManager(
-      data.character_id,
-      data.character_id,
-      Number(data.world_seed),
-    );
-    gsm.updateCharacter({
-      hp: data.hp,
-      maxHP: data.max_hp,
-      mana: data.mana,
-      maxMana: data.max_mana,
-      exp: data.exp,
-      level: data.level,
-      gold: data.gold,
-      characterName: data.character_name || "Hero",
-    });
-    gsm.setLocation(data.current_region, data.current_map ?? undefined);
-    gsm.setWorldMeta(parseWorldMeta(data.last_event, Number(data.world_seed)));
+    const gsm = hydrateGameStateFromSave(data);
 
     // Refresh with actual DB equipment data if possible
     const allEquipment = await getEquipment();
@@ -969,7 +906,7 @@ router.get("/load/:characterId", async (req, res) => {
 
     // Regenerate world from saved seed
     const world = await worldSystem.generateWorld(Number(data.world_seed));
-    world.definition.metadata = gsm.getWorldState().metadata;
+    world.setMetadata(gsm.getWorldState().metadata);
 
     res.json({
       success: true,

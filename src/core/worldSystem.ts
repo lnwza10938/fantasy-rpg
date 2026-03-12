@@ -11,6 +11,7 @@ import type {
 import {
   defaultWorldNameFromPreset,
   inferWorldPresetFromSeed,
+  normalizeWorldMetadata,
 } from "../models/worldTypes.js";
 import {
   getMaps,
@@ -69,6 +70,14 @@ export class WorldInstance {
 
   public get metadata(): WorldMetadata {
     return this.definition.metadata;
+  }
+
+  public setMetadata(metadata: Partial<WorldMetadata>): WorldDefinition {
+    this.definition = {
+      ...this.definition,
+      metadata: normalizeWorldMetadata(metadata, this.definition.seed),
+    };
+    return this.definition;
   }
 
   public getRandomRegion(rng: SeededRNG): WorldRegion {
