@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Procedural Fantasy RPG</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cinzel:wght@600;700&family=Orbitron:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
@@ -218,35 +218,34 @@
             <div>
               <div class="landing-kicker">Welcome to the Realm</div>
               <h2 class="landing-title">
-                Forge a legend. Walk the map. Leave a world behind.
+                Choose a legend, enter a world, and let the journey grow.
               </h2>
               <p class="landing-copy">
-                Build a hero, generate a persistent world, then travel node by
-                node through events, combat, and discoveries that remain tied to
-                your legend. Use an account, guest mode, or a protected invite
-                code to enter the same realm again later.
+                Start with a hero, pick how you want to enter the realm, then
+                continue through exploration, combat, and map progress from a
+                calmer shared hub.
               </p>
             </div>
             <div class="landing-pillars">
               <div class="landing-pillar">
                 <strong>Legends</strong>
-                <span>Forge unique heroes with signature skills and archived histories.</span>
+                <span>Forge a hero with a signature skill and a history that stays with them.</span>
               </div>
               <div class="landing-pillar">
                 <strong>Worlds</strong>
-                <span>Track seeded realms, custom worlds, and map progress from a shared hub.</span>
+                <span>Keep seeded realms, custom worlds, and saved routes in one place.</span>
               </div>
               <div class="landing-pillar">
                 <strong>Traversal</strong>
-                <span>Move through the world graph, trigger encounters, and resume the latest route.</span>
+                <span>Travel node to node, trigger encounters, and resume where you left off.</span>
               </div>
             </div>
           </div>
           <div class="card fade-in auth-card">
             <h3 id="auth-title">🔐 Enter the Realm</h3>
             <p class="auth-copy">
-              Sign in with email, continue as a local guest, or use an invite
-              code for cross-device access without a traditional login.
+              Sign in with email, continue as a guest, or use an invite code to
+              reopen the same profile from another device.
             </p>
             <form id="form-auth" onsubmit="handleAuth(event)">
               <div style="display: flex; flex-direction: column; gap: 12px">
@@ -399,9 +398,8 @@
                 Welcome to the Realm
               </h2>
               <p class="landing-copy" style="max-width: 680px">
-                This hub keeps your legends, archived worlds, and active routes
-                in one place. Begin a fresh run, jump back into a saved journey,
-                or inspect the world graph before you travel.
+                Use the hub to choose your next step: begin a new run, reopen a
+                saved journey, or check the world map before heading back out.
               </p>
 
               <div class="hub-summary-row">
@@ -437,11 +435,10 @@
 
             <div class="card hub-status-card">
               <div class="landing-kicker">Current Expedition</div>
-              <h3 style="margin: 0 0 8px">Resume From The Last Route</h3>
+              <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
-                The hub is now your dashboard. Use it to review the latest
-                save, then let the live map, traversal, and combat continue in
-                the dedicated adventure route.
+                A quick snapshot of the latest expedition before you return to
+                the dedicated adventure screen.
               </p>
               <div id="hub-current-journey" class="hub-current-shell">
                 <div class="hub-current-empty">
@@ -457,8 +454,7 @@
                 <div>
                   <h3>📂 Recent Journeys</h3>
                   <p class="hub-panel-copy">
-                    The latest saved expeditions live here. Resume one and jump
-                    straight back into the dedicated adventure screen.
+                    Your latest saved expeditions, ready to reopen.
                   </p>
                 </div>
                 <button class="btn btn-action" onclick="fetchSaveList()">
@@ -477,8 +473,7 @@
                 <div>
                   <h3>🗂️ World Archive Preview</h3>
                   <p class="hub-panel-copy">
-                    A compact view of saved worlds before you inspect them in
-                    the world map or reopen the linked journey.
+                    Saved worlds with just enough detail to choose where to go next.
                   </p>
                 </div>
                 <button class="btn btn-action" onclick="fetchCreatedWorlds()">

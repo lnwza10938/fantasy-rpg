@@ -909,6 +909,23 @@ function escapeJsSingleQuoted(value: unknown) {
     .replace(/\r/g, "");
 }
 
+function truncateText(value: unknown, max = 84) {
+  const text = String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 3)).trimEnd()}...`;
+}
+
+function summarizeEnemyList(values: unknown[] = [], max = 2) {
+  const names = values
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean);
+  if (!names.length) return "Unknown threats";
+  if (names.length <= max) return names.join(", ");
+  return `${names.slice(0, max).join(", ")} +${names.length - max}`;
+}
+
 function buildFallbackMapLayout(regions: any[]) {
   if (!regions.length) return null;
   const width = 1040;
@@ -3091,7 +3108,11 @@ function renderHubCurrentJourney() {
     worldPresetLabel(world?.worldPreset || "custom"),
   );
   const lastLog = escapeHtml(
-    latest.last_action_log || "Resume the journey from the last recorded scene.",
+    truncateText(
+      latest.last_action_log ||
+        "Resume the journey from the last recorded scene.",
+      110,
+    ),
   );
   const updatedAt = latest.updated_at
     ? new Date(latest.updated_at).toLocaleString()
@@ -3154,7 +3175,7 @@ function renderHubRecentJourneys() {
             </div>
             <div class="hub-list-card-chip">Lv.${Number(save.level) || 1}</div>
           </div>
-          <div class="hub-list-card-copy">${escapeHtml(save.last_action_log || "Resume the last recorded turn.")}</div>
+          <div class="hub-list-card-copy">${escapeHtml(truncateText(save.last_action_log || "Resume the last recorded turn.", 74))}</div>
           <div class="hub-list-card-meta">
             <span>${escapeHtml(updatedAt)}</span>
             <span>Resume</span>
@@ -3198,7 +3219,7 @@ function renderHubWorldArchivePreview() {
             </div>
             <div class="hub-list-card-chip">${escapeHtml(world.phase || "IDLE")}</div>
           </div>
-          <div class="hub-list-card-copy">${escapeHtml(world.lastActionLog || "No recent action recorded.")}</div>
+          <div class="hub-list-card-copy">${escapeHtml(truncateText(world.lastActionLog || "No recent action recorded.", 74))}</div>
           <div class="hub-list-card-meta">
             <span>${escapeHtml(updatedAt)}</span>
             <span class="hub-inline-actions">
@@ -3473,10 +3494,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       const node = nodeById.get(region.id);
       if (!node) return "";
       const regionIndex = regions.findIndex((entry: any) => entry.id === region.id);
-      const enemyList =
-        Array.isArray(region.enemyTypes) && region.enemyTypes.length > 0
-          ? region.enemyTypes.join(", ")
-          : "Unknown threats";
+      const enemyList = summarizeEnemyList(region.enemyTypes || []);
       const left = ((node.x || 0) / Math.max(1, layout.width || 1)) * 100;
       const top = ((node.y || 0) / Math.max(1, layout.height || 1)) * 100;
       const selected =
@@ -3573,10 +3591,7 @@ function renderRegions() {
   listEl.className = "region-grid map-region-grid";
 
   regions.forEach((r: any, i: number) => {
-    const enemyList =
-      Array.isArray(r.enemyTypes) && r.enemyTypes.length > 0
-        ? r.enemyTypes.join(", ")
-        : "Unknown threats";
+    const enemyList = summarizeEnemyList(r.enemyTypes || []);
     const card = document.createElement("div");
     const isCurrent = getCurrentRegionId() === r.id;
     const isReachable = getReachableRegionIdsForUI().includes(r.id);

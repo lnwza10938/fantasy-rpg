@@ -2673,3 +2673,738 @@ body {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* 2026 UI refresh: calmer Terraria-inspired fantasy treatment */
+:root {
+  --bg: #171d26;
+  --surface: rgba(34, 42, 52, 0.9);
+  --surface2: rgba(54, 63, 74, 0.76);
+  --surface3: rgba(76, 84, 81, 0.88);
+  --border: rgba(184, 206, 186, 0.18);
+  --text: #f7f2e8;
+  --muted: #b9b4a7;
+  --accent: #92cade;
+  --accent2: #8abd6b;
+  --gold: #e1bf73;
+  --red: #d88375;
+  --green: #92cc88;
+  --orange: #e1a86d;
+}
+
+html {
+  background: #10151d;
+}
+
+body {
+  font-family: "Nunito Sans", sans-serif;
+  color: var(--text);
+}
+
+body::before {
+  background:
+    radial-gradient(circle at 50% 4%, rgba(163, 213, 234, 0.2), transparent 24%),
+    radial-gradient(circle at 12% 78%, rgba(138, 189, 107, 0.14), transparent 28%),
+    radial-gradient(circle at 86% 72%, rgba(225, 168, 109, 0.14), transparent 24%),
+    linear-gradient(180deg, #37506f 0%, #27384f 28%, #1e2835 55%, #171d26 100%);
+}
+
+body::after {
+  background:
+    radial-gradient(circle at 50% 72%, rgba(242, 224, 165, 0.08), transparent 30%),
+    linear-gradient(180deg, transparent 0%, rgba(36, 48, 39, 0.18) 72%, rgba(17, 22, 27, 0.52) 100%);
+}
+
+html[data-app-page="forge"] body::before {
+  background:
+    radial-gradient(circle at 50% 10%, rgba(197, 167, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 18% 70%, rgba(138, 189, 107, 0.1), transparent 28%),
+    radial-gradient(circle at 80% 78%, rgba(146, 202, 222, 0.1), transparent 26%),
+    linear-gradient(180deg, #3d3150 0%, #2a2437 38%, #1d212b 100%);
+}
+
+html[data-app-page="adventure"] body::before {
+  background:
+    radial-gradient(circle at 50% 8%, rgba(157, 213, 234, 0.18), transparent 24%),
+    radial-gradient(circle at 18% 82%, rgba(138, 189, 107, 0.18), transparent 30%),
+    radial-gradient(circle at 82% 78%, rgba(225, 168, 109, 0.12), transparent 24%),
+    linear-gradient(180deg, #324d6f 0%, #23364b 24%, #1b2835 56%, #151b22 100%);
+}
+
+.header {
+  padding: 26px 20px 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 100%);
+}
+
+.header h1 {
+  font-family: "Bree Serif", serif;
+  font-size: clamp(28px, 3.8vw, 52px);
+  color: #fbf4de;
+  letter-spacing: 0.04em;
+  -webkit-text-fill-color: initial;
+  background: none;
+  text-shadow: 0 2px 0 rgba(43, 30, 16, 0.22);
+}
+
+.header p {
+  color: rgba(247, 242, 232, 0.72);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.container {
+  max-width: 1080px;
+  padding: 0 18px 40px;
+}
+
+#game-container .container {
+  max-width: 1760px;
+  padding: 0 22px 28px;
+}
+
+.card,
+.gp,
+.map-event-card,
+.map-combat-stage,
+.map-log-panel,
+.world-record-card,
+.legend-card,
+.preset-card,
+.hub-list-card,
+.map-world-card {
+  border-radius: 20px;
+  border: 1px solid rgba(208, 223, 207, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 18px 36px rgba(11, 16, 22, 0.22);
+}
+
+.card,
+.gp {
+  background:
+    linear-gradient(180deg, rgba(53, 61, 72, 0.86), rgba(28, 35, 44, 0.92));
+  backdrop-filter: blur(10px);
+}
+
+.card h3,
+.gp h3,
+.landing-kicker,
+.hub-current-eyebrow,
+.hub-list-card-subtitle,
+.map-section-kicker,
+.hub-summary-card .label,
+.hub-action-card .label,
+label,
+.btn-nav {
+  font-family: "Silkscreen", sans-serif;
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+.card h3,
+.gp h3 {
+  color: #dfecc8;
+  font-size: 11px;
+}
+
+label {
+  color: rgba(247, 242, 232, 0.68);
+  font-size: 10px;
+}
+
+input,
+select {
+  background: rgba(20, 26, 33, 0.7);
+  border-color: rgba(198, 216, 206, 0.14);
+  border-radius: 14px;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: var(--text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: rgba(146, 202, 222, 0.42);
+  box-shadow:
+    0 0 0 3px rgba(146, 202, 222, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.btn {
+  border-radius: 14px;
+  font-weight: 800;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #d9c07f, #bc9447);
+  color: #2a2115;
+  border-color: rgba(255, 239, 193, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 214, 0.42),
+    0 10px 22px rgba(88, 63, 24, 0.24);
+}
+
+.btn-primary:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 214, 0.46),
+    0 12px 24px rgba(88, 63, 24, 0.28);
+}
+
+.btn-action {
+  background: linear-gradient(180deg, rgba(77, 94, 71, 0.86), rgba(48, 58, 48, 0.92));
+  border-color: rgba(179, 212, 164, 0.2);
+  color: #f4f5ec;
+}
+
+.btn-action:hover {
+  border-color: rgba(179, 212, 164, 0.4);
+  color: #ffffff;
+}
+
+.btn-gold {
+  background: linear-gradient(180deg, #d8bf79, #bd8f43);
+  color: #261d12;
+}
+
+.btn-nav {
+  background: linear-gradient(180deg, rgba(69, 53, 37, 0.88), rgba(48, 38, 29, 0.96));
+  border-color: rgba(233, 216, 177, 0.14);
+  color: rgba(250, 241, 220, 0.72);
+  font-size: 10px;
+  padding: 9px 13px;
+}
+
+.btn-nav:hover,
+.btn-nav.active {
+  background: linear-gradient(180deg, #d7bd77, #bb8f43);
+  color: #2a2014;
+  box-shadow: 0 10px 20px rgba(88, 63, 24, 0.2);
+}
+
+.top-nav-shell {
+  top: 14px;
+  right: 16px;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 18px;
+  border-color: rgba(227, 215, 182, 0.14);
+  background: rgba(42, 32, 24, 0.58);
+  box-shadow: 0 16px 28px rgba(8, 12, 16, 0.18);
+}
+
+.landing-shell {
+  max-width: 1200px;
+}
+
+.landing-grid {
+  gap: 20px;
+}
+
+.landing-hero,
+.hub-hero-card {
+  background:
+    radial-gradient(circle at top left, rgba(146, 202, 222, 0.12), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(138, 189, 107, 0.1), transparent 24%),
+    linear-gradient(180deg, rgba(71, 83, 96, 0.92), rgba(35, 44, 55, 0.96));
+}
+
+.landing-kicker {
+  color: #dff0bd;
+  font-size: 10px;
+  margin-bottom: 14px;
+}
+
+.landing-title,
+.hub-current-title,
+.hub-list-card-title,
+.hub-list-empty-title,
+.map-region-heading,
+.map-event-title,
+.map-progress-title,
+.battle-name,
+.legend-card .name,
+.world-record-title {
+  font-family: "Bree Serif", serif;
+}
+
+.landing-title {
+  font-size: clamp(32px, 4.5vw, 54px);
+  line-height: 1.08;
+  max-width: 11ch;
+}
+
+.landing-copy,
+.auth-copy,
+.hub-panel-copy,
+.hub-current-copy,
+.hub-list-card-copy,
+.hub-list-empty-copy,
+.map-region-copy,
+.map-event-copy,
+.map-progress-note {
+  color: rgba(247, 242, 232, 0.74);
+  line-height: 1.75;
+}
+
+.landing-pillars {
+  gap: 12px;
+}
+
+.landing-pillar,
+.hub-summary-card,
+.hub-action-card {
+  border-radius: 16px;
+  border-color: rgba(227, 236, 212, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.landing-pillar strong,
+.hub-summary-card .label,
+.hub-action-card .label {
+  color: #dff0bd;
+}
+
+.landing-pillar span,
+.hub-action-card .value {
+  color: rgba(247, 242, 232, 0.66);
+}
+
+.hub-summary-card .value,
+.hub-action-card .value {
+  font-family: "Nunito Sans", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.hub-current-shell,
+.hub-list-card,
+.hub-list-empty,
+.world-record-card,
+.legend-card,
+.preset-card,
+.map-world-card {
+  background:
+    linear-gradient(180deg, rgba(79, 92, 100, 0.56), rgba(39, 49, 58, 0.88));
+}
+
+.hub-current-shell {
+  min-height: 180px;
+}
+
+.hub-current-title,
+.hub-list-card-title,
+.hub-list-empty-title {
+  font-size: 18px;
+}
+
+.hub-current-copy,
+.hub-list-card-copy {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.hub-list-card-chip,
+.world-record-phase,
+.map-world-card-phase,
+.map-flag {
+  border-radius: 999px;
+  background: rgba(242, 223, 170, 0.12);
+  color: #f5dd9c;
+  border: 1px solid rgba(242, 223, 170, 0.16);
+}
+
+#game-ui-screen {
+  grid-template-columns: 218px minmax(0, 1fr) 232px;
+  gap: 18px;
+  height: calc(100vh - 130px);
+  padding: 16px 0 22px;
+}
+
+.gp {
+  border-radius: 22px;
+  padding: 14px;
+}
+
+#gp-left {
+  background:
+    linear-gradient(180deg, rgba(72, 89, 72, 0.88), rgba(41, 51, 43, 0.94));
+}
+
+#gp-right {
+  background:
+    linear-gradient(180deg, rgba(76, 70, 57, 0.84), rgba(43, 43, 39, 0.94));
+}
+
+#gp-center-top {
+  background:
+    linear-gradient(180deg, rgba(41, 54, 71, 0.88), rgba(25, 33, 43, 0.95));
+}
+
+#gp-char-name {
+  font-family: "Bree Serif", serif;
+  font-size: 18px !important;
+}
+
+#gp-char-class {
+  font-size: 12px !important;
+  color: rgba(247, 242, 232, 0.62) !important;
+}
+
+#gp-stats {
+  gap: 8px !important;
+}
+
+#gp-stats > div {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(220, 231, 210, 0.12);
+  border-radius: 16px !important;
+  padding: 10px 12px !important;
+  text-align: left !important;
+}
+
+#gp-stats > div > div:first-child {
+  font-family: "Silkscreen", sans-serif;
+  font-size: 8px !important;
+  color: rgba(247, 242, 232, 0.54) !important;
+}
+
+#gp-stats > div > div:last-child {
+  margin-top: 4px;
+  font-size: 18px !important;
+}
+
+#gp-skill-preview {
+  background: rgba(24, 32, 36, 0.5) !important;
+  border-color: rgba(220, 231, 210, 0.12) !important;
+  border-radius: 16px !important;
+  padding: 12px !important;
+}
+
+#gp-skill-name {
+  font-family: "Bree Serif", serif;
+  font-size: 16px !important;
+  color: #efe2b4 !important;
+}
+
+#gp-skill-brief {
+  color: rgba(247, 242, 232, 0.68) !important;
+  font-size: 11px !important;
+  line-height: 1.55 !important;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: rgba(247, 242, 232, 0.78);
+}
+
+.bar {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.bar-fill {
+  border-radius: inherit;
+}
+
+.bar-hp {
+  background: linear-gradient(90deg, #dd8b73, #9bd18f);
+}
+
+.bar-mana {
+  background: linear-gradient(90deg, #5fa9d7, #8fd0dd);
+}
+
+.bar-exp {
+  background: linear-gradient(90deg, #8fcf7f, #e1bf73);
+}
+
+#gp-right > div:first-of-type {
+  gap: 8px !important;
+}
+
+#gp-right > div:first-of-type > div {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(220, 231, 210, 0.12);
+  border-radius: 16px !important;
+  padding: 10px !important;
+}
+
+#inv-display p,
+#inv-display,
+.hub-list-card-meta,
+.hub-current-foot,
+.world-record-meta,
+.world-record-subtitle,
+.world-record-footer,
+.map-world-card-subtitle,
+.map-world-card-meta,
+.map-world-card-actions {
+  color: rgba(247, 242, 232, 0.6);
+}
+
+.inv-item,
+.equip-slot {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(220, 231, 210, 0.12);
+}
+
+.map-panel-toolbar {
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.gp-tab {
+  border-radius: 12px;
+  padding: 9px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(247, 242, 232, 0.66);
+  border-color: rgba(220, 231, 210, 0.12);
+}
+
+.gp-tab.active {
+  background: linear-gradient(180deg, rgba(146, 202, 222, 0.36), rgba(96, 147, 133, 0.54));
+  color: #f7fbff;
+}
+
+.map-region-chip {
+  background: rgba(146, 202, 222, 0.12);
+  border-color: rgba(146, 202, 222, 0.18);
+  color: #dceff7;
+}
+
+.map-progress-panel {
+  border-radius: 18px;
+  border-color: rgba(220, 231, 210, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(146, 202, 222, 0.18), transparent 34%),
+    linear-gradient(180deg, rgba(70, 85, 96, 0.84), rgba(31, 41, 49, 0.94));
+}
+
+.map-topology-canvas {
+  min-height: 580px;
+  border-radius: 24px;
+  border-color: rgba(220, 231, 210, 0.1);
+  background:
+    radial-gradient(circle at 28% 22%, rgba(241, 236, 215, 0.08), transparent 20%),
+    radial-gradient(circle at 72% 24%, rgba(146, 202, 222, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(81, 120, 155, 0.86) 0%, rgba(87, 129, 164, 0.78) 33%, rgba(87, 102, 72, 0.6) 50%, rgba(51, 67, 49, 0.88) 100%);
+}
+
+.map-topology-canvas::before {
+  background-image:
+    radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px),
+    radial-gradient(circle at 74% 16%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px),
+    linear-gradient(180deg, transparent 0%, rgba(32, 44, 33, 0.08) 100%);
+  background-size: 160px 160px, 180px 180px, 100% 100%;
+}
+
+.map-route {
+  stroke: rgba(241, 232, 196, 0.34);
+  stroke-width: 4.5;
+  stroke-dasharray: 10 11;
+}
+
+.map-route.reachable {
+  stroke: rgba(169, 227, 148, 0.85);
+}
+
+.map-route.selected {
+  stroke: rgba(255, 246, 211, 0.96);
+}
+
+.map-route.hazard {
+  stroke: rgba(231, 145, 115, 0.72);
+}
+
+.map-route.secret {
+  stroke: rgba(198, 160, 245, 0.74);
+}
+
+.map-route.blocked {
+  stroke: rgba(225, 191, 115, 0.72);
+}
+
+.map-node {
+  width: min(186px, 22vw);
+  min-width: 150px;
+  padding: 12px 12px 11px;
+  border-radius: 18px;
+  border-color: rgba(130, 102, 59, 0.24);
+  background:
+    linear-gradient(180deg, rgba(249, 241, 221, 0.94), rgba(217, 194, 152, 0.92));
+  color: #34281a;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 16px 28px rgba(15, 20, 25, 0.2);
+}
+
+.map-node:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 20px 30px rgba(15, 20, 25, 0.24);
+}
+
+.map-node.current {
+  border-color: rgba(225, 191, 115, 0.64);
+}
+
+.map-node.reachable {
+  border-color: rgba(138, 189, 107, 0.46);
+}
+
+.map-node.selected {
+  border-color: rgba(146, 202, 222, 0.72);
+}
+
+.map-node.cleared {
+  background:
+    linear-gradient(180deg, rgba(232, 241, 222, 0.96), rgba(184, 204, 156, 0.92));
+}
+
+.map-node.locked,
+.map-node.inactive {
+  background:
+    linear-gradient(180deg, rgba(208, 198, 176, 0.9), rgba(170, 158, 138, 0.88));
+}
+
+.map-node-title {
+  color: #2a2216;
+  font-size: 14px;
+}
+
+.map-node-meta {
+  color: rgba(58, 44, 30, 0.7);
+}
+
+.map-node-enemies {
+  display: none;
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(58, 44, 30, 0.76);
+}
+
+.map-node.selected .map-node-enemies,
+.map-node.current .map-node-enemies {
+  display: block;
+}
+
+.map-node-flags {
+  margin-top: 8px;
+}
+
+.map-event-card,
+.map-combat-stage,
+.map-log-panel {
+  background:
+    linear-gradient(180deg, rgba(65, 77, 88, 0.78), rgba(30, 40, 48, 0.94));
+  border-color: rgba(220, 231, 210, 0.12);
+}
+
+.map-log-box,
+.battle-dialogue {
+  background: rgba(19, 24, 29, 0.44);
+  border-radius: 16px;
+  color: rgba(247, 242, 232, 0.8);
+}
+
+.battlefield-stage {
+  border-radius: 20px;
+  border-color: rgba(220, 231, 210, 0.14);
+  background:
+    radial-gradient(circle at 75% 18%, rgba(255, 255, 255, 0.12), transparent 18%),
+    linear-gradient(180deg, #7ea4c4 0%, #587ea2 44%, #66835e 45%, #334634 100%);
+}
+
+.battle-status {
+  border-radius: 16px;
+  border-color: rgba(245, 232, 201, 0.16);
+  background: rgba(33, 38, 42, 0.7);
+}
+
+.battle-action-btn {
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(90, 103, 72, 0.86), rgba(55, 65, 50, 0.92));
+  border-color: rgba(194, 215, 172, 0.16);
+}
+
+.battle-action-btn.primary {
+  background: linear-gradient(180deg, rgba(223, 197, 128, 0.92), rgba(184, 144, 67, 0.96));
+  border-color: rgba(255, 242, 204, 0.2);
+  color: #2a2115;
+}
+
+.battle-action-btn.primary span {
+  color: rgba(42, 33, 21, 0.7);
+}
+
+.vault-grid,
+.world-archive-list {
+  gap: 14px;
+}
+
+.legend-card,
+.world-record-card,
+.preset-card {
+  border-radius: 18px;
+}
+
+.legend-card.selected,
+.preset-card.selected {
+  background:
+    linear-gradient(180deg, rgba(96, 129, 164, 0.28), rgba(199, 224, 177, 0.16));
+  box-shadow: 0 0 0 1px rgba(146, 202, 222, 0.2);
+}
+
+.preset-card {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tag {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#translate-btn {
+  border-radius: 999px;
+  background: rgba(42, 49, 55, 0.84);
+  border: 1px solid rgba(220, 231, 210, 0.14);
+  color: #f3eee2;
+  box-shadow: 0 10px 20px rgba(10, 14, 18, 0.16);
+}
+
+#translate-panel {
+  border-radius: 18px;
+  background: rgba(33, 40, 48, 0.92);
+  border-color: rgba(220, 231, 210, 0.14);
+}
+
+#translate-panel h4 {
+  color: #dff0bd;
+  font-family: "Silkscreen", sans-serif;
+  text-transform: none;
+}
+
+.lang-btn {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lang-btn.active {
+  background: rgba(146, 202, 222, 0.16);
+}
+
+@media (max-width: 900px) {
+  .landing-title {
+    max-width: none;
+  }
+
+  #game-ui-screen {
+    height: auto;
+  }
+}
