@@ -8,6 +8,8 @@ Reviewed and sharpened after a follow-up evaluation shared on March 11, 2026:
 
 This document adapts that design into the context of this project: a web-based fantasy RPG with turn-based combat, choice-driven exploration, persistent character progression, and AI-assisted content systems.
 
+For the more detailed multi-agent plan that turns lore inputs into a playable realm through specialized AI workers, see [AI_LORE_WORLD_PIPELINE.md](/Users/mon/game_project/docs/AI_LORE_WORLD_PIPELINE.md).
+
 ## 1. Purpose
 
 The project should treat the world as a structured game system, not just a visual map.

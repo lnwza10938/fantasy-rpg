@@ -301,6 +301,10 @@ Generate:
 - event text
 - battle taunts
 
+Detailed pipeline specification:
+
+- [AI_LORE_WORLD_PIPELINE.md](/Users/mon/game_project/docs/AI_LORE_WORLD_PIPELINE.md)
+
 ## Phase 7 - Dev Tools Expansion
 
 Goal:
