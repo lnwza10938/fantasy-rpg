@@ -1735,6 +1735,27 @@ function bindCommandDeckAction(id: string, handler: () => void) {
   document.getElementById(id)?.addEventListener("click", handler);
 }
 
+function commandButtonMarkup(options: {
+  id?: string;
+  label: string;
+  icon: string;
+  primary?: boolean;
+  disabled?: boolean;
+  title?: string;
+}) {
+  const idAttr = options.id ? ` id="${escapeHtml(options.id)}"` : "";
+  const className = `battle-action-btn ${options.primary ? "primary" : ""}`.trim();
+  const disabledAttr = options.disabled ? " disabled" : "";
+  const titleAttr = options.title ? ` title="${escapeHtml(options.title)}"` : "";
+
+  return `
+    <button class="${className}"${idAttr}${disabledAttr}${titleAttr}>
+      <span class="battle-action-emoji">${escapeHtml(options.icon)}</span>
+      <strong>${escapeHtml(options.label)}</strong>
+    </button>
+  `;
+}
+
 function renderAdventureCommandDeck() {
   const titleEl = document.getElementById("command-deck-title");
   const copyEl = document.getElementById("command-deck-copy");
@@ -1757,60 +1778,66 @@ function renderAdventureCommandDeck() {
 
   let stateLabel = "Idle";
   let title = "Choose your next move";
-  let copy =
-    "Select a reachable region to unlock travel, exploration, and combat commands here.";
+  let copy = "";
   let dialogue =
     "Select a reachable region to begin exploring, or focus the current node to act in place.";
-  let actions = `
-    <button class="battle-action-btn primary" id="command-focus-current" ${currentRegion ? "" : "disabled"}>
-      <strong>Focus Current Node</strong>
-      <span>${currentRegion ? `Prepare actions for ${escapeHtml(currentRegion.name)}` : "No current node recorded"}</span>
-    </button>
-    <button class="battle-action-btn" id="command-save">
-      <strong>Save</strong>
-      <span>Record your current progress</span>
-    </button>
-    <button class="battle-action-btn" id="command-clear-log">
-      <strong>Clear Log</strong>
-      <span>Reset the action log panel</span>
-    </button>
-    <button class="battle-action-btn" id="command-open-map">
-      <strong>Map Preview</strong>
-      <span>Open the dedicated world map view</span>
-    </button>
-  `;
+  let actions = [
+    commandButtonMarkup({
+      id: "command-focus-current",
+      icon: "🧭",
+      label: "โหนดปัจจุบัน",
+      primary: true,
+      disabled: !currentRegion,
+    }),
+    commandButtonMarkup({
+      id: "command-save",
+      icon: "💾",
+      label: "บันทึก",
+    }),
+    commandButtonMarkup({
+      id: "command-clear-log",
+      icon: "🧹",
+      label: "ล้างบันทึก",
+    }),
+    commandButtonMarkup({
+      id: "command-open-map",
+      icon: "🗺️",
+      label: "แผนที่",
+    }),
+  ].join("");
 
   if (G.selectedRegion) {
     const landmark = G.selectedRegion.landmark || "Waystation";
     if (isSelectedCurrent) {
       stateLabel = "Explore";
       title = `Explore ${G.selectedRegion.name}`;
-      copy =
-        "Stay in the current node and trigger the next event, encounter, or discovery from here.";
       dialogue = `${landmark} awaits. Exploring here can reveal treasure, story scenes, rest points, or monsters.`;
-      actions = `
-        <button class="battle-action-btn primary" id="command-explore-current">
-          <strong>Explore Current Region</strong>
-          <span>Trigger the next event in ${escapeHtml(G.selectedRegion.name)}</span>
-        </button>
-        <button class="battle-action-btn" id="command-save">
-          <strong>Save</strong>
-          <span>Record your current progress</span>
-        </button>
-        <button class="battle-action-btn" id="command-clear-log">
-          <strong>Clear Log</strong>
-          <span>Reset the action log panel</span>
-        </button>
-        <button class="battle-action-btn" id="command-open-map">
-          <strong>Map Preview</strong>
-          <span>Open the dedicated world map view</span>
-        </button>
-      `;
+      actions = [
+        commandButtonMarkup({
+          id: "command-explore-current",
+          icon: "🔎",
+          label: "สำรวจ",
+          primary: true,
+        }),
+        commandButtonMarkup({
+          id: "command-save",
+          icon: "💾",
+          label: "บันทึก",
+        }),
+        commandButtonMarkup({
+          id: "command-clear-log",
+          icon: "🧹",
+          label: "ล้างบันทึก",
+        }),
+        commandButtonMarkup({
+          id: "command-open-map",
+          icon: "🗺️",
+          label: "แผนที่",
+        }),
+      ].join("");
     } else if (selectedPathContext && isSelectedReachable) {
       stateLabel = pathKindLabel(selectedPathContext.path.kind);
       title = `Travel to ${G.selectedRegion.name}`;
-      copy =
-        "The selected route is reachable. Traveling there will resolve the travel step and the next regional event in one flow.";
       dialogue = `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. ${
         selectedPathContext.path.requirements?.length
           ? `Requirements: ${selectedPathContext.path.requirements
@@ -1818,24 +1845,29 @@ function renderAdventureCommandDeck() {
               .join(" • ")}.`
           : "No extra requirements on this path."
       }`;
-      actions = `
-        <button class="battle-action-btn primary" id="command-travel-explore">
-          <strong>Travel and Explore</strong>
-          <span>Move to ${escapeHtml(G.selectedRegion.name)} and resolve the next event</span>
-        </button>
-        <button class="battle-action-btn" id="command-focus-current">
-          <strong>Stay Here</strong>
-          <span>Return focus to the current node</span>
-        </button>
-        <button class="battle-action-btn" id="command-save">
-          <strong>Save</strong>
-          <span>Record your current progress</span>
-        </button>
-        <button class="battle-action-btn" id="command-clear-log">
-          <strong>Clear Log</strong>
-          <span>Reset the action log panel</span>
-        </button>
-      `;
+      actions = [
+        commandButtonMarkup({
+          id: "command-travel-explore",
+          icon: "👣",
+          label: "เดินทาง",
+          primary: true,
+        }),
+        commandButtonMarkup({
+          id: "command-focus-current",
+          icon: "⛺",
+          label: "อยู่ที่เดิม",
+        }),
+        commandButtonMarkup({
+          id: "command-save",
+          icon: "💾",
+          label: "บันทึก",
+        }),
+        commandButtonMarkup({
+          id: "command-clear-log",
+          icon: "🧹",
+          label: "ล้างบันทึก",
+        }),
+      ].join("");
     } else if (selectedPathContext) {
       stateLabel = "Blocked";
       title = `${G.selectedRegion.name} is blocked`;
@@ -1843,53 +1875,62 @@ function renderAdventureCommandDeck() {
         selectedPathContext.evaluation.blockedReason,
       );
       dialogue = `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. This route cannot be taken yet.`;
-      actions = `
-        <button class="battle-action-btn primary" disabled>
-          <strong>Route Blocked</strong>
-          <span>${escapeHtml(formatTraversalBlockedReason(selectedPathContext.evaluation.blockedReason))}</span>
-        </button>
-        <button class="battle-action-btn" id="command-focus-current">
-          <strong>Back To Current Node</strong>
-          <span>Return focus to the active position</span>
-        </button>
-        <button class="battle-action-btn" id="command-save">
-          <strong>Save</strong>
-          <span>Record your current progress</span>
-        </button>
-        <button class="battle-action-btn" id="command-clear-log">
-          <strong>Clear Log</strong>
-          <span>Reset the action log panel</span>
-        </button>
-      `;
+      actions = [
+        commandButtonMarkup({
+          icon: "⛔",
+          label: "ปิดกั้น",
+          primary: true,
+          disabled: true,
+          title: formatTraversalBlockedReason(
+            selectedPathContext.evaluation.blockedReason,
+          ),
+        }),
+        commandButtonMarkup({
+          id: "command-focus-current",
+          icon: "↩️",
+          label: "กลับ",
+        }),
+        commandButtonMarkup({
+          id: "command-save",
+          icon: "💾",
+          label: "บันทึก",
+        }),
+        commandButtonMarkup({
+          id: "command-clear-log",
+          icon: "🧹",
+          label: "ล้างบันทึก",
+        }),
+      ].join("");
     } else {
       stateLabel = "Detached";
       title = `${G.selectedRegion.name} is out of reach`;
-      copy =
-        "This node is not directly connected to your current position. Choose a reachable route first.";
       dialogue = `${landmark}. This node belongs to the world, but not to your immediate route options.`;
-      actions = `
-        <button class="battle-action-btn primary" disabled>
-          <strong>No Direct Route</strong>
-          <span>Pick a connected region first</span>
-        </button>
-        <button class="battle-action-btn" id="command-focus-current">
-          <strong>Back To Current Node</strong>
-          <span>Return focus to the active position</span>
-        </button>
-        <button class="battle-action-btn" id="command-save">
-          <strong>Save</strong>
-          <span>Record your current progress</span>
-        </button>
-        <button class="battle-action-btn" id="command-clear-log">
-          <strong>Clear Log</strong>
-          <span>Reset the action log panel</span>
-        </button>
-      `;
+      actions = [
+        commandButtonMarkup({
+          icon: "🚫",
+          label: "ไปไม่ได้",
+          primary: true,
+          disabled: true,
+        }),
+        commandButtonMarkup({
+          id: "command-focus-current",
+          icon: "↩️",
+          label: "กลับ",
+        }),
+        commandButtonMarkup({
+          id: "command-save",
+          icon: "💾",
+          label: "บันทึก",
+        }),
+        commandButtonMarkup({
+          id: "command-clear-log",
+          icon: "🧹",
+          label: "ล้างบันทึก",
+        }),
+      ].join("");
     }
   } else if (currentRegion) {
     title = `${currentRegion.name} is your current node`;
-    copy =
-      "Focus the current node to explore in place, or select a connected destination from the map above.";
     dialogue = `${currentRegion.landmark || "Waystation"} is your anchor point. Choose to act here or chart a reachable route next.`;
   }
 
@@ -4434,28 +4475,34 @@ function renderCombatActions() {
 
   if (G.activeCombat.isFinished) {
     if (deckTitleEl) deckTitleEl.textContent = "Encounter complete";
-    if (deckCopyEl)
-      deckCopyEl.textContent =
-        "The encounter is over. Continue exploring from the current node or review your party.";
+    if (deckCopyEl) deckCopyEl.textContent = "";
     if (deckStateEl) deckStateEl.textContent = "Victory";
     resultBox.textContent = "Battle complete. Choose your next move.";
-    actionBox.innerHTML = `
-      <button class="battle-action-btn primary" id="btn-post-combat-explore">
-        <strong>Continue</strong>
-        <span>Return to the current region</span>
-      </button>
-      <button class="battle-action-btn" id="btn-post-combat-stats">
-        <strong>Party</strong>
-        <span>Review your hero and gear</span>
-      </button>
-      <button class="battle-action-btn" disabled title="Planned for a future update">
-        <strong>Capture</strong>
-        <span>Reserved for monster systems</span>
-      </button>
-      <button class="battle-action-btn" disabled title="Wire monster art from the dev panel here later">
-        <strong>Link Art</strong>
-        <span>Future dev image integration slot</span>
-      </button>`;
+    actionBox.innerHTML = [
+      commandButtonMarkup({
+        id: "btn-post-combat-explore",
+        icon: "➡️",
+        label: "ต่อ",
+        primary: true,
+      }),
+      commandButtonMarkup({
+        id: "btn-post-combat-stats",
+        icon: "🧙",
+        label: "ตัวละคร",
+      }),
+      commandButtonMarkup({
+        icon: "🪤",
+        label: "จับ",
+        disabled: true,
+        title: "Planned for a future update",
+      }),
+      commandButtonMarkup({
+        icon: "🖼️",
+        label: "ภาพ",
+        disabled: true,
+        title: "Wire monster art from the dev panel here later",
+      }),
+    ].join("");
     document
       .getElementById("btn-post-combat-explore")
       ?.addEventListener("click", () => {
@@ -4479,30 +4526,40 @@ function renderCombatActions() {
   }
 
   if (deckTitleEl) deckTitleEl.textContent = "Combat commands";
-  if (deckCopyEl)
-    deckCopyEl.textContent =
-      "Resolve the battle from the command deck below while the encounter plays out above.";
+  if (deckCopyEl) deckCopyEl.textContent = "";
   if (deckStateEl) deckStateEl.textContent = "Combat";
   if (!resultBox.textContent?.trim()) {
     resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
   }
-  actionBox.innerHTML = `
-    <button class="battle-action-btn primary" id="btn-combat-attack">
-      <strong>Attack</strong>
-      <span>Resolve one turn right now</span>
-    </button>
-    <button class="battle-action-btn" id="btn-combat-skill" disabled title="Skill commands are coming soon">
-      <strong>Skill</strong>
-      <span>Future active abilities</span>
-    </button>
-    <button class="battle-action-btn" id="btn-combat-bag" disabled title="Bag support is planned">
-      <strong>Bag</strong>
-      <span>Items and consumables later</span>
-    </button>
-    <button class="battle-action-btn" id="btn-combat-retreat" disabled title="Retreat is not enabled yet">
-      <strong>Run</strong>
-      <span>Escape options later</span>
-    </button>`;
+  actionBox.innerHTML = [
+    commandButtonMarkup({
+      id: "btn-combat-attack",
+      icon: "⚔️",
+      label: "โจมตี",
+      primary: true,
+    }),
+    commandButtonMarkup({
+      id: "btn-combat-skill",
+      icon: "✨",
+      label: "ทักษะ",
+      disabled: true,
+      title: "Skill commands are coming soon",
+    }),
+    commandButtonMarkup({
+      id: "btn-combat-bag",
+      icon: "🎒",
+      label: "ของ",
+      disabled: true,
+      title: "Bag support is planned",
+    }),
+    commandButtonMarkup({
+      id: "btn-combat-retreat",
+      icon: "🏃",
+      label: "หนี",
+      disabled: true,
+      title: "Retreat is not enabled yet",
+    }),
+  ].join("");
   document
     .getElementById("btn-combat-attack")
     ?.addEventListener("click", executeCombatTurn);

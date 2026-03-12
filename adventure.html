@@ -1158,99 +1158,97 @@
               </div>
 
               <aside class="map-camera-panel">
-                <div class="map-section-kicker">Map Controls</div>
-                <div class="map-camera-title">View Controls</div>
-                <div class="map-camera-copy">
-                  Move around the map and zoom in or out without leaving the
-                  adventure screen.
-                </div>
-                <div class="map-camera-dpad">
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-spacer"
-                    aria-hidden="true"
-                    tabindex="-1"
-                  ></button>
-                  <button
-                    type="button"
-                    class="map-camera-btn"
-                    data-map-control
-                    onclick="panMap('up')"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-spacer"
-                    aria-hidden="true"
-                    tabindex="-1"
-                  ></button>
-                  <button
-                    type="button"
-                    class="map-camera-btn"
-                    data-map-control
-                    onclick="panMap('left')"
-                  >
-                    ←
-                  </button>
-                  <button
-                    type="button"
-                    class="map-camera-btn"
-                    data-map-control
-                    onclick="resetMapCamera()"
-                  >
-                    •
-                  </button>
-                  <button
-                    type="button"
-                    class="map-camera-btn"
-                    data-map-control
-                    onclick="panMap('right')"
-                  >
-                    →
-                  </button>
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-spacer"
-                    aria-hidden="true"
-                    tabindex="-1"
-                  ></button>
-                  <button
-                    type="button"
-                    class="map-camera-btn"
-                    data-map-control
-                    onclick="panMap('down')"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-spacer"
-                    aria-hidden="true"
-                    tabindex="-1"
-                  ></button>
-                </div>
-                <div class="map-camera-zoom-row">
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-zoom-btn"
-                    data-map-control
-                    onclick="zoomMap(-0.12)"
-                  >
-                    －
-                  </button>
-                  <div id="map-camera-status" class="map-camera-status">100%</div>
-                  <button
-                    type="button"
-                    class="map-camera-btn map-camera-zoom-btn"
-                    data-map-control
-                    onclick="zoomMap(0.12)"
-                  >
-                    ＋
-                  </button>
+                <div class="map-camera-controls-card">
+                  <div class="map-section-kicker">Map Controls</div>
+                  <div class="map-camera-dpad">
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-spacer"
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></button>
+                    <button
+                      type="button"
+                      class="map-camera-btn"
+                      data-map-control
+                      onclick="panMap('up')"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-spacer"
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></button>
+                    <button
+                      type="button"
+                      class="map-camera-btn"
+                      data-map-control
+                      onclick="panMap('left')"
+                    >
+                      ←
+                    </button>
+                    <button
+                      type="button"
+                      class="map-camera-btn"
+                      data-map-control
+                      onclick="resetMapCamera()"
+                    >
+                      •
+                    </button>
+                    <button
+                      type="button"
+                      class="map-camera-btn"
+                      data-map-control
+                      onclick="panMap('right')"
+                    >
+                      →
+                    </button>
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-spacer"
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></button>
+                    <button
+                      type="button"
+                      class="map-camera-btn"
+                      data-map-control
+                      onclick="panMap('down')"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-spacer"
+                      aria-hidden="true"
+                      tabindex="-1"
+                    ></button>
+                  </div>
+                  <div class="map-camera-zoom-row">
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-zoom-btn"
+                      data-map-control
+                      onclick="zoomMap(-0.12)"
+                    >
+                      －
+                    </button>
+                    <div id="map-camera-status" class="map-camera-status">100%</div>
+                    <button
+                      type="button"
+                      class="map-camera-btn map-camera-zoom-btn"
+                      data-map-control
+                      onclick="zoomMap(0.12)"
+                    >
+                      ＋
+                    </button>
+                  </div>
                 </div>
 
-                <div class="map-camera-summary">
+                <div class="map-camera-summary-card">
+                  <div class="map-camera-summary">
                   <div class="map-section-kicker">Map Intel</div>
                   <div id="map-world-name" class="map-camera-world-name">
                     Uncharted Realm
@@ -1277,6 +1275,7 @@
                     <div id="map-event-copy" class="map-camera-event-copy">
                       Events, discoveries, and monster encounters appear here.
                     </div>
+                  </div>
                   </div>
                 </div>
               </aside>
