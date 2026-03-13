@@ -1409,6 +1409,96 @@ function summarizeMapEditorDraft(payload: any, definition: any) {
   };
 }
 
+function listMapEditorDraftChanges(payload: any) {
+  const draft = asRecord(payload?.draft);
+  const type = String(draft.override_type || "replace_definition");
+  const scopeRef = String(draft.scope_ref || "").trim();
+  const draftPayload = asRecord(draft.payload_json);
+
+  if (type === "patch_region") {
+    const changedFields = Object.keys(draftPayload);
+    return [
+      `${formatWorldHandle(scopeRef || "location")} updates`,
+      ...changedFields.slice(0, 4).map((field) => `Changed ${formatWorldHandle(field)}`),
+    ];
+  }
+
+  if (type === "set_map_layout") {
+    const nodes = Array.isArray(draftPayload.nodes) ? draftPayload.nodes.length : 0;
+    const paths = Array.isArray(draftPayload.paths) ? draftPayload.paths.length : 0;
+    return [
+      "Topology layout updated",
+      `${nodes} locations in current layout`,
+      `${paths} routes in current layout`,
+    ];
+  }
+
+  if (type === "patch_metadata") {
+    return Object.keys(draftPayload)
+      .slice(0, 5)
+      .map((field) => `Realm ${formatWorldHandle(field)} changed`);
+  }
+
+  const definition = asRecord(draftPayload);
+  const regions = Array.isArray(definition.regions) ? definition.regions.length : 0;
+  const routes = Array.isArray(asRecord(definition.mapLayout).paths)
+    ? asRecord(definition.mapLayout).paths.length
+    : 0;
+  return [
+    "Full realm draft applied",
+    `${regions} locations staged`,
+    `${routes} routes staged`,
+  ];
+}
+
+function renderMapPreviewDraftDiff(payload?: any | null) {
+  const blockEl = document.getElementById("map-preview-diff-block");
+  const listEl = document.getElementById("map-preview-diff-list");
+  if (!blockEl || !listEl) return;
+
+  if (!payload) {
+    blockEl.style.display = "none";
+    listEl.innerHTML = "";
+    return;
+  }
+
+  const rows = listMapEditorDraftChanges(payload).filter(Boolean);
+  if (!rows.length) {
+    blockEl.style.display = "none";
+    listEl.innerHTML = "";
+    return;
+  }
+
+  listEl.innerHTML = rows
+    .map((row) => `<div class="map-preview-diff-item">${escapeHtml(row)}</div>`)
+    .join("");
+  blockEl.style.display = "block";
+}
+
+function appendJourneyLogEntry(html: string) {
+  appendSharedLog(html, ["gp-log", "event-log"]);
+}
+
+function presentAdventureScene(
+  mode: "map" | "story" | "event" | "combat" | "result",
+  title: string,
+  description: string,
+  options?: {
+    speaker?: string;
+    portrait?: string;
+    logHtml?: string;
+  },
+) {
+  setAdventureMode(mode);
+  setMapEventState(title, description, {
+    speaker: options?.speaker,
+    portrait: options?.portrait,
+  });
+  if (options?.logHtml) {
+    appendJourneyLogEntry(options.logHtml);
+  }
+}
+
 function syncSelectedRegionFromSession(preferCurrent = false) {
   const regions = normalizeRegions(G.regions);
   G.regions = regions;
@@ -1893,7 +1983,11 @@ function appendSharedLog(html: string, targetIds: string[]) {
   });
 }
 
-function setMapEventState(title: string, description: string) {
+function setMapEventState(
+  title: string,
+  description: string,
+  options?: { speaker?: string; portrait?: string },
+) {
   const titleEl = document.getElementById("explore-title");
   const copyEl = document.getElementById("map-event-copy");
   const combatStageTextEl = document.getElementById("combat-stage-text");
@@ -1916,22 +2010,29 @@ function setMapEventState(title: string, description: string) {
   }
   if (storySpeakerEl) {
     storySpeakerEl.textContent =
-      G.selectedRegion?.name || getCurrentRegion()?.name || "Realm Chronicle";
+      options?.speaker ||
+      G.selectedRegion?.name ||
+      getCurrentRegion()?.name ||
+      "Realm Chronicle";
   }
   if (storyPortraitEl) {
-    const mode =
-      document.getElementById("game-ui-screen")?.getAttribute("data-adventure-mode") ||
-      "map";
-    storyPortraitEl.textContent =
-      mode === "result"
-        ? "🏆"
-        : mode === "combat"
-          ? "⚔️"
-          : mode === "story"
-            ? "📖"
-            : mode === "event"
-              ? "✨"
-              : "🗺️";
+    if (options?.portrait) {
+      storyPortraitEl.textContent = options.portrait;
+    } else {
+      const mode =
+        document.getElementById("game-ui-screen")?.getAttribute("data-adventure-mode") ||
+        "map";
+      storyPortraitEl.textContent =
+        mode === "result"
+          ? "🏆"
+          : mode === "combat"
+            ? "⚔️"
+            : mode === "story"
+              ? "📖"
+              : mode === "event"
+                ? "✨"
+                : "🗺️";
+    }
   }
 }
 
@@ -3042,6 +3143,7 @@ function renderMapEditorPreviewBanner(payload?: any | null, definition?: any | n
     titleEl.textContent = "Previewing local draft";
     metaEl.textContent =
       "Unsaved authoring changes from the Realm Map Editor are active on this page.";
+    renderMapPreviewDraftDiff(null);
     return;
   }
 
@@ -3049,6 +3151,7 @@ function renderMapEditorPreviewBanner(payload?: any | null, definition?: any | n
   titleEl.textContent = summary.title;
   metaEl.textContent = summary.meta;
   bannerEl.style.display = "flex";
+  renderMapPreviewDraftDiff(payload);
 }
 
 function clearMapEditorPreview(reinitialize = true) {
@@ -5052,6 +5155,120 @@ function renderInventory() {
 }
 
 // --- EXPLORE ---
+function presentResolvedJourneyEvent(ev: any) {
+  const locationFlavor = getRegionLocationFlavor(G.selectedRegion);
+  const speaker = G.selectedRegion?.name || "Realm Chronicle";
+
+  if (ev.type === "treasure_found") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    presentAdventureScene(
+      "event",
+      "💰 Treasure Found",
+      `${ev.description}${locationFlavor ? ` ${locationFlavor}` : ""}`,
+      {
+        speaker,
+        portrait: "💰",
+        logHtml: `<div class="log-treasure">💰 ${escapeHtml(ev.description)}</div>`,
+      },
+    );
+    if (ev.treasureGold) {
+      appendJourneyLogEntry(`<div class="log-exp">+${ev.treasureGold} Gold!</div>`);
+    }
+    return;
+  }
+
+  if (ev.type === "rare_event") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    presentAdventureScene(
+      "story",
+      "✨ Rare Event",
+      `${ev.description}${locationFlavor ? ` ${locationFlavor}` : ""}`,
+      {
+        speaker,
+        portrait: "✨",
+        logHtml: `<div class="log-rare">✨ ${escapeHtml(ev.description)}</div>`,
+      },
+    );
+    return;
+  }
+
+  if (ev.type === "npc_encounter") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    presentAdventureScene("story", "💬 Traveler Encounter", ev.description, {
+      speaker,
+      portrait: "💬",
+      logHtml: `<div class="log-dialogue">💬 ${escapeHtml(ev.description)}</div>`,
+    });
+    return;
+  }
+
+  if (ev.type === "lore_event") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    const loreTitle = ev.loreTitle || "Ancient Scroll";
+    const loreCopy = ev.loreContent || ev.description;
+    presentAdventureScene("story", `📖 ${loreTitle}`, loreCopy, {
+      speaker,
+      portrait: "📖",
+      logHtml: `<div class="log-info" style="margin: 8px 0; padding: 10px; background:rgba(79, 195, 247, 0.1); border-left: 3px solid var(--accent); border-radius: 4px"><strong style="color:var(--accent)">📖 ${escapeHtml(loreTitle)}</strong><br/><p style="margin-top:4px; font-style:italic">${escapeHtml(loreCopy)}</p></div>`,
+    });
+    return;
+  }
+
+  if (ev.type === "ambient_event") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    presentAdventureScene(
+      "event",
+      "☁️ Ambient Event",
+      `${ev.description}${locationFlavor ? ` ${locationFlavor}` : ""}`,
+      {
+        speaker,
+        portrait: "☁️",
+        logHtml: `<div class="log-info" style="font-style:italic; color:var(--muted)">☁️ ${escapeHtml(ev.description)}</div>`,
+      },
+    );
+    return;
+  }
+
+  if (ev.type === "rest_event") {
+    G.activeCombat = null;
+    toggleMapCombatStage(false);
+    syncMapSelectionState();
+    presentAdventureScene("event", "🧘 Safe Rest", ev.description, {
+      speaker,
+      portrait: "🧘",
+      logHtml: `<div class="log-victory">🧘 ${escapeHtml(ev.description)}</div>`,
+    });
+    if (ev.restLog) {
+      appendJourneyLogEntry(`<div class="log-exp">${escapeHtml(ev.restLog)}</div>`);
+    }
+    return;
+  }
+
+  G.activeCombat = null;
+  toggleMapCombatStage(false);
+  syncMapSelectionState();
+  presentAdventureScene(
+    "event",
+    "🗺️ Exploration Update",
+    `${ev.description}${locationFlavor ? ` ${locationFlavor}` : ""}`,
+    {
+      speaker,
+      portrait: "🗺️",
+      logHtml: `<div class="log-info">${escapeHtml(ev.description)}</div>`,
+    },
+  );
+}
+
 async function exploreRegion() {
   if (!G.selectedRegion) {
     showToast("Pick a location before exploring.", "info");
@@ -5135,94 +5352,8 @@ async function exploreRegion() {
 
     if (ev.type === "enemy_encounter" && ev.enemy) {
       showCombat(ev);
-    } else if (ev.type === "treasure_found") {
-      G.activeCombat = null;
-      setAdventureMode("event");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("💰 Treasure Found", ev.description);
-      appendSharedLog(
-        `<div class="log-treasure">💰 ${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
-      if (ev.treasureGold)
-        appendSharedLog(
-          `<div class="log-exp">+${ev.treasureGold} Gold!</div>`,
-          ["gp-log", "event-log"],
-        );
-    } else if (ev.type === "rare_event") {
-      G.activeCombat = null;
-      setAdventureMode("story");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("✨ Rare Event", ev.description);
-      appendSharedLog(
-        `<div class="log-rare">✨ ${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
-    } else if (ev.type === "npc_encounter") {
-      G.activeCombat = null;
-      setAdventureMode("story");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("💬 Traveler Encounter", ev.description);
-      appendSharedLog(
-        `<div class="log-dialogue">💬 ${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
-    } else if (ev.type === "lore_event") {
-      G.activeCombat = null;
-      setAdventureMode("story");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState(
-        `📖 ${ev.loreTitle || "Ancient Scroll"}`,
-        ev.loreContent || ev.description,
-      );
-      appendSharedLog(
-        `
-                <div class="log-info" style="margin: 8px 0; padding: 10px; background:rgba(79, 195, 247, 0.1); border-left: 3px solid var(--accent); border-radius: 4px">
-                    <strong style="color:var(--accent)">📖 ${ev.loreTitle || "Ancient Scroll"}</strong><br/>
-                    <p style="margin-top:4px; font-style:italic">${ev.loreContent || ev.description}</p>
-                </div>
-            `,
-        ["gp-log", "event-log"],
-      );
-    } else if (ev.type === "ambient_event") {
-      G.activeCombat = null;
-      setAdventureMode("event");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("☁️ Ambient Event", ev.description);
-      appendSharedLog(
-        `<div class="log-info" style="font-style:italic; color:var(--muted)">☁️ ${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
-    } else if (ev.type === "rest_event") {
-      G.activeCombat = null;
-      setAdventureMode("event");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("🧘 Safe Rest", ev.description);
-      appendSharedLog(
-        `<div class="log-victory">🧘 ${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
-      if (ev.restLog)
-        appendSharedLog(
-          `<div class="log-exp">${ev.restLog}</div>`,
-          ["gp-log", "event-log"],
-        );
     } else {
-      G.activeCombat = null;
-      setAdventureMode("event");
-      toggleMapCombatStage(false);
-      syncMapSelectionState();
-      setMapEventState("🗺️ Exploration Update", ev.description);
-      appendSharedLog(
-        `<div class="log-info">${ev.description}</div>`,
-        ["gp-log", "event-log"],
-      );
+      presentResolvedJourneyEvent(ev);
     }
   } catch {
     appendSharedLog(
