@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Procedural Fantasy RPG</title>
+    <title>Realm Chronicle</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
       rel="stylesheet"
@@ -73,8 +73,8 @@
     <script type="module" src="/src/client/translateWidget.ts"></script>
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
-        <h1>⚔ Procedural Fantasy RPG</h1>
-        <p>A world that remembers every legend, route, and battle</p>
+        <h1>⚔ Realm Chronicle</h1>
+        <p>A realm that remembers every hero, route, and battle</p>
       </div>
       <div class="landing-shell">
         <div class="landing-grid">
@@ -82,7 +82,7 @@
             <div>
               <div class="landing-kicker">Welcome to the Realm</div>
               <h2 class="landing-title">
-                Choose a legend, enter a world, and let the journey grow.
+                Choose a hero, enter a realm, and let the journey grow.
               </h2>
               <p class="landing-copy">
                 Start with a hero, pick how you want to enter the realm, then
@@ -92,16 +92,16 @@
             </div>
             <div class="landing-pillars">
               <div class="landing-pillar">
-                <strong>Legends</strong>
+                <strong>Heroes</strong>
                 <span>Forge a hero with a signature skill and a history that stays with them.</span>
               </div>
               <div class="landing-pillar">
-                <strong>Worlds</strong>
-                <span>Keep seeded realms, custom worlds, and saved routes in one place.</span>
+                <strong>Realms</strong>
+                <span>Keep generated realms, custom realms, and saved routes in one place.</span>
               </div>
               <div class="landing-pillar">
                 <strong>Traversal</strong>
-                <span>Travel node to node, trigger encounters, and resume where you left off.</span>
+                <span>Travel from area to area, trigger encounters, and continue where you left off.</span>
               </div>
             </div>
           </div>
@@ -224,31 +224,31 @@
       <div class="header">
         <div class="top-nav-shell">
           <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">
-            🏰 Hub
+            🏠 Home
           </button>
           <button
             class="btn btn-nav"
             data-nav-page="adventure"
             onclick="showAdventurePage()"
           >
-            ⚔ Adventure
+            🧭 Journey
           </button>
           <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">
-            🗺 Map
+            🗺 World Map
           </button>
           <button
             class="btn btn-nav"
             data-nav-page="forge"
             onclick="showForge('menu')"
           >
-            ⚒ Forge
+            ⚒ Create Hero
           </button>
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">
-            📚 Vault
+            🧙 Hero Archive
           </button>
           <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
-        <h1>⚔ Procedural Fantasy RPG</h1>
+        <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
       </div>
 
@@ -257,7 +257,7 @@
         <div id="screen-menu" class="screen fade-in">
           <div class="hub-grid">
             <div class="card hub-hero-card">
-              <div class="landing-kicker">Legend Hub</div>
+              <div class="landing-kicker">Home</div>
               <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)">
                 Welcome to the Realm
               </h2>
@@ -268,8 +268,8 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label">World Archive</div>
-                  <div class="value" id="hub-world-count">0 worlds</div>
+                  <div class="label">Realm Archive</div>
+                  <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
                   <div class="label">Saved Journeys</div>
@@ -283,30 +283,30 @@
 
               <div class="hub-action-grid">
                 <button class="btn btn-primary" onclick="startWizard()">
-                  ⚔ Start New Adventure
+                  🧭 Begin New Journey
                 </button>
                 <button class="btn btn-action" onclick="showMapPage()">
-                  🗺 View World Map
+                  🗺 Open World Map
                 </button>
                 <button class="btn btn-action" onclick="showForge('menu')">
-                  ⚒ Forge Your Legend
+                  ⚒ Create Hero
                 </button>
                 <button class="btn btn-action" onclick="showVault()">
-                  📚 Open The Vault
+                  🧙 Open Hero Archive
                 </button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker">Current Expedition</div>
+              <div class="landing-kicker">Current Journey</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
-                A quick snapshot of the latest expedition before you return to
-                the dedicated adventure screen.
+                A quick snapshot of the latest journey before you return to
+                the dedicated journey screen.
               </p>
               <div id="hub-current-journey" class="hub-current-shell">
                 <div class="hub-current-empty">
-                  <div class="hub-current-title">Loading expedition data...</div>
+                  <div class="hub-current-title">Loading current journey...</div>
                 </div>
               </div>
             </div>
@@ -335,9 +335,9 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>🗂️ World Archive Preview</h3>
+                  <h3>🗂️ Realm Archive Preview</h3>
                   <p class="hub-panel-copy">
-                    Saved worlds with just enough detail to choose where to go next.
+                    Saved realms with just enough detail to choose where to go next.
                   </p>
                 </div>
                 <button class="btn btn-action" onclick="fetchCreatedWorlds()">
@@ -600,7 +600,7 @@
                     margin-bottom: 10px;
                   "
                 >
-                  <h3 style="margin-bottom: 0">🗂️ World Archive</h3>
+                  <h3 style="margin-bottom: 0">🗂️ Realm Archive</h3>
                   <button
                     class="btn btn-action"
                     type="button"
@@ -612,7 +612,7 @@
                 </div>
                 <div id="created-world-list" class="world-archive-list">
                   <div class="world-record-empty">
-                    No worlds recorded yet. Start an adventure and it will appear
+                    No realms recorded yet. Begin a journey and it will appear
                     here.
                   </div>
                 </div>
@@ -805,7 +805,7 @@
                 id="gp-char-class"
                 style="font-size: 10px; color: var(--muted)"
               >
-                Level 1 Adventurer
+                Level 1 Hero
               </div>
             </div>
 
@@ -1279,9 +1279,9 @@
                 margin-bottom: 20px;
               "
             >
-              <h2>📚 The Legend Vault</h2>
+              <h2>📚 Hero Archive</h2>
               <button class="btn btn-primary" onclick="showForge('vault')">
-                + Forge Legend
+                + Create Hero
               </button>
             </div>
             <div id="vault-full-list" class="vault-grid">
@@ -1309,7 +1309,7 @@
               "
             >
               <div style="font-size: 24px">⚒️</div>
-              <h2 style="margin: 0">Forge Your Legend</h2>
+              <h2 style="margin: 0">Create Hero</h2>
             </div>
 
             <div id="forge-step-1">
@@ -1337,7 +1337,7 @@
 
               <!-- Basic Identity -->
               <div style="margin-bottom: 20px">
-                <label>Legend Name</label>
+                <label>Hero Name</label>
                 <input
                   type="text"
                   id="forge-name"

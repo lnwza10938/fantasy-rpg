@@ -1382,8 +1382,8 @@ function renderAdventureLandingState() {
   toggleMapCombatStage(false);
   clearAdventureLog();
   setMapEventState(
-    "⚔ Adventure Chamber",
-    "Resume a saved journey from the hub, or start a new adventure to choose a world and legend.",
+    "🧭 Journey Chamber",
+    "Continue a saved journey from Home, or begin a new journey to choose a realm and hero.",
   );
   renderRegions();
 }
@@ -1848,7 +1848,7 @@ function syncMapSelectionState() {
         "Move along connected routes from your current node. Selecting a reachable region will travel there and immediately trigger the next exploration event.";
     if (chipEl) {
       chipEl.textContent = currentRegion
-        ? `Current Node • ${currentRegion.name}`
+        ? `Current Area • ${currentRegion.name}`
         : "No region selected";
     }
     renderAdventureCommandDeck();
@@ -1881,14 +1881,14 @@ function syncMapSelectionState() {
               selectedPathContext.evaluation.blockedReason,
             )
           : "This node is not directly connected to your current position.";
-    copyEl.textContent = `${landmark}. Danger ${G.selectedRegion.dangerLevel}. Known threats: ${enemyList}. Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
+    copyEl.textContent = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
   }
   if (chipEl) {
     chipEl.textContent = isSelectedCurrent
-      ? `Current Node • ${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel}`
+      ? `Current Area • ${G.selectedRegion.name} • Threat Level ${G.selectedRegion.dangerLevel}`
       : selectedPathContext
-        ? `${G.selectedRegion.name} • ${pathKindLabel(selectedPathContext.path.kind)} • Danger ${G.selectedRegion.dangerLevel}`
-        : `${G.selectedRegion.name} • Danger ${G.selectedRegion.dangerLevel} • ${landmark}`;
+        ? `${G.selectedRegion.name} • ${pathKindLabel(selectedPathContext.path.kind)} • Threat Level ${G.selectedRegion.dangerLevel}`
+        : `${G.selectedRegion.name} • Threat Level ${G.selectedRegion.dangerLevel} • ${landmark}`;
   }
   if (!G.activeCombat) setAdventureMode("map");
   renderAdventureCommandDeck();
@@ -2695,7 +2695,7 @@ async function fetchCreatedWorlds() {
   const listEl = document.getElementById("created-world-list");
   if (listEl) {
     listEl.innerHTML =
-      '<div class="world-record-empty">Loading created worlds...</div>';
+      '<div class="world-record-empty">Loading created realms...</div>';
   }
 
   try {
@@ -2709,7 +2709,7 @@ async function fetchCreatedWorlds() {
 
   setHubSummaryValue(
     "hub-world-count",
-    `${G.createdWorlds.length} ${G.createdWorlds.length === 1 ? "world" : "worlds"}`,
+    `${G.createdWorlds.length} ${G.createdWorlds.length === 1 ? "realm" : "realms"}`,
   );
 
   renderCreatedWorlds();
@@ -2726,7 +2726,7 @@ function renderCreatedWorlds() {
   if (!G.createdWorlds || G.createdWorlds.length === 0) {
     listEl.innerHTML = `
       <div class="world-record-empty">
-        No worlds recorded yet. Start an adventure and it will appear here.
+        No realms recorded yet. Begin a journey and it will appear here.
       </div>
     `;
     return;
@@ -2810,13 +2810,13 @@ function renderMapPreviewWorldSelector() {
   if (worlds.length === 0) {
     listEl.innerHTML = `
       <div class="map-preview-empty">
-        <div class="map-preview-empty-title">No saved worlds yet</div>
+        <div class="map-preview-empty-title">No saved realms yet</div>
         <div class="map-preview-empty-copy">
-          Start an adventure once, then come back here to track the world as it evolves.
+          Begin a journey once, then come back here to track the realm as it evolves.
         </div>
         <div class="map-preview-empty-actions">
-          <button class="btn btn-primary" onclick="startWizard()">⚔️ Start Adventure</button>
-          <button class="btn btn-action" onclick="showForge('menu')">⚒️ Forge Legend</button>
+          <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey</button>
+          <button class="btn btn-action" onclick="showForge('menu')">⚒️ Create Hero</button>
         </div>
       </div>
     `;
@@ -2846,10 +2846,10 @@ function renderMapPreviewWorldSelector() {
             </div>
             <div class="map-world-card-phase">${phase}</div>
           </div>
-          <div class="map-world-card-meta">Seed ${Number(world.worldSeed) || 0} • ${escapeHtml(updatedAt)}</div>
+          <div class="map-world-card-meta">Generated Realm ${Number(world.worldSeed) || 0} • ${escapeHtml(updatedAt)}</div>
           <div class="map-world-card-actions">
             <span>${isActive ? "Now previewing" : "Load preview"}</span>
-            <span class="map-world-card-link" onclick="event.stopPropagation(); openWorldInAdventure('${world.characterId}', '${safeName}')">Open adventure</span>
+            <span class="map-world-card-link" onclick="event.stopPropagation(); openWorldInAdventure('${world.characterId}', '${safeName}')">Open Journey</span>
           </div>
         </button>
       `;
@@ -3057,7 +3057,7 @@ async function fetchVaultSelections() {
           (c: any) => `
                 <div class="legend-card ${G.selectedLegend?.id === c.id ? "selected" : ""}" onclick="selectLegend('${c.id}', ${JSON.stringify(c).replace(/"/g, "&quot;")})">
                     <div class="name">${c.name}</div>
-                    <div style="font-size:11px; color:var(--muted)">Lv.${c.level} Adventurer</div>
+                    <div style="font-size:11px; color:var(--muted)">Lv.${c.level} Hero</div>
                     <div class="skill-badge" title="${c.skill_data?.mechanics || ""}">🌟 ${c.skill_data?.name || "Innate"}</div>
                 </div>
             `,
@@ -3065,11 +3065,11 @@ async function fetchVaultSelections() {
         .join("");
     } else {
       grid.innerHTML =
-        '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Your vault is empty. Forge a legend first!</div>';
+        '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Your Hero Archive is empty. Create a hero first!</div>';
     }
   } catch (e) {
     grid.innerHTML =
-      '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Error loading vault.</div>';
+      '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Error loading Hero Archive.</div>';
   }
 }
 
@@ -3102,7 +3102,7 @@ async function renderFullVault() {
   const grid = document.getElementById("vault-full-list");
   if (!grid) return;
   grid.innerHTML =
-    '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Opening the archives...</div>';
+    '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Opening the Hero Archive...</div>';
 
   try {
     const legends = await fetchLegendCollection();
@@ -3120,7 +3120,7 @@ async function renderFullVault() {
                       🗑️
                     </button>
                     <div class="name">${c.name}</div>
-                    <div style="font-size:11px; color:var(--muted); margin-bottom:10px">Lv.${c.level} Adventurer</div>
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:10px">Lv.${c.level} Hero</div>
                     <div style="background:rgba(0,0,0,0.2); border-radius:6px; padding:10px; font-size:11px">
                         <div style="color:var(--accent); font-weight:700; margin-bottom:4px">🌟 ${c.skill_data?.name || "Innate Power"}</div>
                         <div style="opacity:0.8; font-style: italic; margin-bottom: 8px; line-height:1.4">${c.skill_data?.description || "No lore description."}</div>
@@ -3143,11 +3143,11 @@ async function renderFullVault() {
         .join("");
     } else {
       grid.innerHTML =
-        '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted);">No legends have been recorded yet.</div>';
+        '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted);">No heroes have been recorded yet.</div>';
     }
   } catch (e) {
     grid.innerHTML =
-      '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Vault connection failed.</div>';
+      '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--red);">Hero Archive connection failed.</div>';
   }
 }
 
@@ -3161,7 +3161,7 @@ function forgeGoStep(step: number) {
       document.getElementById("forge-name") as HTMLInputElement
     )?.value.trim();
     if (!nameVal) {
-      alert("Please enter a name for your legend.");
+      alert("Please enter a name for your hero.");
       return;
     }
   }
@@ -3208,7 +3208,7 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).disabled =
     true;
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).textContent =
-    "Confirm Character Creation ⚔️";
+    "Confirm Hero Creation ⚔️";
   (document.getElementById("forge-error") as HTMLElement).style.display =
     "none";
 
@@ -3531,7 +3531,7 @@ async function confirmForge() {
   const name = nameEl.value.trim();
 
   if (!name) {
-    errEl.textContent = "Please enter a name for your legend.";
+    errEl.textContent = "Please enter a name for your hero.";
     errEl.style.display = "block";
     return;
   }
@@ -3590,7 +3590,7 @@ async function confirmForge() {
     errEl.style.display = "block";
   } finally {
     btn.disabled = false;
-    btn.textContent = "Confirm Character Creation ⚔️";
+    btn.textContent = "Confirm Hero Creation ⚔️";
   }
 }
 
@@ -3817,7 +3817,7 @@ async function submitNewGame() {
         renderRegions();
         updateAllStatusBars();
         fetchCreatedWorlds();
-        showToast("Adventure synced! 🌍", "success");
+        showToast("Journey synced! 🌍", "success");
       } else {
         showToast("Sync issue: " + (j.error || "Server busy"), "error");
       }
@@ -3880,7 +3880,7 @@ function renderHubCurrentJourney() {
       <div class="hub-current-empty">
         <div class="hub-current-title">No active journey yet</div>
         <div class="hub-current-copy">
-          Start a new adventure from the hall below, then return here to track the current expedition.
+          Begin a new journey below, then return here to track your current route.
         </div>
       </div>
     `;
@@ -3906,13 +3906,13 @@ function renderHubCurrentJourney() {
   const safeName = escapeJsSingleQuoted(latest.character_name || "Hero");
 
   shell.innerHTML = `
-    <div class="hub-current-eyebrow">Latest Save</div>
+    <div class="hub-current-eyebrow">Latest Journey</div>
     <div class="hub-current-title">${characterName}</div>
     <div class="hub-current-meta">${worldName} • ${presetName}</div>
     <div class="hub-current-copy">${lastLog}</div>
     <div class="hub-current-actions">
       <button class="btn btn-primary" onclick="loadGame('${latest.character_id}', '${safeName}')">
-        ⚔ Resume Journey
+        🧭 Continue Journey
       </button>
       <button class="btn btn-action" onclick="showMapPage()">
         🗺 World Map
@@ -3932,11 +3932,11 @@ function renderHubRecentJourneys() {
       <div class="hub-list-empty">
         <div class="hub-list-empty-title">No journeys recorded yet</div>
         <div class="hub-list-empty-copy">
-          Forge a legend, then start an adventure to create the first save route.
+          Create a hero, then begin a journey to record the first saved route.
         </div>
         <div class="hub-list-empty-actions">
-          <button class="btn btn-primary" onclick="startWizard()">⚔ Start New Adventure</button>
-          <button class="btn btn-action" onclick="showForge('menu')">⚒ Forge Legend</button>
+          <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey</button>
+          <button class="btn btn-action" onclick="showForge('menu')">⚒ Create Hero</button>
         </div>
       </div>
     `;
@@ -3964,7 +3964,7 @@ function renderHubRecentJourneys() {
           <div class="hub-list-card-copy">${escapeHtml(truncateText(save.last_action_log || "Resume the last recorded turn.", 74))}</div>
           <div class="hub-list-card-meta">
             <span>${escapeHtml(updatedAt)}</span>
-            <span>Resume</span>
+            <span>Continue</span>
           </div>
         </button>
       `;
@@ -3981,9 +3981,9 @@ async function renderHubLegendPreview() {
     if (legends.length === 0) {
       listEl.innerHTML = `
         <div class="hub-list-empty">
-          <div class="hub-list-empty-title">No legends forged yet</div>
+          <div class="hub-list-empty-title">No heroes created yet</div>
           <div class="hub-list-empty-copy">
-            Create your first legend in Forge, then come back here for a quick shelf view.
+            Create your first hero in Create Hero, then come back here for a quick shelf view.
           </div>
         </div>
       `;
@@ -4020,7 +4020,7 @@ async function renderHubLegendPreview() {
   } catch {
     listEl.innerHTML = `
       <div class="hub-list-empty">
-        <div class="hub-list-empty-title">Vault snapshot unavailable</div>
+        <div class="hub-list-empty-title">Hero Archive snapshot unavailable</div>
         <div class="hub-list-empty-copy">
           The hub could not load your recent legends right now.
         </div>
@@ -4037,7 +4037,7 @@ function renderHubWorldArchivePreview() {
   if (worlds.length === 0) {
     listEl.innerHTML = `
       <div class="hub-list-empty">
-        <div class="hub-list-empty-title">No worlds archived yet</div>
+        <div class="hub-list-empty-title">No realms archived yet</div>
         <div class="hub-list-empty-copy">
           Once a legend enters a realm, the saved world archive will surface here.
         </div>
@@ -4433,7 +4433,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           </div>
           <div class="map-node-meta">
             <span>${escapeHtml(node.landmark || region.landmark || "Waystation")}</span>
-            <span>Danger ${escapeHtml(region.dangerLevel)}</span>
+            <span>Threat Level ${escapeHtml(region.dangerLevel)}</span>
           </div>
           <div class="map-node-enemies">${escapeHtml(enemyList)}</div>
           <div class="map-node-flags">
@@ -4541,7 +4541,7 @@ function selectRegion(i: number) {
           ? "This route is ready."
           : formatTraversalBlockedReason(selectedPathContext.evaluation.blockedReason)
       }`
-    : `${G.selectedRegion.landmark || "Waystation"} • Danger ${G.selectedRegion.dangerLevel}. Explore this region to trigger story events, loot, or monster encounters.`;
+    : `${G.selectedRegion.landmark || "Waystation"} • Threat Level ${G.selectedRegion.dangerLevel}. Explore this area to trigger story events, loot, or enemy encounters.`;
   setMapEventState(
     `🧭 ${G.selectedRegion.name} is ready`,
     selectionCopy,
@@ -4598,7 +4598,7 @@ function updateHUD() {
 
   // ── New 4-panel LEFT sidebar ──
   f("gp-char-name", name);
-  f("gp-char-class", `Level ${s.level} Adventurer`);
+  f("gp-char-class", `Level ${s.level} Hero`);
   const hpPct = Math.round((s.hp / s.maxHP) * 100);
   const mpPct = Math.round((s.mana / s.maxMana) * 100);
   const expPct = Math.round((s.exp / (s.level * 100)) * 100);

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en" data-app-page="dev-map-editor">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Procedural Fantasy RPG - Map Editor</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/assets/devMapEditor-CmnkBQQ8.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/translateWidget-BWNiU4J2.js">
+    <link rel="stylesheet" crossorigin href="/assets/translateWidget-BztCfZzi.css">
+  </head>
+  <body class="dev-panel-page dev-map-editor-page">
+    <a href="/dev-panel" class="dev-launch-btn dev-launch-btn-inline">← Dev Panel</a>
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+        <button class="lang-btn" data-lang="fr" type="button">🇫🇷 Français</button>
+        <button class="lang-btn" data-lang="es" type="button">🇪🇸 Español</button>
+        <button class="lang-btn" data-lang="de" type="button">🇩🇪 Deutsch</button>
+        <button class="lang-btn" data-lang="ru" type="button">🇷🇺 Русский</button>
+        <button class="lang-btn" data-lang="ar" type="button">🇸🇦 العربية</button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="auto-toggle" style="border-top: none; margin-top: 0">
+        <span style="color: var(--accent)">Mobile Layout (Force)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ui-mode-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="dev-map-shell">
+      <header class="dev-map-hero">
+        <div>
+          <div class="dev-panel-kicker">World Authoring</div>
+          <h1 class="dev-panel-title">Map Editor</h1>
+          <p class="dev-panel-copy">
+            Edit world topology visually, review the authored delta, validate the graph,
+            then save the result into <code>world_overrides</code> without mutating the
+            canonical world definition directly.
+          </p>
+        </div>
+        <div class="dev-map-hero-links">
+          <a href="/dev-assets" class="btn btn-action">Asset Library</a>
+          <a href="/dev-terrain" class="btn btn-action">Terrain Recipes</a>
+        </div>
+      </header>
+
+      <section class="dev-map-topbar">
+        <div class="dev-map-topbar-main">
+          <div class="dev-panel-kicker">Map Editor</div>
+          <div class="dev-map-world-line">
+            <strong id="map-editor-world-name">No world selected</strong>
+            <span id="map-editor-world-meta">Choose a canonical world to begin.</span>
+          </div>
+        </div>
+        <div class="dev-map-topbar-actions">
+          <select id="map-editor-world-select"></select>
+          <select id="map-editor-override-select"></select>
+          <button id="map-editor-preview-btn" class="btn btn-action" type="button">
+            Preview World
+          </button>
+          <button id="map-editor-validate-btn" class="btn btn-action" type="button">
+            Validate
+          </button>
+          <button id="map-editor-save-draft-btn" class="btn btn-action" type="button">
+            Save Draft
+          </button>
+          <button id="map-editor-reset-btn" class="btn btn-action" type="button">
+            Reset Draft
+          </button>
+          <button id="map-editor-save-btn" class="btn btn-primary" type="button">
+            Save Override
+          </button>
+        </div>
+      </section>
+
+      <div class="dev-inline-form dev-map-access-row">
+        <div class="dev-panel-topbar-card">
+          <div class="dev-panel-card-title">Dev Access</div>
+          <div class="dev-panel-card-copy" id="map-editor-key-copy">
+            Checking whether this page requires a key...
+          </div>
+        </div>
+        <input id="map-editor-dev-key" type="password" placeholder="Enter dev key if required" />
+        <button id="map-editor-save-key" class="btn btn-action" type="button">Save Key</button>
+        <div id="map-editor-status" class="dev-inline-status"></div>
+      </div>
+
+      <section class="dev-map-layout">
+        <aside class="dev-map-sidebar">
+          <div class="dev-map-panel">
+            <div class="dev-panel-card-title">Worlds</div>
+            <input id="map-editor-search" type="text" placeholder="Search worlds..." />
+            <div id="map-editor-world-list" class="dev-map-world-list"></div>
+          </div>
+
+          <div class="dev-map-panel">
+            <div class="dev-panel-card-title">Tools</div>
+            <div class="dev-map-tool-grid">
+              <button id="map-tool-select" class="btn btn-action active" type="button">🖱 Select</button>
+              <button id="map-tool-move" class="btn btn-action" type="button">✥ Move Node</button>
+              <button id="map-tool-add-node" class="btn btn-action" type="button">⊕ Add Node</button>
+              <button id="map-tool-add-path" class="btn btn-action" type="button">⇄ Add Path</button>
+              <button id="map-tool-delete" class="btn btn-action" type="button">⌫ Delete</button>
+              <button id="map-tool-pan" class="btn btn-action" type="button">✋ Pan</button>
+            </div>
+          </div>
+
+          <div class="dev-map-panel">
+            <div class="dev-panel-card-title">Layers</div>
+            <div class="dev-map-checks">
+              <label class="dev-topology-check"><input id="map-layer-paths" type="checkbox" checked /> <span>Paths</span></label>
+              <label class="dev-topology-check"><input id="map-layer-nodes" type="checkbox" checked /> <span>Nodes</span></label>
+              <label class="dev-topology-check"><input id="map-layer-labels" type="checkbox" checked /> <span>Labels</span></label>
+              <label class="dev-topology-check"><input id="map-layer-regions" type="checkbox" checked /> <span>Region Meta</span></label>
+              <label class="dev-topology-check"><input id="map-layer-locked" type="checkbox" checked /> <span>Hidden / Fogged</span></label>
+              <label class="dev-topology-check"><input id="map-layer-terrain" type="checkbox" checked /> <span>Terrain Overlay</span></label>
+            </div>
+          </div>
+
+          <div class="dev-map-panel">
+            <div class="dev-panel-card-title">Quick Actions</div>
+            <div class="dev-map-tool-grid">
+              <button id="map-editor-auto-layout" class="btn btn-action" type="button">⟲ Auto Layout</button>
+              <button id="map-editor-center" class="btn btn-action" type="button">◎ Center Map</button>
+              <button id="map-editor-duplicate" class="btn btn-action" type="button">⎘ Duplicate Node</button>
+              <button id="map-editor-branch" class="btn btn-action" type="button">⑂ Create Branch</button>
+            </div>
+          </div>
+        </aside>
+
+        <main class="dev-map-canvas-shell">
+          <div class="dev-map-canvas-frame">
+            <div id="map-editor-canvas" class="dev-topology-board dev-map-canvas"></div>
+          </div>
+          <div class="dev-map-validation-panel">
+            <div class="dev-panel-kicker">Validation</div>
+            <div id="map-editor-validation" class="dev-map-validation-list"></div>
+          </div>
+        </main>
+
+        <aside class="dev-map-inspector-shell">
+          <div class="dev-map-panel">
+            <div class="dev-panel-kicker">Selection</div>
+            <div id="map-editor-selection-title" class="dev-topology-selection-title">World Layout</div>
+            <div id="map-editor-selection-copy" class="dev-topology-selection-copy">
+              Select a node or path to edit it. All edits update the override draft below.
+            </div>
+          </div>
+
+          <div class="dev-map-panel">
+            <div class="dev-panel-kicker">Layout Inspector</div>
+            <div class="dev-topology-form-grid">
+              <label class="dev-topology-field">
+                <span>Width</span>
+                <input id="map-editor-width" type="number" min="320" step="10" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Height</span>
+                <input id="map-editor-height" type="number" min="240" step="10" />
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Start Region</span>
+                <select id="map-editor-start-region"></select>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Goal Region</span>
+                <select id="map-editor-goal-region"></select>
+              </label>
+            </div>
+          </div>
+
+          <div id="map-editor-node-card" class="dev-map-panel">
+            <div class="dev-panel-kicker">Node Inspector</div>
+            <div class="dev-topology-form-grid">
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Region</span>
+                <select id="map-editor-node-region"></select>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Name</span>
+                <input id="map-editor-node-name" type="text" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Biome</span>
+                <input id="map-editor-node-biome" type="text" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Danger</span>
+                <input id="map-editor-node-danger" type="number" min="0" step="1" />
+              </label>
+              <label class="dev-topology-field">
+                <span>X</span>
+                <input id="map-editor-node-x" type="number" step="1" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Y</span>
+                <input id="map-editor-node-y" type="number" step="1" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Tier</span>
+                <input id="map-editor-node-tier" type="number" min="0" step="1" />
+              </label>
+              <label class="dev-topology-field">
+                <span>Icon</span>
+                <input id="map-editor-node-icon" type="text" maxlength="8" />
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Landmark</span>
+                <input id="map-editor-node-landmark" type="text" />
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Accent</span>
+                <input id="map-editor-node-accent" type="text" placeholder="#d4a65a" />
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-node-start" type="checkbox" />
+                <span>Is Start</span>
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-node-goal" type="checkbox" />
+                <span>Is Goal</span>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Enemy Pool</span>
+                <input id="map-editor-node-enemies" type="text" placeholder="widow, husk, banshee" />
+              </label>
+            </div>
+          </div>
+
+          <div id="map-editor-path-card" class="dev-map-panel">
+            <div class="dev-panel-kicker">Path Inspector</div>
+            <div class="dev-topology-form-grid">
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>From</span>
+                <select id="map-editor-path-from"></select>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>To</span>
+                <select id="map-editor-path-to"></select>
+              </label>
+              <label class="dev-topology-field">
+                <span>Kind</span>
+                <select id="map-editor-path-kind">
+                  <option value="road">road</option>
+                  <option value="hazard">hazard</option>
+                  <option value="secret">secret</option>
+                </select>
+              </label>
+              <label class="dev-topology-field">
+                <span>Difficulty</span>
+                <input id="map-editor-path-difficulty" type="number" min="1" step="1" />
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Visibility</span>
+                <select id="map-editor-path-visibility">
+                  <option value="visible">visible</option>
+                  <option value="fogged">fogged</option>
+                  <option value="hidden">hidden</option>
+                </select>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Requirements</span>
+                <input id="map-editor-path-requirements" type="text" placeholder="level_5, key_crystal" />
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-path-gated" type="checkbox" />
+                <span>Locked / Gated</span>
+              </label>
+              <label class="dev-topology-check">
+                <input id="map-editor-path-one-way" type="checkbox" />
+                <span>One-way</span>
+              </label>
+              <label class="dev-topology-field dev-topology-field-wide">
+                <span>Travel Effects</span>
+                <input id="map-editor-path-effects" type="text" placeholder="hp_cost:8, reveal:widow_crossing" />
+              </label>
+            </div>
+          </div>
+
+          <div class="dev-map-panel">
+            <div class="dev-panel-kicker">Override Draft</div>
+            <div id="map-editor-draft-meta" class="dev-topology-selection-copy">
+              No world selected.
+            </div>
+            <div id="map-editor-draft-summary" class="dev-map-draft-summary"></div>
+            <textarea id="map-editor-draft-json" class="dev-editor-json dev-map-draft-json" readonly></textarea>
+          </div>
+        </aside>
+      </section>
+    </div>
+
+  </body>
+</html>
