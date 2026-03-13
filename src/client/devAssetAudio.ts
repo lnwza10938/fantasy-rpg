@@ -1,4 +1,9 @@
 import { uploadDevFile } from "./devAssetUpload.js";
+import {
+  buildNameDrivenAutofillPrompt,
+  mergeAutofillRecord,
+  requestDevAIDraft,
+} from "./devAIAutofill.js";
 
 interface AudioSourceSnapshot {
   key: string;
@@ -47,6 +52,13 @@ function safeObject(value: unknown) {
 
 function setStatus(text: string, isError = false) {
   const el = document.getElementById("audio-status");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("error", isError);
+}
+
+function setAIStatus(text: string, isError = false) {
+  const el = document.getElementById("audio-ai-status");
   if (!el) return;
   el.textContent = text;
   el.classList.toggle("error", isError);
@@ -213,6 +225,49 @@ async function saveAudioRecord() {
   await loadAudioRecords();
 }
 
+async function autofillAudioRecord() {
+  const currentRecord = getCurrentRecord();
+  const anchorName = String(currentRecord.title || "").trim();
+  if (!anchorName) {
+    setAIStatus("Enter a title first so AI knows what kind of audio entry to build.", true);
+    return;
+  }
+
+  const buttonEl = document.getElementById("audio-autofill") as HTMLButtonElement | null;
+  if (buttonEl) buttonEl.disabled = true;
+  setAIStatus("AI is filling the audio record...");
+
+  try {
+    const response = await requestDevAIDraft(
+      "audio_entries",
+      buildNameDrivenAutofillPrompt({
+        entityLabel: "audio asset",
+        anchorName,
+        summary: String(currentRecord.summary || ""),
+        notes: String(currentRecord.body_text || ""),
+        extraLines: [
+          `Biome hint: ${String(safeObject(currentRecord.metadata_json).biome || "")}`,
+          `Audio type hint: ${String(safeObject(currentRecord.metadata_json).audioType || "")}`,
+          `Mood hint: ${String(safeObject(currentRecord.metadata_json).mood || "")}`,
+          `Intensity hint: ${String(safeObject(currentRecord.metadata_json).intensity || "")}`,
+          `Intended use hint: ${String(safeObject(currentRecord.metadata_json).intendedUse || "")}`,
+          "Prefer practical, lore-friendly metadata for ambience, battle music, or sound cues.",
+        ],
+      }),
+      currentRecord,
+    );
+
+    const mergedRecord = mergeAutofillRecord(currentRecord, response.record);
+    fillForm(mergedRecord, state.mode);
+    setAIStatus(response.warning || "Audio fields filled from the current title.", !!response.fallback);
+    setStatus("Audio form updated with AI suggestions.");
+  } catch (error: any) {
+    setAIStatus(error.message || "Could not autofill the audio record", true);
+  } finally {
+    if (buttonEl) buttonEl.disabled = false;
+  }
+}
+
 function bindFileInput() {
   const fileInput = document.getElementById("audio-file") as HTMLInputElement | null;
   fileInput?.addEventListener("change", async () => {
@@ -267,6 +322,9 @@ function bindFileInput() {
 }
 
 function bindControls() {
+  document.getElementById("audio-autofill")?.addEventListener("click", async () => {
+    await autofillAudioRecord();
+  });
   document.getElementById("audio-reset")?.addEventListener("click", () => fillForm(undefined, "create"));
   document.getElementById("audio-save")?.addEventListener("click", async () => {
     try {

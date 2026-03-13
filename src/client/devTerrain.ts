@@ -1,3 +1,9 @@
+import {
+  buildNameDrivenAutofillPrompt,
+  mergeAutofillRecord,
+  requestDevAIDraft,
+} from "./devAIAutofill.js";
+
 interface TerrainContextRecord extends Record<string, unknown> {}
 
 const DEV_KEY_STORAGE = "rpg_dev_panel_key";
@@ -66,6 +72,13 @@ function slugify(value: string) {
 
 function setStatus(text: string, isError = false) {
   const el = document.getElementById("terrain-status");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("error", isError);
+}
+
+function setAIStatus(text: string, isError = false) {
+  const el = document.getElementById("terrain-ai-status");
   if (!el) return;
   el.textContent = text;
   el.classList.toggle("error", isError);
@@ -324,7 +337,57 @@ async function saveRecipe() {
   await loadContext();
 }
 
+async function autofillRecipe() {
+  const currentRecord = getCurrentRecord();
+  const anchorName = String(currentRecord.title || "").trim();
+  if (!anchorName) {
+    setAIStatus("Enter a title first so AI can infer the terrain recipe.", true);
+    return;
+  }
+
+  const buttonEl = document.getElementById("terrain-autofill") as HTMLButtonElement | null;
+  if (buttonEl) buttonEl.disabled = true;
+  setAIStatus("AI is filling the terrain recipe...");
+
+  try {
+    const metadata = safeObject(currentRecord.metadata_json);
+    const response = await requestDevAIDraft(
+      "terrain_recipes",
+      buildNameDrivenAutofillPrompt({
+        entityLabel: "terrain recipe",
+        anchorName,
+        summary: String(currentRecord.summary || ""),
+        notes: String(currentRecord.body_text || ""),
+        extraLines: [
+          `Biome hint: ${String(metadata.biome || "")}`,
+          `Terrain type hint: ${String(metadata.terrainType || "")}`,
+          `Applies to hint: ${String(metadata.appliesTo || "")}`,
+          `Render layer hint: ${String(metadata.renderLayer || "")}`,
+          `Intended use hint: ${String(metadata.intendedUse || "")}`,
+          "Keep existing linked assets, slices, audio references, and palette colors unless the AI has a clearly better filled value.",
+        ],
+      }),
+      currentRecord,
+    );
+
+    const mergedRecord = mergeAutofillRecord(currentRecord, response.record);
+    fillForm(mergedRecord, state.mode);
+    setAIStatus(
+      response.warning || "Terrain recipe fields filled from the current title.",
+      !!response.fallback,
+    );
+    setStatus("Terrain recipe updated with AI suggestions.");
+  } catch (error: any) {
+    setAIStatus(error.message || "Could not autofill the terrain recipe", true);
+  } finally {
+    if (buttonEl) buttonEl.disabled = false;
+  }
+}
+
 function bindControls() {
+  document.getElementById("terrain-autofill")?.addEventListener("click", async () => {
+    await autofillRecipe();
+  });
   document.getElementById("terrain-save")?.addEventListener("click", async () => {
     try {
       await saveRecipe();
