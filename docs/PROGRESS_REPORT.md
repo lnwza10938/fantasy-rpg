@@ -218,6 +218,7 @@ Current status:
 
 - core atlas values are now documented and available for frontend use
 - route cleanup has improved visual consistency
+- main player-shell pages now use atlas-dark surfaces and gold hierarchy instead of the older bright blue / green dashboard direction
 - several pages still contain older visual remnants from earlier UI passes
 
 Still to do:
