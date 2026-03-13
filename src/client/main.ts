@@ -2290,6 +2290,7 @@ function renderAdventureCommandDeck() {
     if (isSelectedCurrent) {
       stateLabel = "Explore";
       title = `Explore ${G.selectedRegion.name}`;
+      copy = "Current location";
       dialogue = `${landmark} awaits. Exploring here can reveal treasure, story scenes, rest points, or monsters.`;
       actions = [
         commandButtonMarkup({
@@ -2317,6 +2318,7 @@ function renderAdventureCommandDeck() {
     } else if (selectedPathContext && isSelectedReachable) {
       stateLabel = pathKindLabel(selectedPathContext.path.kind);
       title = `Travel to ${G.selectedRegion.name}`;
+      copy = "Reachable route";
       dialogue = `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. ${
         selectedPathContext.path.requirements?.length
           ? `Requirements: ${selectedPathContext.path.requirements
@@ -2383,6 +2385,7 @@ function renderAdventureCommandDeck() {
     } else {
       stateLabel = "Detached";
       title = `${G.selectedRegion.name} is out of reach`;
+      copy = "Not connected";
       dialogue = `${landmark}. This location belongs to the realm, but not to your immediate route options.`;
       actions = [
         commandButtonMarkup({
@@ -2410,6 +2413,7 @@ function renderAdventureCommandDeck() {
     }
   } else if (currentRegion) {
     title = `${currentRegion.name} is your current area`;
+    copy = "Current location";
     dialogue = `${currentRegion.landmark || "Waystation"} is your anchor point. Choose to act here or chart a reachable route next.`;
   }
 
