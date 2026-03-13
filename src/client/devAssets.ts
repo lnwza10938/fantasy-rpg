@@ -1,3 +1,5 @@
+import { uploadDevFile } from "./devAssetUpload.js";
+
 interface AssetSourceSnapshot {
   key: string;
   label: string;
@@ -125,6 +127,7 @@ function getCurrentRecordFromForm(): Record<string, unknown> {
 
   const metadata_json: Record<string, unknown> = {
     ...safeObject(source.defaultRecord.metadata_json),
+    ...safeObject(getWorkingRecord().metadata_json),
     biome: (document.getElementById("asset-biome") as HTMLInputElement)?.value?.trim() || "",
     terrainType:
       (document.getElementById("asset-terrain-type") as HTMLInputElement)?.value?.trim() || "",
@@ -632,92 +635,115 @@ function bindFileInput() {
   fileInput?.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
+    try {
+      state.selectedFileName = file.name;
+      state.review = null;
+      renderReview();
 
-    state.selectedFileName = file.name;
-    state.review = null;
-    renderReview();
+      const source = getSource();
+      if (!source) return;
 
-    const source = getSource();
-    if (!source) return;
+      const working = getWorkingRecord();
+      const title = inferTitleFromFilename(file.name);
+      const titleEl = document.getElementById("asset-title") as HTMLInputElement | null;
+      const slugEl = document.getElementById("asset-slug") as HTMLInputElement | null;
+      if (titleEl && !titleEl.value.trim()) titleEl.value = title;
+      if (slugEl && !slugEl.value.trim()) slugEl.value = slugify(title);
 
-    const working = getWorkingRecord();
-    const title = inferTitleFromFilename(file.name);
-    const titleEl = document.getElementById("asset-title") as HTMLInputElement | null;
-    const slugEl = document.getElementById("asset-slug") as HTMLInputElement | null;
-    if (titleEl && !titleEl.value.trim()) titleEl.value = title;
-    if (slugEl && !slugEl.value.trim()) slugEl.value = slugify(title);
+      setInlineStatus("asset-file-meta", `Uploading ${file.name} to the server...`);
 
-    if (file.type.startsWith("text/") || /\.(txt|md|story|json)$/i.test(file.name)) {
-      const text = await file.text();
-    setWorkingRecord({
-      ...working,
-      mime_type: file.type || "text/plain",
-      body_text: text,
-      content_kind: source.defaultRecord.content_kind || "text",
+      const isTextFile =
+        file.type.startsWith("text/") || /\.(txt|md|story|json)$/i.test(file.name);
+      const uploaded = await uploadDevFile(file, {
+        sourceKey: source.key,
+        preferredSlug: slugEl?.value?.trim() || slugify(title),
       });
-      const bodyTextEl = document.getElementById("asset-body-text") as HTMLTextAreaElement | null;
-      if (bodyTextEl) bodyTextEl.value = text;
-      setInlineStatus("asset-file-meta", `Loaded text file: ${file.name}`);
+
+      let width = 0;
+      let height = 0;
+      if (file.type.startsWith("image/")) {
+        await new Promise<void>((resolve) => {
+          const image = new Image();
+          const objectUrl = URL.createObjectURL(file);
+          image.onload = () => {
+            width = image.naturalWidth || 0;
+            height = image.naturalHeight || 0;
+            URL.revokeObjectURL(objectUrl);
+            resolve();
+          };
+          image.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve();
+          };
+          image.src = objectUrl;
+        });
+      }
+
+      const text = isTextFile ? await file.text() : "";
+
+      setWorkingRecord({
+        ...working,
+        file_url: uploaded.fileUrl,
+        preview_url:
+          uploaded.previewUrl ||
+          (uploaded.contentKind === "image" || uploaded.contentKind === "audio"
+            ? uploaded.fileUrl
+            : working.preview_url || ""),
+        mime_type:
+          uploaded.mimeType || file.type || working.mime_type || "application/octet-stream",
+        content_kind: uploaded.contentKind,
+        body_text: isTextFile ? text : working.body_text || "",
+        metadata_json: {
+          ...safeObject(working.metadata_json),
+          upload: {
+            storageProvider: uploaded.storageProvider,
+            storagePath: uploaded.storagePath,
+            originalName: uploaded.originalName,
+            sizeBytes: uploaded.sizeBytes,
+            uploadedAt: new Date().toISOString(),
+          },
+        },
+      });
+
+      if (isTextFile) {
+        const bodyTextEl = document.getElementById("asset-body-text") as HTMLTextAreaElement | null;
+        if (bodyTextEl) bodyTextEl.value = text;
+      }
+
+      if (width > 0) {
+        const widthEl = document.getElementById("asset-canvas-width") as HTMLInputElement | null;
+        const heightEl = document.getElementById("asset-canvas-height") as HTMLInputElement | null;
+        if (widthEl && !widthEl.value) widthEl.value = String(width);
+        if (heightEl && !heightEl.value) heightEl.value = String(height);
+      }
+
+      setInlineStatus(
+        "asset-file-meta",
+        uploaded.warning
+          ? `Uploaded ${file.name} • ${uploaded.storageProvider} • ${uploaded.warning}`
+          : `Uploaded ${file.name} to ${uploaded.storageProvider}.`,
+        false,
+      );
       renderPreview({
         ...getCurrentRecordFromForm(),
-        body_text: text,
-        mime_type: file.type || "text/plain",
+        body_text: isTextFile ? text : getCurrentRecordFromForm().body_text,
+        file_url: uploaded.fileUrl,
+        preview_url:
+          uploaded.previewUrl ||
+          (uploaded.contentKind === "image" || uploaded.contentKind === "audio"
+            ? uploaded.fileUrl
+            : ""),
+        mime_type: uploaded.mimeType || file.type || "",
       });
+    } catch (error: any) {
+      setInlineStatus(
+        "asset-file-meta",
+        error.message || `Could not upload ${file.name}`,
+        true,
+      );
+    } finally {
       fileInput.value = "";
-      return;
     }
-
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-
-    let width = 0;
-    let height = 0;
-    if (file.type.startsWith("image/")) {
-      await new Promise<void>((resolve) => {
-        const image = new Image();
-        image.onload = () => {
-          width = image.naturalWidth || 0;
-          height = image.naturalHeight || 0;
-          resolve();
-        };
-        image.onerror = () => resolve();
-        image.src = dataUrl;
-      });
-    }
-
-    setWorkingRecord({
-      ...working,
-      file_url: dataUrl,
-      preview_url: file.type.startsWith("image/") ? dataUrl : working.preview_url || "",
-      mime_type: file.type || working.mime_type || "application/octet-stream",
-      content_kind:
-        source.defaultRecord.content_kind ||
-        (file.type.startsWith("audio/")
-          ? "audio"
-          : file.type.startsWith("image/")
-            ? "image"
-            : "text"),
-    });
-
-    if (width > 0) {
-      const widthEl = document.getElementById("asset-canvas-width") as HTMLInputElement | null;
-      const heightEl = document.getElementById("asset-canvas-height") as HTMLInputElement | null;
-      if (widthEl && !widthEl.value) widthEl.value = String(width);
-      if (heightEl && !heightEl.value) heightEl.value = String(height);
-    }
-
-    setInlineStatus("asset-file-meta", `Loaded media file: ${file.name}`);
-    renderPreview({
-      ...getCurrentRecordFromForm(),
-      file_url: dataUrl,
-      preview_url: file.type.startsWith("image/") ? dataUrl : "",
-      mime_type: file.type || "",
-    });
-    fileInput.value = "";
   });
 }
 

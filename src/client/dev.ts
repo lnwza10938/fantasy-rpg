@@ -3,6 +3,7 @@ import {
   getDevSourceConfig,
   type DevCategoryConfig,
 } from "../models/devPanelCatalog.js";
+import { uploadDevFile } from "./devAssetUpload.js";
 
 type SortOrder = "latest" | "oldest";
 
@@ -2001,6 +2002,34 @@ async function importEditorFile(file: File) {
 
   if (file.type.startsWith("text/") || /\.(txt|md|story|json)$/i.test(file.name)) {
     const draft = cloneRecord(source.defaultRecord);
+    const canPersistUpload =
+      "file_url" in draft || "image_url" in draft || "metadata_json" in draft;
+    const uploaded = canPersistUpload
+      ? await uploadDevFile(file, {
+          sourceKey: source.key,
+        })
+      : null;
+    const uploadMetadata = {
+      upload: {
+        storageProvider: uploaded?.storageProvider || "local",
+        storagePath: uploaded?.storagePath || "",
+        originalName: uploaded?.originalName || file.name,
+        sizeBytes: uploaded?.sizeBytes || file.size,
+        uploadedAt: new Date().toISOString(),
+      },
+    };
+    const uploadInfo: Record<string, unknown> = {};
+    if (uploaded && "file_url" in draft) uploadInfo.file_url = uploaded.fileUrl;
+    if (uploaded && "preview_url" in draft) {
+      uploadInfo.preview_url = uploaded.previewUrl || uploaded.fileUrl;
+    }
+    if (uploaded && "mime_type" in draft) uploadInfo.mime_type = uploaded.mimeType;
+    if ("metadata_json" in draft) {
+      uploadInfo.metadata_json = {
+        ...safeObject((draft as Record<string, unknown>).metadata_json),
+        ...uploadMetadata,
+      };
+    }
     if ("body_text" in draft) {
       mergeEditorJson({
         body_text: text,
@@ -2011,6 +2040,7 @@ async function importEditorFile(file: File) {
             .replace(/\.[^.]+$/, "")
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, "-"),
+        ...uploadInfo,
       });
     } else if ("dialogue_text" in draft) {
       mergeEditorJson({
@@ -2021,16 +2051,32 @@ async function importEditorFile(file: File) {
       mergeEditorJson({
         description: text,
       });
+    } else if ("content" in draft) {
+      mergeEditorJson({
+        content: text,
+      });
+    } else if ("file_url" in draft) {
+      mergeEditorJson(uploadInfo);
+    } else if ("metadata_json" in draft) {
+      mergeEditorJson({
+        metadata_json: {
+          ...safeObject((draft as Record<string, unknown>).metadata_json),
+          ...uploadMetadata,
+        },
+      });
     }
-    if (fileMetaEl) fileMetaEl.textContent = `Imported text: ${file.name}`;
+    if (fileMetaEl) {
+      fileMetaEl.textContent = uploaded?.warning
+        ? `Uploaded ${file.name} • ${uploaded.storageProvider} • ${uploaded.warning}`
+        : uploaded
+          ? `Uploaded ${file.name} to ${uploaded.storageProvider}.`
+          : `Imported text: ${file.name}`;
+    }
     return;
   }
 
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
+  const uploaded = await uploadDevFile(file, {
+    sourceKey: source.key,
   });
 
   const draft = cloneRecord(source.defaultRecord);
@@ -2040,24 +2086,38 @@ async function importEditorFile(file: File) {
   };
 
   if ("file_url" in draft) {
-    nextRecord.file_url = dataUrl;
-    nextRecord.mime_type = file.type || draft.mime_type || "";
-    if (file.type.startsWith("image/")) {
-      nextRecord.preview_url = dataUrl;
+    nextRecord.file_url = uploaded.fileUrl;
+    nextRecord.mime_type = uploaded.mimeType || file.type || draft.mime_type || "";
+    if (file.type.startsWith("image/") || file.type.startsWith("audio/")) {
+      nextRecord.preview_url = uploaded.previewUrl || uploaded.fileUrl;
     }
     if (!("slug" in draft)) {
       nextRecord.slug = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     } else {
       nextRecord.slug = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     }
+    nextRecord.metadata_json = {
+      ...safeObject((draft as Record<string, unknown>).metadata_json),
+      upload: {
+        storageProvider: uploaded.storageProvider,
+        storagePath: uploaded.storagePath,
+        originalName: uploaded.originalName,
+        sizeBytes: uploaded.sizeBytes,
+        uploadedAt: new Date().toISOString(),
+      },
+    };
   }
 
   if ("image_url" in draft) {
-    nextRecord.image_url = dataUrl;
+    nextRecord.image_url = uploaded.fileUrl;
   }
 
   mergeEditorJson(nextRecord);
-  if (fileMetaEl) fileMetaEl.textContent = `Imported media: ${file.name}`;
+  if (fileMetaEl) {
+    fileMetaEl.textContent = uploaded.warning
+      ? `Uploaded ${file.name} • ${uploaded.storageProvider} • ${uploaded.warning}`
+      : `Uploaded ${file.name} to ${uploaded.storageProvider}.`;
+  }
 }
 
 async function saveAIConfig() {

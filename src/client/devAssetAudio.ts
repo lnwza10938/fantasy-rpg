@@ -1,3 +1,5 @@
+import { uploadDevFile } from "./devAssetUpload.js";
+
 interface AudioSourceSnapshot {
   key: string;
   label: string;
@@ -167,6 +169,12 @@ function fillForm(record?: Record<string, unknown>, mode: "create" | "edit" = "c
     mode === "create" ? "New Audio Asset" : `Edit ${String(state.working.title || "Audio Asset")}`;
   (document.getElementById("audio-delete") as HTMLButtonElement | null)!.style.display =
     mode === "edit" ? "inline-flex" : "none";
+  const fileMetaEl = document.getElementById("audio-file-meta");
+  if (fileMetaEl) {
+    fileMetaEl.textContent = state.working.file_url
+      ? `Loaded record ${String(state.working.title || state.working.id || "audio")}`
+      : "No audio file selected yet.";
+  }
 
   renderList();
   renderPreview();
@@ -210,30 +218,51 @@ function bindFileInput() {
   fileInput?.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    state.working = {
-      ...state.working,
-      file_url: dataUrl,
-      preview_url: dataUrl,
-      mime_type: file.type || "audio/mpeg",
-      content_kind: "audio",
-    };
-    const titleEl = document.getElementById("audio-title") as HTMLInputElement | null;
-    const slugEl = document.getElementById("audio-slug") as HTMLInputElement | null;
-    if (titleEl && !titleEl.value.trim()) {
-      const title = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
-      titleEl.value = title;
-      if (slugEl && !slugEl.value.trim()) slugEl.value = slugify(title);
+    try {
+      const titleEl = document.getElementById("audio-title") as HTMLInputElement | null;
+      const slugEl = document.getElementById("audio-slug") as HTMLInputElement | null;
+      if (titleEl && !titleEl.value.trim()) {
+        const title = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+        titleEl.value = title;
+        if (slugEl && !slugEl.value.trim()) slugEl.value = slugify(title);
+      }
+
+      const metaEl = document.getElementById("audio-file-meta");
+      if (metaEl) metaEl.textContent = `Uploading ${file.name} to the server...`;
+
+      const uploaded = await uploadDevFile(file, {
+        sourceKey: "audio_entries",
+        preferredSlug: slugEl?.value?.trim() || "",
+      });
+
+      state.working = {
+        ...state.working,
+        file_url: uploaded.fileUrl,
+        preview_url: uploaded.previewUrl || uploaded.fileUrl,
+        mime_type: uploaded.mimeType || file.type || "audio/mpeg",
+        content_kind: "audio",
+        metadata_json: {
+          ...safeObject(state.working.metadata_json),
+          upload: {
+            storageProvider: uploaded.storageProvider,
+            storagePath: uploaded.storagePath,
+            originalName: uploaded.originalName,
+            sizeBytes: uploaded.sizeBytes,
+            uploadedAt: new Date().toISOString(),
+          },
+        },
+      };
+      if (metaEl) {
+        metaEl.textContent = uploaded.warning
+          ? `Uploaded ${file.name} • ${uploaded.storageProvider} • ${uploaded.warning}`
+          : `Uploaded ${file.name} to ${uploaded.storageProvider}.`;
+      }
+      renderPreview();
+    } catch (error: any) {
+      setStatus(error.message || `Could not upload ${file.name}`, true);
+    } finally {
+      fileInput.value = "";
     }
-    const metaEl = document.getElementById("audio-file-meta");
-    if (metaEl) metaEl.textContent = `Loaded audio file: ${file.name}`;
-    renderPreview();
-    fileInput.value = "";
   });
 }
 

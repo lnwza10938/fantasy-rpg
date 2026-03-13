@@ -1,7 +1,7 @@
 // src/api/gameRoutes.ts
 // Developer API routes for content management + AI generation
 
-import { Router } from "express";
+import { Router, raw } from "express";
 import {
   createMonster,
   getMonsters,
@@ -36,6 +36,7 @@ import {
   getDevSourceConfig,
 } from "../models/devPanelCatalog.js";
 import { planAssetSlicing, reviewAssetAgainstFilename } from "../core/assetReview.js";
+import { storeDevAssetFile } from "../core/assetStorage.js";
 import {
   listAudioAssetEntries,
   listTerrainFacingAssets,
@@ -718,6 +719,50 @@ router.get("/panel/assets/terrain-context", requireDevPanelAccess, async (_req, 
     });
   }
 });
+
+router.post(
+  "/panel/assets/upload",
+  requireDevPanelAccess,
+  raw({ type: () => true, limit: "64mb" }),
+  async (req, res) => {
+    try {
+      const buffer = Buffer.isBuffer(req.body)
+        ? req.body
+        : Buffer.from(req.body || []);
+      if (!buffer.byteLength) {
+        res.status(400).json({ success: false, error: "Uploaded file body was empty" });
+        return;
+      }
+
+      const originalName = decodeURIComponent(
+        String(req.header("x-file-name") || "uploaded-file.bin"),
+      );
+      const sourceKey = String(req.header("x-source-key") || "").trim();
+      const preferredSlug = String(req.header("x-preferred-slug") || "").trim();
+      const mimeType = String(
+        req.header("x-file-mime-type") || req.header("content-type") || "application/octet-stream",
+      ).trim();
+
+      const stored = await storeDevAssetFile({
+        buffer,
+        mimeType,
+        originalName,
+        sourceKey,
+        preferredSlug,
+      });
+
+      res.json({
+        success: true,
+        data: stored,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        error: error.message || "Could not upload file to server",
+      });
+    }
+  },
+);
 
 router.post("/panel/records/:sourceKey", requireDevPanelAccess, async (req, res) => {
   try {

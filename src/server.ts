@@ -8,6 +8,7 @@ import gameplayRoutes from "./api/gameplayRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const uploadDir = path.join(__dirname, "..", "uploads", "dev-assets");
 
 const app = express();
 const PORT = 3000;
@@ -18,6 +19,7 @@ app.use(express.json());
 
 // Serve static frontend files from /dist (Production build)
 app.use(express.static(path.join(__dirname, "..", "dist")));
+app.use("/dev/uploads", express.static(uploadDir));
 
 // API routes
 app.use("/dev", devRoutes); // Developer content panel

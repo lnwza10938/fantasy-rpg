@@ -1,3 +1,5 @@
+import { readAssetBinaryFromReference } from "./assetStorage.js";
+
 export interface AssetReviewInput {
   filename: string;
   title?: string;
@@ -84,15 +86,6 @@ const TERM_ALIASES: Record<string, string[]> = {
   sigil: ["sigil", "glyph", "rune", "circle"],
 };
 
-function toBufferFromDataUrl(dataUrl: string) {
-  const match = /^data:([^;,]+)?(?:;base64)?,(.*)$/i.exec(dataUrl);
-  if (!match) return null;
-  return {
-    mimeType: match[1] || "application/octet-stream",
-    buffer: Buffer.from(match[2], "base64"),
-  };
-}
-
 function tokenize(value: string) {
   return String(value || "")
     .toLowerCase()
@@ -159,11 +152,8 @@ function buildTitleFromFilename(filename: string) {
     .join(" ");
 }
 
-async function captionImageWithHuggingFace(dataUrl: string) {
-  const parsed = toBufferFromDataUrl(dataUrl);
-  if (!parsed) {
-    throw new Error("Could not read image data URL");
-  }
+async function captionImageWithHuggingFace(assetRef: string, mimeHint = "") {
+  const parsed = await readAssetBinaryFromReference(assetRef, mimeHint);
 
   const headers: Record<string, string> = {
     "Content-Type": parsed.mimeType,
@@ -496,7 +486,10 @@ export async function reviewAssetAgainstFilename(
   }
 
   try {
-    const caption = await captionImageWithHuggingFace(input.dataUrl);
+    const caption = await captionImageWithHuggingFace(
+      input.dataUrl,
+      String(input.mimeType || ""),
+    );
     const comparison = compareCaptionToTerms(caption, expectedTerms);
     return {
       provider: "huggingface",
@@ -531,7 +524,10 @@ export async function planAssetSlicing(
   }
 
   try {
-    const caption = await captionImageWithHuggingFace(input.dataUrl);
+    const caption = await captionImageWithHuggingFace(
+      input.dataUrl,
+      String(input.mimeType || ""),
+    );
     const assetKindGuess = inferAssetKind(input, caption);
     return planGridSlices(input, assetKindGuess, caption);
   } catch {
