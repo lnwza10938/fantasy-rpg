@@ -980,6 +980,113 @@ function renderInspectorTabs() {
   });
 }
 
+function ensureGeographyLayer() {
+  if (!state.currentDefinition) return null;
+  const geography = safeObject(state.currentDefinition.geography);
+  const palette = safeObject(geography.palette);
+  const next = {
+    palette: {
+      sea: String(palette.sea || "rgba(127, 189, 226, 0.42)"),
+      fog: String(palette.fog || "rgba(228, 241, 255, 0.56)"),
+      glow: String(palette.glow || "rgba(179, 224, 255, 0.2)"),
+    },
+    zones: safeArray<Record<string, unknown>>(geography.zones),
+    flows: safeArray<Record<string, unknown>>(geography.flows),
+  };
+  state.currentDefinition.geography = next;
+  return next;
+}
+
+function buildDraftZoneForSelection() {
+  const selectedNode =
+    state.currentLayout?.nodes.find((node) => node.regionId === state.selectedNodeId) || null;
+  const selectedRegion = selectedNode
+    ? getWorldRegion(state.currentDefinition, selectedNode.regionId)
+    : null;
+  if (!selectedNode || !selectedRegion) return null;
+  return {
+    id: `zone-${selectedNode.regionId}`,
+    regionId: selectedNode.regionId,
+    biome: String(selectedRegion.biome || "unknown"),
+    terrain: String(selectedRegion.biome || "plains"),
+    x: selectedNode.x,
+    y: selectedNode.y,
+    width: 180,
+    height: 120,
+    rotation: 0,
+    color: String(selectedNode.accentColor || selectedRegion.accentColor || "#5fa8d3"),
+    opacity: 0.24,
+    recipeId: null,
+    assetRefs: [],
+    sliceRefs: [],
+  };
+}
+
+function getSelectedZone(create = false) {
+  if (!state.selectedNodeId) return null;
+  const geography = ensureGeographyLayer();
+  if (!geography) return null;
+  const zones = safeArray<Record<string, unknown>>(geography.zones);
+  let zone =
+    zones.find((entry) => String(entry.regionId || "") === state.selectedNodeId) || null;
+  if (!zone && create) {
+    zone = buildDraftZoneForSelection();
+    if (zone) {
+      zones.push(zone);
+      geography.zones = zones;
+    }
+  }
+  return zone;
+}
+
+function buildDraftFlowForSelection() {
+  if (!state.currentLayout || !state.selectedPathId) return null;
+  const path = state.currentLayout.paths.find((entry) => entry.id === state.selectedPathId);
+  if (!path) return null;
+  const fromNode = state.currentLayout.nodes.find((node) => node.regionId === path.fromRegionId);
+  const toNode = state.currentLayout.nodes.find((node) => node.regionId === path.toRegionId);
+  if (!fromNode || !toNode) return null;
+  return {
+    id: `flow-${path.id}`,
+    kind: path.kind === "hazard" ? "ridge" : path.kind === "secret" ? "mist" : "river",
+    points: [
+      { x: fromNode.x, y: fromNode.y },
+      {
+        x: Math.round((fromNode.x + toNode.x) / 2),
+        y: Math.round((fromNode.y + toNode.y) / 2),
+      },
+      { x: toNode.x, y: toNode.y },
+    ],
+    width: path.kind === "hazard" ? 16 : path.kind === "secret" ? 26 : 10,
+    color:
+      path.kind === "hazard"
+        ? "rgba(98, 83, 76, 0.8)"
+        : path.kind === "secret"
+          ? "rgba(232, 242, 255, 0.72)"
+          : "rgba(132, 197, 231, 0.8)",
+    opacity: path.kind === "secret" ? 0.18 : path.kind === "hazard" ? 0.3 : 0.36,
+    recipeId: null,
+    assetRefs: [],
+  };
+}
+
+function getSelectedFlow(create = false) {
+  if (!state.selectedPathId) return null;
+  const geography = ensureGeographyLayer();
+  if (!geography) return null;
+  const flows = safeArray<Record<string, unknown>>(geography.flows);
+  let flow =
+    flows.find((entry) => String(entry.id || "") === `flow-${state.selectedPathId}`) || null;
+  if (!flow && create) {
+    flow = buildDraftFlowForSelection();
+    if (flow) {
+      flows.push(flow);
+      geography.flows = flows;
+    }
+  }
+  return flow;
+}
+
 function renderInspector() {
   const layout = state.currentLayout;
   const definition = state.currentDefinition;
@@ -995,6 +1102,12 @@ function renderInspector() {
     : null;
   const storyBindings = safeObject(selectedRegion?.storyBindings);
   const encounterBindings = safeObject(selectedRegion?.encounterBindings);
+  const geography = ensureGeographyLayer();
+  const palette = safeObject(geography?.palette);
+  const selectedZone =
+    getSelectedZone(false) || (selectedNode ? buildDraftZoneForSelection() : null);
+  const selectedFlow =
+    getSelectedFlow(false) || (selectedPath ? buildDraftFlowForSelection() : null);
 
   if (selectionTitleEl) {
     selectionTitleEl.textContent = selectedNode
@@ -1094,6 +1207,19 @@ function renderInspector() {
     encounterBindings.ambience || "",
     !selectedNode,
   );
+  setInput("map-editor-geo-sea", palette.sea || "", !definition);
+  setInput("map-editor-geo-fog", palette.fog || "", !definition);
+  setInput("map-editor-geo-glow", palette.glow || "", !definition);
+  setInput("map-editor-zone-terrain", selectedZone?.terrain || "", !selectedNode);
+  setInput("map-editor-zone-width", selectedZone?.width || 180, !selectedNode);
+  setInput("map-editor-zone-height", selectedZone?.height || 120, !selectedNode);
+  setInput("map-editor-zone-color", selectedZone?.color || "", !selectedNode);
+  setInput("map-editor-zone-opacity", selectedZone?.opacity || 0.24, !selectedNode);
+  setInput("map-editor-zone-recipe", selectedZone?.recipeId || "", !selectedNode);
+  setInput("map-editor-flow-width", selectedFlow?.width || 10, !selectedPath);
+  setInput("map-editor-flow-color", selectedFlow?.color || "", !selectedPath);
+  setInput("map-editor-flow-opacity", selectedFlow?.opacity || 0.32, !selectedPath);
+  setInput("map-editor-flow-recipe", selectedFlow?.recipeId || "", !selectedPath);
 
   setInput("map-editor-path-difficulty", selectedPath?.difficulty || 1, !selectedPath);
   setInput("map-editor-path-requirements", selectedPath?.requirements.join(", ") || "", !selectedPath);
@@ -1112,6 +1238,11 @@ function renderInspector() {
   if (pathVisibilityEl) {
     pathVisibilityEl.value = selectedPath?.visibility || "visible";
     pathVisibilityEl.disabled = !selectedPath;
+  }
+  const flowKindEl = document.getElementById("map-editor-flow-kind") as HTMLSelectElement | null;
+  if (flowKindEl) {
+    flowKindEl.value = String(selectedFlow?.kind || "river");
+    flowKindEl.disabled = !selectedPath;
   }
 }
 
@@ -1858,6 +1989,39 @@ function openDraftPreview() {
 }
 
 function bindControls() {
+  const updateGeographyPalette = (
+    mutate: (palette: Record<string, unknown>) => void,
+  ) => {
+    if (!state.currentDefinition) return;
+    const geography = ensureGeographyLayer();
+    if (!geography) return;
+    pushHistorySnapshot();
+    mutate(geography.palette as Record<string, unknown>);
+    renderAll();
+  };
+
+  const updateSelectedZone = (
+    mutate: (zone: Record<string, unknown>) => void,
+  ) => {
+    if (!state.currentDefinition || !state.selectedNodeId) return;
+    pushHistorySnapshot();
+    const zone = getSelectedZone(true);
+    if (!zone) return;
+    mutate(zone);
+    renderAll();
+  };
+
+  const updateSelectedFlow = (
+    mutate: (flow: Record<string, unknown>) => void,
+  ) => {
+    if (!state.currentDefinition || !state.selectedPathId) return;
+    pushHistorySnapshot();
+    const flow = getSelectedFlow(true);
+    if (!flow) return;
+    mutate(flow);
+    renderAll();
+  };
+
   (document.getElementById("map-editor-search") as HTMLInputElement | null)?.addEventListener(
     "input",
     (event) => {
@@ -2347,6 +2511,134 @@ function bindControls() {
       };
     });
   });
+  (document.getElementById("map-editor-geo-sea") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateGeographyPalette((palette) => {
+        palette.sea = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-geo-fog") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateGeographyPalette((palette) => {
+        palette.fog = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-geo-glow") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateGeographyPalette((palette) => {
+        palette.glow = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-terrain") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.terrain = (event.target as HTMLInputElement).value || "plains";
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-width") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.width = Math.max(
+          40,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, 180)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-height") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.height = Math.max(
+          40,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, 120)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-color") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.color = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-opacity") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.opacity = Math.max(
+          0.05,
+          Math.min(1, toFiniteNumber((event.target as HTMLInputElement).value, 0.24)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-zone-recipe") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateSelectedZone((zone) => {
+        zone.recipeId = (event.target as HTMLInputElement).value || null;
+      });
+    },
+  );
+  (document.getElementById("map-editor-flow-kind") as HTMLSelectElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedFlow((flow) => {
+        const next = (event.target as HTMLSelectElement).value;
+        flow.kind = next === "ridge" || next === "mist" ? next : "river";
+      });
+    },
+  );
+  (document.getElementById("map-editor-flow-width") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedFlow((flow) => {
+        flow.width = Math.max(
+          2,
+          Math.round(toFiniteNumber((event.target as HTMLInputElement).value, 10)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-flow-color") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateSelectedFlow((flow) => {
+        flow.color = (event.target as HTMLInputElement).value || "";
+      });
+    },
+  );
+  (document.getElementById("map-editor-flow-opacity") as HTMLInputElement | null)?.addEventListener(
+    "change",
+    (event) => {
+      updateSelectedFlow((flow) => {
+        flow.opacity = Math.max(
+          0.04,
+          Math.min(1, toFiniteNumber((event.target as HTMLInputElement).value, 0.32)),
+        );
+      });
+    },
+  );
+  (document.getElementById("map-editor-flow-recipe") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateSelectedFlow((flow) => {
+        flow.recipeId = (event.target as HTMLInputElement).value || null;
+      });
+    },
+  );
 
   (document.getElementById("map-editor-path-from") as HTMLSelectElement | null)?.addEventListener(
     "change",

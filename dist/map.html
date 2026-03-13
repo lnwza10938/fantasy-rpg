@@ -11,9 +11,9 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-    <script type="module" crossorigin src="/assets/translateWidget-tedn5e9o.js"></script>
-    <script type="module" crossorigin src="/assets/main-CBG729XH.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/translateWidget-D9UojChR.css">
+    <script type="module" crossorigin src="/assets/translateWidget-_xGOzAcP.js"></script>
+    <script type="module" crossorigin src="/assets/main-B1pF0k8L.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/translateWidget-B9djjbP0.css">
   </head>
   <body>
     <div id="google_translate_element" style="display: none"></div>
@@ -114,6 +114,23 @@
                   </div>
                 </div>
                 <div id="map-world-selector" class="map-world-selector"></div>
+              </div>
+
+              <div id="map-preview-draft-banner" class="map-preview-draft-banner" style="display: none">
+                <div class="map-preview-draft-copy">
+                  <div class="map-section-kicker">Editor Preview</div>
+                  <div id="map-preview-draft-title" class="map-preview-draft-title">Previewing local draft</div>
+                  <div id="map-preview-draft-meta" class="map-preview-draft-meta">
+                    Unsaved authoring changes from the Realm Map Editor are active on this page.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-action map-preview-draft-btn"
+                  onclick="clearMapEditorPreview()"
+                >
+                  Return to Saved Realms
+                </button>
               </div>
 
               <div class="map-scene-shell">

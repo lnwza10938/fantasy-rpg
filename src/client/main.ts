@@ -1306,6 +1306,109 @@ function pathKindLabel(kind: string) {
   return "Road";
 }
 
+function asRecord(value: unknown): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : {};
+}
+
+function formatWorldHandle(value: unknown) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function getRegionStoryBindings(region: any) {
+  return asRecord(region?.storyBindings);
+}
+
+function getRegionEncounterBindings(region: any) {
+  return asRecord(region?.encounterBindings);
+}
+
+function getRegionStoryFlavor(region: any) {
+  const bindings = getRegionStoryBindings(region);
+  const storyBeat = String(bindings.storyBeat || "").trim();
+  if (storyBeat) return storyBeat;
+
+  const questHooks = Array.isArray(bindings.questHooks)
+    ? bindings.questHooks.filter((entry: unknown) => typeof entry === "string" && entry.trim())
+    : [];
+  if (questHooks.length > 0) {
+    return `Story threads linger here around ${questHooks
+      .slice(0, 2)
+      .map((entry: string) => formatWorldHandle(entry))
+      .join(" and ")}.`;
+  }
+
+  if (bindings.dialoguePack) {
+    return `Voices from ${formatWorldHandle(bindings.dialoguePack)} can still be found here.`;
+  }
+
+  if (bindings.introTextId) {
+    return "This place carries a remembered tale of the realm.";
+  }
+
+  return "";
+}
+
+function getRegionEncounterFlavor(region: any) {
+  const bindings = getRegionEncounterBindings(region);
+  const parts: string[] = [];
+
+  if (bindings.ambience) {
+    parts.push(`${formatWorldHandle(bindings.ambience)} hangs over this location.`);
+  }
+  if (bindings.bossId) {
+    parts.push("A ruling foe is said to watch over this ground.");
+  } else if (bindings.eventPack || bindings.encounterTable) {
+    parts.push("Fresh encounters are known to gather here.");
+  }
+
+  return parts.join(" ");
+}
+
+function getRegionLocationFlavor(region: any) {
+  return [getRegionStoryFlavor(region), getRegionEncounterFlavor(region)]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function summarizeMapEditorDraft(payload: any, definition: any) {
+  const draft = asRecord(payload?.draft);
+  const layout = asRecord(definition?.mapLayout);
+  const nodeCount = Array.isArray(layout.nodes) ? layout.nodes.length : 0;
+  const routeCount = Array.isArray(layout.paths) ? layout.paths.length : 0;
+  const overrideType = String(draft.override_type || "replace_definition");
+  const typeLabel =
+    overrideType === "patch_region"
+      ? "Location update"
+      : overrideType === "set_map_layout"
+        ? "Map layout update"
+        : overrideType === "patch_metadata"
+          ? "Realm metadata update"
+          : "Full realm draft";
+  const savedAt = payload?.savedAt
+    ? new Date(payload.savedAt).toLocaleString()
+    : "just now";
+  const scopeRef = String(draft.scope_ref || "").trim();
+  return {
+    title: `${payload?.worldName || definition?.metadata?.worldName || "Realm"} draft preview`,
+    meta: [
+      typeLabel,
+      `${nodeCount} locations`,
+      `${routeCount} routes`,
+      scopeRef ? `Focus ${formatWorldHandle(scopeRef)}` : "",
+      `Saved ${savedAt}`,
+    ]
+      .filter(Boolean)
+      .join(" • "),
+  };
+}
+
 function syncSelectedRegionFromSession(preferCurrent = false) {
   const regions = normalizeRegions(G.regions);
   G.regions = regions;
@@ -1911,6 +2014,7 @@ function syncMapSelectionState() {
 
   const enemyList = summarizeEnemyList(G.selectedRegion.enemyTypes || [], 3);
   const landmark = G.selectedRegion.landmark || "Waystation";
+  const locationFlavor = getRegionLocationFlavor(G.selectedRegion);
   const exitCount = Array.isArray(G.selectedRegion.connections)
     ? G.selectedRegion.connections.length
     : 0;
@@ -1934,7 +2038,7 @@ function syncMapSelectionState() {
               selectedPathContext.evaluation.blockedReason,
             )
           : "This location is not directly connected to your current position.";
-    copyEl.textContent = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
+    copyEl.textContent = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. ${locationFlavor ? `${locationFlavor} ` : ""}Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
   }
   if (chipEl) {
     chipEl.textContent = isSelectedCurrent
@@ -2853,11 +2957,16 @@ function renderMapPreviewWorldSelector() {
 
   shell.style.display = "block";
   const worlds = sortCreatedWorlds(G.createdWorlds || []);
+  const previewActive =
+    new URLSearchParams(window.location.search).get("previewDraft") === "1" &&
+    !!sessionStorage.getItem(MAP_EDITOR_PREVIEW_KEY);
   if (noteEl) {
     noteEl.textContent =
-      G.characterId && G.gs
-        ? "Previewing the latest saved map state for this legend."
-        : "Choose a saved world to inspect its current map progress.";
+      previewActive
+        ? "Previewing the latest local editor draft. Load a saved realm below to exit preview mode."
+        : G.characterId && G.gs
+          ? "Previewing the latest saved map state for this legend."
+          : "Choose a saved world to inspect its current map progress.";
   }
 
   if (worlds.length === 0) {
@@ -2890,7 +2999,7 @@ function renderMapPreviewWorldSelector() {
       return `
         <button
           class="map-world-card ${isActive ? "active" : ""}"
-          onclick="loadGame('${world.characterId}', '${safeName}')"
+          onclick="loadMapPreviewWorld('${world.characterId}', '${safeName}')"
         >
           <div class="map-world-card-top">
             <div>
@@ -2922,8 +3031,50 @@ function resetMapPreviewState() {
   toggleMapCombatStage(false);
 }
 
+function renderMapEditorPreviewBanner(payload?: any | null, definition?: any | null) {
+  const bannerEl = document.getElementById("map-preview-draft-banner");
+  const titleEl = document.getElementById("map-preview-draft-title");
+  const metaEl = document.getElementById("map-preview-draft-meta");
+  if (!bannerEl || !titleEl || !metaEl) return;
+
+  if (!payload || !definition) {
+    bannerEl.style.display = "none";
+    titleEl.textContent = "Previewing local draft";
+    metaEl.textContent =
+      "Unsaved authoring changes from the Realm Map Editor are active on this page.";
+    return;
+  }
+
+  const summary = summarizeMapEditorDraft(payload, definition);
+  titleEl.textContent = summary.title;
+  metaEl.textContent = summary.meta;
+  bannerEl.style.display = "flex";
+}
+
+function clearMapEditorPreview(reinitialize = true) {
+  sessionStorage.removeItem(MAP_EDITOR_PREVIEW_KEY);
+  const url = new URL(window.location.href);
+  url.searchParams.delete("previewDraft");
+  url.searchParams.delete("worldDefinitionId");
+  const nextUrl =
+    url.pathname + (url.searchParams.toString() ? `?${url.searchParams.toString()}` : "");
+  window.history.replaceState({}, "", nextUrl);
+  renderMapEditorPreviewBanner(null, null);
+  if (APP_PAGE === "map" && reinitialize) {
+    void initializeMapPage(true);
+  }
+}
+
+function loadMapPreviewWorld(characterId: string, characterName?: string) {
+  if (APP_PAGE === "map") {
+    clearMapEditorPreview(false);
+  }
+  void loadGame(characterId, characterName);
+}
+
 function renderMapPreviewEmptyState() {
   resetMapPreviewState();
+  renderMapEditorPreviewBanner(null, null);
   const listEl = document.getElementById("region-list");
   if (listEl) {
     listEl.innerHTML = `
@@ -3014,6 +3165,7 @@ function applyMapEditorPreviewDraft() {
     renderRegions();
     updateAllStatusBars();
     renderMapPreviewWorldSelector();
+    renderMapEditorPreviewBanner(payload, definition);
     setMapEventState(
       "🗺️ Previewing editor draft",
       "This world map is rendering the latest unsaved draft from the Realm Map Editor. Use the selector below to switch back to a saved realm at any time.",
@@ -3052,6 +3204,8 @@ async function initializeMapPage(forceReload = false) {
   if (applyMapEditorPreviewDraft()) {
     return;
   }
+
+  renderMapEditorPreviewBanner(null, null);
 
   if (!G.createdWorlds.length) {
     renderMapPreviewEmptyState();
@@ -4696,13 +4850,14 @@ function selectRegion(i: number) {
   renderRegions();
   updateAllStatusBars();
   const selectedPathContext = getSelectedPathContext();
+  const locationFlavor = getRegionLocationFlavor(G.selectedRegion);
   const selectionCopy = selectedPathContext
     ? `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty}. ${
         selectedPathContext.evaluation.traversable
           ? "This route is ready."
           : formatTraversalBlockedReason(selectedPathContext.evaluation.blockedReason)
       }`
-    : `${G.selectedRegion.landmark || "Waystation"} • Threat Level ${G.selectedRegion.dangerLevel}. Explore this area to trigger story events, loot, or enemy encounters.`;
+    : `${G.selectedRegion.landmark || "Waystation"} • Threat Level ${G.selectedRegion.dangerLevel}. ${locationFlavor ? `${locationFlavor} ` : ""}Explore this area to trigger story events, loot, or enemy encounters.`;
   setMapEventState(
     `🧭 ${G.selectedRegion.name} is ready`,
     selectionCopy,
@@ -4919,13 +5074,14 @@ async function exploreRegion() {
 
   showScreen("world");
   setAdventureMode("event");
+  const locationFlavor = getRegionLocationFlavor(G.selectedRegion);
   setMapEventState(
     G.selectedRegion.id === currentRegionId
       ? `🧭 Exploring ${G.selectedRegion.name}`
       : `🧭 Traveling to ${G.selectedRegion.name}`,
     G.selectedRegion.id === currentRegionId
-      ? "The party moves deeper into the current area. Any discovery or enemy encounter will appear here immediately."
-      : "The party follows a reachable route into the selected location. Travel and the next event resolve directly on this map.",
+      ? `${locationFlavor ? `${locationFlavor} ` : ""}The party moves deeper into the current area. Any discovery or enemy encounter will appear here immediately.`
+      : `${locationFlavor ? `${locationFlavor} ` : ""}The party follows a reachable route into the selected location. Travel and the next event resolve directly on this map.`,
   );
   appendSharedLog(
     '<div class="log-info">───────────────────</div>',
@@ -5094,9 +5250,15 @@ function showCombat(ev: any) {
     enemy: ev.enemy,
     isFinished: false,
   };
+  const encounterBindings = getRegionEncounterBindings(G.selectedRegion);
+  const isBossFight =
+    String(encounterBindings.bossId || "").trim().length > 0 ||
+    getCurrentRegion()?.isGoal === true;
   setMapEventState(
     `⚔️ ${ev.enemy?.name || "Enemy"} blocks the path`,
-    "Combat now resolves right on the map. Use the battle controls below to finish the encounter.",
+    isBossFight
+      ? "A ruling foe stands before your path. Finish the battle to claim the route and see what lies beyond."
+      : "Combat now resolves right on the map. Use the battle controls below to finish the encounter.",
   );
   setAdventureMode("combat");
   toggleMapCombatStage(true);
@@ -5385,6 +5547,8 @@ async function executeCombatTurn() {
 (window as any).panMap = panMap;
 (window as any).zoomMap = zoomMap;
 (window as any).resetMapCamera = resetMapCameraState;
+(window as any).clearMapEditorPreview = clearMapEditorPreview;
+(window as any).loadMapPreviewWorld = loadMapPreviewWorld;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {

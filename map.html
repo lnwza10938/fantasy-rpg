@@ -115,6 +115,23 @@
                 <div id="map-world-selector" class="map-world-selector"></div>
               </div>
 
+              <div id="map-preview-draft-banner" class="map-preview-draft-banner" style="display: none">
+                <div class="map-preview-draft-copy">
+                  <div class="map-section-kicker">Editor Preview</div>
+                  <div id="map-preview-draft-title" class="map-preview-draft-title">Previewing local draft</div>
+                  <div id="map-preview-draft-meta" class="map-preview-draft-meta">
+                    Unsaved authoring changes from the Realm Map Editor are active on this page.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-action map-preview-draft-btn"
+                  onclick="clearMapEditorPreview()"
+                >
+                  Return to Saved Realms
+                </button>
+              </div>
+
               <div class="map-scene-shell">
                 <div id="region-list" class="region-grid map-region-grid"></div>
 
