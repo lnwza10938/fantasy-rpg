@@ -68,7 +68,7 @@
     },
     {
       "source": "/map",
-      "destination": "/adventure.html"
+      "destination": "/map.html"
     },
     {
       "source": "/(.*)",

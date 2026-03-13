@@ -1426,10 +1426,12 @@ function enterCurrentPage() {
       }
       return;
     }
-    const requestedView = new URLSearchParams(window.location.search).get("view");
+    const params = new URLSearchParams(window.location.search);
+    const requestedView = params.get("view");
+    const requestedStep = Number(params.get("step") || "1");
     if (requestedView === "wizard" || G.selectedLegend) {
       showScreen("wizard");
-      wizardGoStep(1);
+      wizardGoStep(requestedStep === 2 ? 2 : 1);
       return;
     }
     showScreen("world");
@@ -1562,7 +1564,7 @@ function onLoginSuccess() {
         ? `Invite Access: ${G.user.label || "Streamer"}`
         : `Logged in as: ${G.user.email}`;
   syncPageChrome();
-  if (APP_PAGE === "menu" || APP_PAGE === "forge" || APP_PAGE === "adventure") {
+  if (APP_PAGE === "menu" || APP_PAGE === "adventure") {
     loadWorldContent();
     renderThemeBiomes("balanced");
     renderThemeMonsters("balanced");
@@ -2683,7 +2685,7 @@ function startWizardWithLegend(legend: any) {
   showScreen("wizard");
   bindWorldBuilderInputs();
   wizardGoStep(1);
-  showToast(`Legend selected: ${legend.name}. Choose a world to begin.`, "info");
+  showToast(`Hero selected: ${legend.name}. Choose a realm to begin.`, "info");
 }
 
 async function fetchUserCharacters() {
@@ -3095,7 +3097,7 @@ async function fetchVaultSelections() {
   const grid = document.getElementById("vault-selection-grid");
   if (!grid) return;
   grid.innerHTML =
-    '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Loading vault...</div>';
+    '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--muted);">Loading Hero Archive...</div>';
 
   try {
     const legends = await fetchLegendCollection();
@@ -3191,7 +3193,7 @@ async function renderFullVault() {
         .join("");
     } else {
       grid.innerHTML =
-        '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted);">No heroes have been recorded yet.</div>';
+        '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted);">No heroes have been recorded yet. Create one to begin a journey.</div>';
     }
   } catch (e) {
     grid.innerHTML =
@@ -3234,6 +3236,10 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
   (document.getElementById("forge-name") as HTMLInputElement).value = "";
 
   // Reset appearance to default
+  const forgeOrigin = document.getElementById(
+    "forge-origin",
+  ) as HTMLSelectElement | null;
+  if (forgeOrigin) forgeOrigin.value = "wanderer";
   (document.getElementById("forge-gender") as HTMLSelectElement).value = "male";
   (document.getElementById("forge-skin") as HTMLSelectElement).value = "fair";
   (document.getElementById("forge-face") as HTMLSelectElement).value = "round";
@@ -3256,7 +3262,7 @@ function showForge(returnTo: "menu" | "vault" | "wizard" = "menu") {
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).disabled =
     true;
   (document.getElementById("btn-forge-confirm") as HTMLButtonElement).textContent =
-    "Confirm Hero Creation ⚔️";
+    "Create Hero ⚔️";
   (document.getElementById("forge-error") as HTMLElement).style.display =
     "none";
 
@@ -3272,6 +3278,10 @@ function backFromForge() {
   if (forgeReturnState === "vault") {
     showScreen("vault");
   } else if (forgeReturnState === "wizard") {
+    if (APP_PAGE !== "adventure") {
+      navigateToPage("adventure", { view: "wizard", step: "2" });
+      return;
+    }
     showScreen("wizard");
     wizardGoStep(2);
   } else {
@@ -3588,6 +3598,9 @@ async function confirmForge() {
   btn.textContent = "Baking...";
 
   const appearance = {
+    origin:
+      (document.getElementById("forge-origin") as HTMLSelectElement | null)?.value ||
+      "wanderer",
     gender:
       (document.getElementById("forge-gender") as HTMLSelectElement)?.value ||
       "male",
@@ -3624,13 +3637,13 @@ async function confirmForge() {
     });
     const j = await res.json();
     if (j.success) {
-      showToast("Legend forged successfully! ✨", "success");
+      showToast("Hero created successfully! ✨", "success");
       // Select this character if we're in the wizard flow
       G.selectedLegend = j.data;
       await Promise.all([fetchVaultSelections(), renderFullVault(), fetchSaveList()]);
       backFromForge();
     } else {
-      errEl.textContent = j.error || "Failed to forge legend.";
+      errEl.textContent = j.error || "Failed to create hero.";
       errEl.style.display = "block";
     }
   } catch (e) {
@@ -3638,7 +3651,7 @@ async function confirmForge() {
     errEl.style.display = "block";
   } finally {
     btn.disabled = false;
-    btn.textContent = "Confirm Hero Creation ⚔️";
+    btn.textContent = "Create Hero ⚔️";
   }
 }
 
@@ -4059,7 +4072,7 @@ async function renderHubLegendPreview() {
             <div class="hub-list-card-copy">${escapeHtml(truncateText(legend.last_action_log || legend.skill_data?.description || "Ready to enter a realm.", 74))}</div>
             <div class="hub-list-card-meta">
               <span>${escapeHtml(updatedAt)}</span>
-              <span>Vault</span>
+              <span>Archive</span>
             </div>
           </button>
         `;
@@ -4168,7 +4181,7 @@ async function deleteLegend(cid: string, name: string) {
     const j = await res.json();
     if (j.success) {
       if (G.selectedLegend?.id === cid) G.selectedLegend = null;
-      showToast(`Legend of ${name} has been erased.`, "info");
+      showToast(`Hero record for ${name} has been erased.`, "info");
       await Promise.all([
         fetchSaveList(),
         fetchCreatedWorlds(),

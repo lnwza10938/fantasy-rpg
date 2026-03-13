@@ -28,6 +28,7 @@ export default defineConfig({
         vault: resolve(__dirname, "vault.html"),
         forge: resolve(__dirname, "forge.html"),
         adventure: resolve(__dirname, "adventure.html"),
+        map: resolve(__dirname, "map.html"),
         dev: resolve(__dirname, "dev.html"),
         devMapEditor: resolve(__dirname, "dev-map-editor.html"),
         devAssets: resolve(__dirname, "dev-assets.html"),

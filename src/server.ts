@@ -73,7 +73,7 @@ app.get("/adventure", (_req, res) => {
 });
 
 app.get("/map", (_req, res) => {
-  res.sendFile(path.join(__dirname, "..", "dist", "adventure.html"));
+  res.sendFile(path.join(__dirname, "..", "dist", "map.html"));
 });
 
 export default app;
