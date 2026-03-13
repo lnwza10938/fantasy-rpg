@@ -2,6 +2,7 @@ interface AudioSourceSnapshot {
   key: string;
   label: string;
   records: Record<string, unknown>[];
+  error?: string | null;
 }
 
 const DEV_KEY_STORAGE = "rpg_dev_panel_key";
@@ -179,6 +180,9 @@ async function loadAudioRecords() {
   if (!payload.success) throw new Error(payload.error || "Could not load audio assets");
   const sources = (payload.data?.sources || []) as AudioSourceSnapshot[];
   const audioSource = sources.find((entry) => entry.key === "audio_entries");
+  if (audioSource?.error) {
+    throw new Error(audioSource.error);
+  }
   state.records = audioSource?.records || [];
   renderList();
   fillForm(undefined, "create");

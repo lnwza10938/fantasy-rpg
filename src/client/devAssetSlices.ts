@@ -2,6 +2,7 @@ interface SourceSnapshot {
   key: string;
   label: string;
   records: Record<string, unknown>[];
+  error?: string | null;
 }
 
 interface SliceAssetRecord extends Record<string, unknown> {
@@ -695,6 +696,15 @@ async function loadAssets() {
   if (!payload.success) throw new Error(payload.error || "Could not load assets");
 
   const sources = (payload.data?.sources || []) as SourceSnapshot[];
+  const blockingError = sources.find(
+    (source) =>
+      source.key !== "audio_entries" &&
+      source.key !== "story_files" &&
+      source.error,
+  );
+  if (blockingError?.error) {
+    throw new Error(blockingError.error);
+  }
   state.assets = sources
     .filter((source) => source.key !== "audio_entries" && source.key !== "story_files")
     .flatMap((source) =>

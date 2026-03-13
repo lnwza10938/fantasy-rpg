@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { normalizeContentEntriesError } from "./schemaSupport.js";
 
 export interface ContentEntryRecord {
   id: string;
@@ -64,7 +65,14 @@ export async function listContentEntriesByCategory(
 
   const { data, error } = await query;
   if (error) {
-    console.warn(`[assetRepositories] Failed to load content_entries for ${category}/${subcategory || "*"}`, error.message);
+    const normalized = normalizeContentEntriesError(error);
+    if (normalized !== (error as { message?: string })?.message) {
+      throw new Error(normalized);
+    }
+    console.warn(
+      `[assetRepositories] Failed to load content_entries for ${category}/${subcategory || "*"}`,
+      normalized,
+    );
     return [];
   }
   return Array.isArray(data) ? data.map(normalizeRecord) : [];

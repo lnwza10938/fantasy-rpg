@@ -6,6 +6,7 @@ import {
   type DevCategoryConfig,
   type DevSourceConfig,
 } from "../models/devPanelCatalog.js";
+import { normalizeContentEntriesError } from "./schemaSupport.js";
 import { supabase } from "./supabase.js";
 
 export type DevSortOrder = "latest" | "oldest";
@@ -46,6 +47,17 @@ function slugify(value: string) {
 
 function cloneRecord<T>(value: T): T {
   return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeSourceError(source: DevSourceConfig, error: unknown) {
+  if (source.table === "content_entries") {
+    return normalizeContentEntriesError(error);
+  }
+  if (error instanceof Error) return error.message || "Unknown error";
+  if (typeof error === "object" && error && "message" in error) {
+    return String((error as { message?: unknown }).message || "Unknown error");
+  }
+  return String(error || "Unknown error");
 }
 
 function safeObject(value: unknown): Record<string, unknown> {
@@ -256,7 +268,7 @@ async function listSourceRecords(
         defaultRecord: cloneRecord(source.defaultRecord),
         records: [],
         count: 0,
-        error: error.message,
+        error: normalizeSourceError(source, error),
       };
     }
     return {
@@ -284,7 +296,7 @@ async function listSourceRecords(
       defaultRecord: cloneRecord(source.defaultRecord),
       records: [],
       count: 0,
-      error: error?.message || "Unknown error",
+      error: normalizeSourceError(source, error),
     };
   }
 }
@@ -333,7 +345,7 @@ export async function createSourceRecord(
     .insert([nextRecord])
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(normalizeSourceError(source, error));
   return data;
 }
 
@@ -356,7 +368,7 @@ export async function updateSourceRecord(
     .eq("id", recordId)
     .select("*")
     .single();
-  if (error) throw error;
+  if (error) throw new Error(normalizeSourceError(source, error));
   return data;
 }
 
@@ -364,6 +376,6 @@ export async function deleteSourceRecord(sourceKey: string, recordId: string) {
   const source = getDevSourceConfig(sourceKey);
   if (!source) throw new Error(`Unknown dev source: ${sourceKey}`);
   const { error } = await supabase.from(source.table).delete().eq("id", recordId);
-  if (error) throw error;
+  if (error) throw new Error(normalizeSourceError(source, error));
   return { id: recordId };
 }
