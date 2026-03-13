@@ -56,9 +56,18 @@ interface EditorHistorySnapshot {
   selectedPathId: string | null;
 }
 
+interface EditorPreviewPayload {
+  worldId: string;
+  worldName: string;
+  definition: Record<string, unknown>;
+  draft: Record<string, unknown> | null;
+  savedAt: string;
+}
+
 const DEV_PANEL_KEY = "rpg_dev_panel_key";
 const API = "/dev";
 const LOCAL_DRAFT_PREFIX = "rpg_map_editor_draft";
+const MAP_EDITOR_PREVIEW_KEY = "rpg_map_editor_preview_draft";
 
 const state = {
   requiresKey: false,
@@ -96,6 +105,14 @@ const state = {
   historyPast: [] as EditorHistorySnapshot[],
   historyFuture: [] as EditorHistorySnapshot[],
   dirty: false,
+  inspectorTab: "node" as "node" | "story" | "encounters",
+  contextMenu: {
+    open: false,
+    x: 0,
+    y: 0,
+    targetType: "" as "" | "node" | "path",
+    targetId: "",
+  },
 };
 
 function cloneRecord<T>(value: T): T {
@@ -403,6 +420,13 @@ function buildHistorySnapshot(): EditorHistorySnapshot {
     selectedNodeId: state.selectedNodeId,
     selectedPathId: state.selectedPathId,
   };
+}
+
+function buildWorkingDefinitionWithLayout() {
+  if (!state.currentDefinition || !state.currentLayout) return null;
+  const definition = cloneRecord(state.currentDefinition);
+  definition.mapLayout = cloneRecord(state.currentLayout);
+  return definition;
 }
 
 function applyHistorySnapshot(snapshot: EditorHistorySnapshot) {
@@ -947,6 +971,15 @@ function renderDraftPanel() {
   }
 }
 
+function renderInspectorTabs() {
+  document.querySelectorAll<HTMLElement>("[data-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === state.inspectorTab);
+  });
+  document.querySelectorAll<HTMLElement>("[data-tab-panel]").forEach((panel) => {
+    panel.classList.toggle("is-active", panel.dataset.tabPanel === state.inspectorTab);
+  });
+}
+
 function renderInspector() {
   const layout = state.currentLayout;
   const definition = state.currentDefinition;
@@ -960,6 +993,8 @@ function renderInspector() {
   const selectedRegion = selectedNode
     ? getWorldRegion(definition, selectedNode.regionId)
     : null;
+  const storyBindings = safeObject(selectedRegion?.storyBindings);
+  const encounterBindings = safeObject(selectedRegion?.encounterBindings);
 
   if (selectionTitleEl) {
     selectionTitleEl.textContent = selectedNode
@@ -981,6 +1016,7 @@ function renderInspector() {
 
   nodeCardEl?.classList.toggle("is-disabled", !selectedNode);
   pathCardEl?.classList.toggle("is-disabled", !selectedPath);
+  renderInspectorTabs();
 
   const bindSelect = (id: string, options: string[], selected = "") => {
     const el = document.getElementById(id) as HTMLSelectElement | null;
@@ -1030,6 +1066,34 @@ function renderInspector() {
     safeArray(selectedRegion?.enemyPool || selectedRegion?.enemyTypes).join(", "),
     !selectedNode,
   );
+  setInput("map-editor-story-intro", storyBindings.introTextId || "", !selectedNode);
+  setInput(
+    "map-editor-story-dialogue-pack",
+    storyBindings.dialoguePack || "",
+    !selectedNode,
+  );
+  setInput(
+    "map-editor-story-quest-hooks",
+    safeArray(storyBindings.questHooks).join(", "),
+    !selectedNode,
+  );
+  setInput("map-editor-story-beat", storyBindings.storyBeat || "", !selectedNode);
+  setInput(
+    "map-editor-encounter-event-pack",
+    encounterBindings.eventPack || "",
+    !selectedNode,
+  );
+  setInput(
+    "map-editor-encounter-table",
+    encounterBindings.encounterTable || "",
+    !selectedNode,
+  );
+  setInput("map-editor-encounter-boss", encounterBindings.bossId || "", !selectedNode);
+  setInput(
+    "map-editor-encounter-ambience",
+    encounterBindings.ambience || "",
+    !selectedNode,
+  );
 
   setInput("map-editor-path-difficulty", selectedPath?.difficulty || 1, !selectedPath);
   setInput("map-editor-path-requirements", selectedPath?.requirements.join(", ") || "", !selectedPath);
@@ -1049,6 +1113,124 @@ function renderInspector() {
     pathVisibilityEl.value = selectedPath?.visibility || "visible";
     pathVisibilityEl.disabled = !selectedPath;
   }
+}
+
+function closeContextMenu() {
+  state.contextMenu.open = false;
+  state.contextMenu.targetType = "";
+  state.contextMenu.targetId = "";
+  const menuEl = document.getElementById("map-editor-context-menu");
+  if (menuEl) {
+    menuEl.hidden = true;
+    menuEl.innerHTML = "";
+  }
+}
+
+function openContextMenu(
+  targetType: "node" | "path",
+  targetId: string,
+  event: MouseEvent,
+) {
+  event.preventDefault();
+  const menuEl = document.getElementById("map-editor-context-menu");
+  if (!menuEl) return;
+  state.contextMenu.open = true;
+  state.contextMenu.targetType = targetType;
+  state.contextMenu.targetId = targetId;
+  state.contextMenu.x = event.clientX;
+  state.contextMenu.y = event.clientY;
+  renderContextMenu();
+}
+
+function renderContextMenu() {
+  const menuEl = document.getElementById("map-editor-context-menu");
+  if (!menuEl) return;
+  if (!state.contextMenu.open) {
+    menuEl.hidden = true;
+    menuEl.innerHTML = "";
+    return;
+  }
+
+  const actions =
+    state.contextMenu.targetType === "node"
+      ? [
+          { action: "edit-node", label: "✎ Edit Location" },
+          { action: "open-story", label: "📖 Story Binding" },
+          { action: "open-encounters", label: "⚔ Encounters" },
+          { action: "set-start", label: "◎ Set as Start" },
+          { action: "set-goal", label: "★ Set as Goal" },
+          { action: "duplicate-node", label: "⎘ Duplicate" },
+          { action: "create-branch", label: "⑂ Create Branch" },
+          { action: "delete-node", label: "⌫ Delete Location" },
+        ]
+      : [
+          { action: "edit-path", label: "✎ Edit Route" },
+          { action: "path-road", label: "═ Mark as Road" },
+          { action: "path-hazard", label: "⚠ Mark as Hazard" },
+          { action: "path-secret", label: "✦ Mark as Secret" },
+          { action: "toggle-gated", label: "🔒 Toggle Sealed Route" },
+          { action: "delete-path", label: "⌫ Delete Route" },
+        ];
+
+  menuEl.innerHTML = actions
+    .map(
+      (item) =>
+        `<button type="button" class="dev-map-context-action" data-context-action="${escapeHtml(item.action)}">${escapeHtml(item.label)}</button>`,
+    )
+    .join("");
+  menuEl.hidden = false;
+  menuEl.style.left = `${state.contextMenu.x}px`;
+  menuEl.style.top = `${state.contextMenu.y}px`;
+
+  menuEl.querySelectorAll<HTMLButtonElement>("[data-context-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      handleContextMenuAction(button.dataset.contextAction || "");
+    });
+  });
+}
+
+function removeNodeById(regionId: string) {
+  if (!state.currentLayout) return;
+  const existingNode = state.currentLayout.nodes.find((node) => node.regionId === regionId);
+  if (!existingNode) return;
+  pushHistorySnapshot();
+  state.currentLayout.nodes = state.currentLayout.nodes.filter((node) => node.regionId !== regionId);
+  state.currentLayout.paths = state.currentLayout.paths.filter(
+    (path) => path.fromRegionId !== regionId && path.toRegionId !== regionId,
+  );
+  if (state.currentLayout.startRegionId === regionId) {
+    state.currentLayout.startRegionId = state.currentLayout.nodes[0]?.regionId || "";
+    state.currentLayout.nodes.forEach((node) => {
+      node.isStart = node.regionId === state.currentLayout!.startRegionId;
+    });
+  }
+  if (state.currentLayout.goalRegionId === regionId) {
+    state.currentLayout.goalRegionId =
+      state.currentLayout.nodes[state.currentLayout.nodes.length - 1]?.regionId || "";
+    state.currentLayout.nodes.forEach((node) => {
+      node.isGoal = node.regionId === state.currentLayout!.goalRegionId;
+    });
+  }
+  if (state.currentDefinition && isDraftOnlyRegionId(regionId)) {
+    state.currentDefinition.regions = safeArray<Record<string, unknown>>(
+      state.currentDefinition.regions,
+    ).filter((region) => String(region.id || "") !== regionId);
+  }
+  if (state.selectedNodeId === regionId) state.selectedNodeId = null;
+  state.selectedPathId = null;
+  closeContextMenu();
+  renderAll();
+}
+
+function removePathById(pathId: string) {
+  if (!state.currentLayout) return;
+  const existingPath = state.currentLayout.paths.find((path) => path.id === pathId);
+  if (!existingPath) return;
+  pushHistorySnapshot();
+  state.currentLayout.paths = state.currentLayout.paths.filter((path) => path.id !== pathId);
+  if (state.selectedPathId === pathId) state.selectedPathId = null;
+  closeContextMenu();
+  renderAll();
 }
 
 function renderTerrainOverlay(definition: Record<string, unknown> | null) {
@@ -1225,6 +1407,7 @@ function renderCanvas() {
     </div>
   `;
   applyCanvasView(boardEl);
+  closeContextMenu();
 
   boardEl.querySelectorAll<HTMLElement>("[data-path-id]").forEach((pathEl) => {
     pathEl.addEventListener("click", (event) => {
@@ -1232,15 +1415,22 @@ function renderCanvas() {
       const pathId = pathEl.dataset.pathId || "";
       if (!state.currentLayout) return;
       if (state.toolMode === "delete") {
-        pushHistorySnapshot();
-        state.currentLayout.paths = state.currentLayout.paths.filter((path) => path.id !== pathId);
-        state.selectedPathId = null;
+        removePathById(pathId);
       } else {
         state.selectedPathId = pathId;
         state.selectedNodeId = null;
         state.toolMode = "select";
+        closeContextMenu();
+        renderAll();
       }
+    });
+    pathEl.addEventListener("contextmenu", (event) => {
+      const pathId = pathEl.dataset.pathId || "";
+      state.selectedPathId = pathId;
+      state.selectedNodeId = null;
+      state.toolMode = "select";
       renderAll();
+      openContextMenu("path", pathId, event);
     });
   });
 
@@ -1249,18 +1439,7 @@ function renderCanvas() {
       const nodeId = nodeEl.dataset.nodeId || "";
       if (!state.currentLayout) return;
       if (state.toolMode === "delete") {
-        pushHistorySnapshot();
-        state.currentLayout.nodes = state.currentLayout.nodes.filter((node) => node.regionId !== nodeId);
-        state.currentLayout.paths = state.currentLayout.paths.filter(
-          (path) => path.fromRegionId !== nodeId && path.toRegionId !== nodeId,
-        );
-        if (state.currentDefinition && isDraftOnlyRegionId(nodeId)) {
-          state.currentDefinition.regions = safeArray<Record<string, unknown>>(
-            state.currentDefinition.regions,
-          ).filter((region) => String(region.id || "") !== nodeId);
-        }
-        state.selectedNodeId = null;
-        renderAll();
+        removeNodeById(nodeId);
         return;
       }
       if (state.toolMode === "add-path") {
@@ -1303,6 +1482,14 @@ function renderCanvas() {
       }
       renderAll();
     });
+    nodeEl.addEventListener("contextmenu", (event) => {
+      const nodeId = nodeEl.dataset.nodeId || "";
+      state.selectedNodeId = nodeId;
+      state.selectedPathId = null;
+      state.toolMode = "select";
+      renderAll();
+      openContextMenu("node", nodeId, event);
+    });
   });
 
   boardEl.onwheel = (event) => {
@@ -1313,6 +1500,7 @@ function renderCanvas() {
   };
 
   boardEl.onpointerdown = (event) => {
+    closeContextMenu();
     const target = event.target as HTMLElement;
     const clickedInteractive = !!target.closest("[data-node-id],[data-path-id]");
     if (clickedInteractive) return;
@@ -1360,6 +1548,7 @@ function renderAll() {
   renderInspector();
   renderDraftPanel();
   renderValidation();
+  renderContextMenu();
   const undoBtn = document.getElementById("map-editor-undo-btn") as HTMLButtonElement | null;
   const redoBtn = document.getElementById("map-editor-redo-btn") as HTMLButtonElement | null;
   if (undoBtn) undoBtn.disabled = state.historyPast.length === 0;
@@ -1476,7 +1665,12 @@ function autoLayout() {
 
 function duplicateNode() {
   if (!state.currentLayout || !state.selectedNodeId) return;
-  const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
+  duplicateNodeFrom(state.selectedNodeId);
+}
+
+function duplicateNodeFrom(regionId: string) {
+  if (!state.currentLayout) return;
+  const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === regionId);
   if (!sourceNode) return;
   pushHistorySnapshot();
   const unusedRegion = getUnusedCanonicalRegion() || createDraftRegionRecord();
@@ -1492,12 +1686,18 @@ function duplicateNode() {
     isGoal: false,
   });
   state.selectedNodeId = String(unusedRegion.id || "");
+  closeContextMenu();
   renderAll();
 }
 
 function createBranch() {
   if (!state.currentLayout || !state.selectedNodeId) return;
-  const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
+  createBranchFrom(state.selectedNodeId);
+}
+
+function createBranchFrom(regionId: string) {
+  if (!state.currentLayout) return;
+  const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === regionId);
   if (!sourceNode) return;
   pushHistorySnapshot();
   const unusedRegion = getUnusedCanonicalRegion() || createDraftRegionRecord();
@@ -1526,7 +1726,135 @@ function createBranch() {
     travelEffects: [],
   });
   state.selectedNodeId = branchRegionId;
+  closeContextMenu();
   renderAll();
+}
+
+function handleContextMenuAction(action: string) {
+  const targetType = state.contextMenu.targetType;
+  const targetId = state.contextMenu.targetId;
+  if (!targetType || !targetId) {
+    closeContextMenu();
+    return;
+  }
+
+  if (targetType === "node") {
+    state.selectedNodeId = targetId;
+    state.selectedPathId = null;
+    if (action === "edit-node") {
+      state.inspectorTab = "node";
+      state.toolMode = "select";
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "open-story") {
+      state.inspectorTab = "story";
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "open-encounters") {
+      state.inspectorTab = "encounters";
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "set-start") {
+      const node = state.currentLayout?.nodes.find((entry) => entry.regionId === targetId);
+      if (node) {
+        pushHistorySnapshot();
+        state.currentLayout!.startRegionId = targetId;
+        state.currentLayout!.nodes.forEach((entry) => {
+          entry.isStart = entry.regionId === targetId;
+        });
+      }
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "set-goal") {
+      const node = state.currentLayout?.nodes.find((entry) => entry.regionId === targetId);
+      if (node) {
+        pushHistorySnapshot();
+        state.currentLayout!.goalRegionId = targetId;
+        state.currentLayout!.nodes.forEach((entry) => {
+          entry.isGoal = entry.regionId === targetId;
+        });
+      }
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "duplicate-node") {
+      duplicateNodeFrom(targetId);
+      return;
+    }
+    if (action === "create-branch") {
+      createBranchFrom(targetId);
+      return;
+    }
+    if (action === "delete-node") {
+      removeNodeById(targetId);
+      return;
+    }
+  }
+
+  if (targetType === "path") {
+    state.selectedPathId = targetId;
+    state.selectedNodeId = null;
+    const path = state.currentLayout?.paths.find((entry) => entry.id === targetId);
+    if (!path) {
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "edit-path") {
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "path-road" || action === "path-hazard" || action === "path-secret") {
+      pushHistorySnapshot();
+      path.kind =
+        action === "path-hazard" ? "hazard" : action === "path-secret" ? "secret" : "road";
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "toggle-gated") {
+      pushHistorySnapshot();
+      path.gated = !path.gated;
+      closeContextMenu();
+      renderAll();
+      return;
+    }
+    if (action === "delete-path") {
+      removePathById(targetId);
+      return;
+    }
+  }
+
+  closeContextMenu();
+  renderAll();
+}
+
+function openDraftPreview() {
+  const definition = buildWorkingDefinitionWithLayout();
+  const world = getSelectedWorld();
+  if (!definition || !world) return;
+  const payload: EditorPreviewPayload = {
+    worldId: world.id,
+    worldName: world.name,
+    definition,
+    draft: buildOverrideDraft(),
+    savedAt: new Date().toISOString(),
+  };
+  sessionStorage.setItem(MAP_EDITOR_PREVIEW_KEY, JSON.stringify(payload));
+  window.open(
+    `/map?previewDraft=1&worldDefinitionId=${encodeURIComponent(world.id)}`,
+    "_blank",
+  );
 }
 
 function bindControls() {
@@ -1584,9 +1912,7 @@ function bindControls() {
   });
 
   document.getElementById("map-editor-preview-btn")?.addEventListener("click", () => {
-    const world = getSelectedWorld();
-    if (!world) return;
-    window.open(`/map?worldDefinitionId=${encodeURIComponent(world.id)}`, "_blank");
+    openDraftPreview();
   });
 
   document.getElementById("map-editor-undo-btn")?.addEventListener("click", () => {
@@ -1666,6 +1992,20 @@ function bindControls() {
   });
   document.getElementById("map-editor-branch")?.addEventListener("click", () => {
     createBranch();
+  });
+
+  document.querySelectorAll<HTMLElement>("[data-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextTab = button.dataset.tab;
+      if (
+        nextTab === "node" ||
+        nextTab === "story" ||
+        nextTab === "encounters"
+      ) {
+        state.inspectorTab = nextTab;
+        renderInspectorTabs();
+      }
+    });
   });
 
   [
@@ -1922,6 +2262,91 @@ function bindControls() {
       });
     },
   );
+  (document.getElementById("map-editor-story-intro") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateRegion((region) => {
+        region.storyBindings = {
+          ...safeObject(region.storyBindings),
+          introTextId: (event.target as HTMLInputElement).value || "",
+        };
+      });
+    },
+  );
+  (
+    document.getElementById("map-editor-story-dialogue-pack") as HTMLInputElement | null
+  )?.addEventListener("input", (event) => {
+    updateRegion((region) => {
+      region.storyBindings = {
+        ...safeObject(region.storyBindings),
+        dialoguePack: (event.target as HTMLInputElement).value || "",
+      };
+    });
+  });
+  (
+    document.getElementById("map-editor-story-quest-hooks") as HTMLInputElement | null
+  )?.addEventListener("change", (event) => {
+    updateRegion((region) => {
+      region.storyBindings = {
+        ...safeObject(region.storyBindings),
+        questHooks: (event.target as HTMLInputElement).value
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean),
+      };
+    });
+  });
+  (document.getElementById("map-editor-story-beat") as HTMLInputElement | null)?.addEventListener(
+    "input",
+    (event) => {
+      updateRegion((region) => {
+        region.storyBindings = {
+          ...safeObject(region.storyBindings),
+          storyBeat: (event.target as HTMLInputElement).value || "",
+        };
+      });
+    },
+  );
+  (
+    document.getElementById("map-editor-encounter-event-pack") as HTMLInputElement | null
+  )?.addEventListener("input", (event) => {
+    updateRegion((region) => {
+      region.encounterBindings = {
+        ...safeObject(region.encounterBindings),
+        eventPack: (event.target as HTMLInputElement).value || "",
+      };
+    });
+  });
+  (
+    document.getElementById("map-editor-encounter-table") as HTMLInputElement | null
+  )?.addEventListener("input", (event) => {
+    updateRegion((region) => {
+      region.encounterBindings = {
+        ...safeObject(region.encounterBindings),
+        encounterTable: (event.target as HTMLInputElement).value || "",
+      };
+    });
+  });
+  (
+    document.getElementById("map-editor-encounter-boss") as HTMLInputElement | null
+  )?.addEventListener("input", (event) => {
+    updateRegion((region) => {
+      region.encounterBindings = {
+        ...safeObject(region.encounterBindings),
+        bossId: (event.target as HTMLInputElement).value || "",
+      };
+    });
+  });
+  (
+    document.getElementById("map-editor-encounter-ambience") as HTMLInputElement | null
+  )?.addEventListener("input", (event) => {
+    updateRegion((region) => {
+      region.encounterBindings = {
+        ...safeObject(region.encounterBindings),
+        ambience: (event.target as HTMLInputElement).value || "",
+      };
+    });
+  });
 
   (document.getElementById("map-editor-path-from") as HTMLSelectElement | null)?.addEventListener(
     "change",
@@ -2064,35 +2489,25 @@ function bindControls() {
     if (!state.currentLayout) return;
 
     if (state.selectedPathId) {
-      pushHistorySnapshot();
-      state.currentLayout.paths = state.currentLayout.paths.filter(
-        (path) => path.id !== state.selectedPathId,
-      );
-      state.selectedPathId = null;
-      renderAll();
+      removePathById(state.selectedPathId);
       setStatus("Selected route removed.");
       return;
     }
 
     if (state.selectedNodeId) {
-      pushHistorySnapshot();
-      state.currentLayout.nodes = state.currentLayout.nodes.filter(
-        (node) => node.regionId !== state.selectedNodeId,
-      );
-      state.currentLayout.paths = state.currentLayout.paths.filter(
-        (path) =>
-          path.fromRegionId !== state.selectedNodeId &&
-          path.toRegionId !== state.selectedNodeId,
-      );
-      if (state.currentDefinition && isDraftOnlyRegionId(state.selectedNodeId)) {
-        state.currentDefinition.regions = safeArray<Record<string, unknown>>(
-          state.currentDefinition.regions,
-        ).filter((region) => String(region.id || "") !== state.selectedNodeId);
-      }
-      state.selectedNodeId = null;
-      renderAll();
+      removeNodeById(state.selectedNodeId);
       setStatus("Selected location removed.");
     }
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest("#map-editor-context-menu")) return;
+    if (event.button !== 2) closeContextMenu();
+  });
+
+  document.addEventListener("scroll", () => {
+    if (state.contextMenu.open) closeContextMenu();
   });
 }
 

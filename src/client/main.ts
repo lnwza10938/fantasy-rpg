@@ -42,6 +42,7 @@ const GUEST_EMAIL = "guest@local";
 const GUEST_STORAGE_KEY = "rpg_guest_mode";
 const INVITE_STORAGE_KEY = "rpg_invite_code";
 const PENDING_LOAD_KEY = "rpg_pending_load";
+const MAP_EDITOR_PREVIEW_KEY = "rpg_map_editor_preview_draft";
 const DEFAULT_MAP_CAMERA = Object.freeze({ x: 0, y: 0, scale: 1 });
 const NORMALIZED_PATH =
   window.location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/";
@@ -2946,6 +2947,90 @@ function renderMapPreviewEmptyState() {
   renderMapPreviewWorldSelector();
 }
 
+function applyMapEditorPreviewDraft() {
+  if (APP_PAGE !== "map") return false;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("previewDraft") !== "1") return false;
+
+  const raw = sessionStorage.getItem(MAP_EDITOR_PREVIEW_KEY);
+  if (!raw) return false;
+
+  try {
+    const payload = JSON.parse(raw);
+    const definition = normalizeWorldDefinition(
+      payload?.definition,
+      payload?.definition?.regions,
+    );
+    if (!definition) return false;
+
+    const layout = definition.mapLayout || {};
+    const startRegionId =
+      layout.startRegionId ||
+      (Array.isArray(definition.regions) ? definition.regions[0]?.id : null) ||
+      null;
+    const visiblePathIds = Array.isArray(layout.paths)
+      ? layout.paths
+          .filter((path: any) => path?.visibility !== "hidden")
+          .map((path: any) => path?.id)
+          .filter(Boolean)
+      : [];
+
+    G.characterId = null;
+    G.worldDefinition = definition;
+    G.regions = normalizeRegions(definition.regions || []);
+    G.worldSeed = definition.seed || payload?.worldId || G.worldSeed || 0;
+    G.gs = {
+      characterName: G.gs?.characterName || "Preview Hero",
+      playerName: G.gs?.playerName || "Atlas Editor",
+      level: G.gs?.level || 1,
+      exp: G.gs?.exp || 0,
+      gold: G.gs?.gold || 0,
+      hp: G.gs?.hp || 100,
+      maxHP: G.gs?.maxHP || 100,
+      mana: G.gs?.mana || 50,
+      maxMana: G.gs?.maxMana || 50,
+      equipment: G.gs?.equipment || {
+        weapon: null,
+        armor: null,
+        accessory: null,
+      },
+      inventory: Array.isArray(G.gs?.inventory) ? G.gs.inventory : [],
+      effectiveStats: G.gs?.effectiveStats || {
+        attack: 10,
+        defense: 5,
+        speed: 8,
+      },
+      worldSeed: definition.seed || G.worldSeed || 0,
+      currentRegionId: startRegionId,
+      discoveredRegionIds: startRegionId ? [startRegionId] : [],
+      visitedRegionIds: startRegionId ? [startRegionId] : [],
+      clearedRegionIds: [],
+      lockedRegionIds: [],
+      revealedPathIds: visiblePathIds,
+      traversedPathIds: [],
+    };
+
+    syncSelectedRegionFromSession(true);
+    renderRegions();
+    updateAllStatusBars();
+    renderMapPreviewWorldSelector();
+    setMapEventState(
+      "🗺️ Previewing editor draft",
+      "This world map is rendering the latest unsaved draft from the Realm Map Editor. Use the selector below to switch back to a saved realm at any time.",
+    );
+    const noteEl = document.getElementById("map-preview-note");
+    if (noteEl) {
+      noteEl.textContent =
+        "Previewing the latest local draft from the Realm Map Editor.";
+    }
+    showToast("Previewing editor draft", "info");
+    return true;
+  } catch (error) {
+    console.warn("Could not apply editor preview draft", error);
+    return false;
+  }
+}
+
 async function initializeMapPage(forceReload = false) {
   if (APP_PAGE !== "map") return;
 
@@ -2962,6 +3047,10 @@ async function initializeMapPage(forceReload = false) {
     await fetchCreatedWorlds();
   } else {
     renderMapPreviewWorldSelector();
+  }
+
+  if (applyMapEditorPreviewDraft()) {
+    return;
   }
 
   if (!G.createdWorlds.length) {

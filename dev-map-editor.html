@@ -198,8 +198,37 @@
           </div>
 
           <div id="map-editor-node-card" class="dev-map-panel">
-            <div class="dev-panel-kicker">Node Inspector</div>
-            <div class="dev-topology-form-grid">
+            <div class="dev-map-panel-head">
+              <div class="dev-panel-kicker">Location Inspector</div>
+              <div class="dev-map-tab-row">
+                <button
+                  id="map-editor-tab-node"
+                  class="dev-map-tab active"
+                  type="button"
+                  data-tab="node"
+                >
+                  Node Data
+                </button>
+                <button
+                  id="map-editor-tab-story"
+                  class="dev-map-tab"
+                  type="button"
+                  data-tab="story"
+                >
+                  Story
+                </button>
+                <button
+                  id="map-editor-tab-encounters"
+                  class="dev-map-tab"
+                  type="button"
+                  data-tab="encounters"
+                >
+                  Encounters
+                </button>
+              </div>
+            </div>
+            <div id="map-editor-node-tab-panel" class="dev-map-tab-panel is-active" data-tab-panel="node">
+              <div class="dev-topology-form-grid">
               <label class="dev-topology-field dev-topology-field-wide">
                 <span>Region</span>
                 <select id="map-editor-node-region"></select>
@@ -252,6 +281,51 @@
                 <span>Enemy Pool</span>
                 <input id="map-editor-node-enemies" type="text" placeholder="widow, husk, banshee" />
               </label>
+            </div>
+            </div>
+            <div id="map-editor-story-tab-panel" class="dev-map-tab-panel" data-tab-panel="story">
+              <div class="dev-topology-form-grid">
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Intro Text ID</span>
+                  <input id="map-editor-story-intro" type="text" placeholder="cursed_meadows_intro_01" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Dialogue Pack</span>
+                  <input id="map-editor-story-dialogue-pack" type="text" placeholder="meadow_npcs_a" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Quest Hooks</span>
+                  <input id="map-editor-story-quest-hooks" type="text" placeholder="shrine_warning, widow_trail" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Story Beat</span>
+                  <input id="map-editor-story-beat" type="text" placeholder="The land still remembers the empire." />
+                </label>
+              </div>
+            </div>
+            <div
+              id="map-editor-encounters-tab-panel"
+              class="dev-map-tab-panel"
+              data-tab-panel="encounters"
+            >
+              <div class="dev-topology-form-grid">
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Event Pack</span>
+                  <input id="map-editor-encounter-event-pack" type="text" placeholder="widow_meadow_pack" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Encounter Table</span>
+                  <input id="map-editor-encounter-table" type="text" placeholder="cursed_meadows_threats" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Boss Encounter</span>
+                  <input id="map-editor-encounter-boss" type="text" placeholder="grief_gate_banshee" />
+                </label>
+                <label class="dev-topology-field dev-topology-field-wide">
+                  <span>Ambience</span>
+                  <input id="map-editor-encounter-ambience" type="text" placeholder="winds_of_grief" />
+                </label>
+              </div>
             </div>
           </div>
 
@@ -319,6 +393,8 @@
         </aside>
       </section>
     </div>
+
+    <div id="map-editor-context-menu" class="dev-map-context-menu" hidden></div>
 
     <script type="module" src="/src/client/translateWidget.ts"></script>
     <script type="module" src="/src/client/devMapEditor.ts"></script>

@@ -6759,6 +6759,50 @@ html[data-app-page="dev"] body::after {
   gap: 12px;
 }
 
+.dev-map-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dev-map-tab {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 245, 216, 0.12);
+  background: rgba(10, 23, 14, 0.58);
+  color: rgba(247, 255, 234, 0.76);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    transform 140ms ease,
+    color 140ms ease,
+    background 140ms ease;
+}
+
+.dev-map-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(212, 166, 90, 0.32);
+  color: #fff8e8;
+}
+
+.dev-map-tab.active {
+  border-color: rgba(212, 166, 90, 0.52);
+  background: linear-gradient(135deg, rgba(212, 166, 90, 0.22), rgba(93, 64, 22, 0.34));
+  color: #fff6d8;
+}
+
+.dev-map-tab-panel {
+  display: none;
+}
+
+.dev-map-tab-panel.is-active {
+  display: block;
+}
+
 .dev-map-world-list,
 .dev-map-validation-list,
 .dev-map-draft-summary {
@@ -6877,6 +6921,51 @@ html[data-app-page="dev"] body::after {
 .dev-map-draft-json {
   min-height: 260px;
   max-height: 340px;
+}
+
+.dev-map-context-menu {
+  position: fixed;
+  z-index: 1200;
+  min-width: 220px;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 166, 90, 0.24);
+  background:
+    linear-gradient(180deg, rgba(18, 20, 24, 0.98), rgba(12, 14, 18, 0.98)),
+    rgba(18, 20, 24, 0.98);
+  box-shadow:
+    0 24px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.dev-map-context-menu[hidden] {
+  display: none;
+}
+
+.dev-map-context-action {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(233, 245, 216, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(247, 255, 234, 0.9);
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.dev-map-context-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(212, 166, 90, 0.28);
+  background: rgba(212, 166, 90, 0.1);
 }
 
 .dev-map-panel .dev-topology-form-grid {
