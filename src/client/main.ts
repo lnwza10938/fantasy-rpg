@@ -2081,6 +2081,36 @@ function syncMapWorldBoard() {
   ].join(" • ");
 }
 
+function buildJourneyMapHeaderSummary(
+  region: any,
+  pathContext: any,
+  isSelectedCurrent: boolean,
+  isSelectedReachable: boolean,
+) {
+  if (!region) {
+    return "Choose a reachable route to continue your journey.";
+  }
+
+  const parts: string[] = [];
+  if (region.landmark) parts.push(region.landmark);
+  parts.push(`Threat ${region.dangerLevel}`);
+
+  const exitCount = Array.isArray(region.connections) ? region.connections.length : 0;
+  parts.push(`${exitCount} route${exitCount === 1 ? "" : "s"}`);
+
+  if (isSelectedCurrent) {
+    parts.push("Current area");
+  } else if (isSelectedReachable) {
+    parts.push("Reachable");
+  } else if (pathContext) {
+    parts.push(pathKindLabel(pathContext.path.kind));
+  } else {
+    parts.push("Not connected");
+  }
+
+  return parts.join(" • ");
+}
+
 function syncMapSelectionState() {
   const headingEl = document.getElementById("map-region-heading");
   const copyEl = document.getElementById("map-region-copy");
@@ -2103,11 +2133,12 @@ function syncMapSelectionState() {
       : "Choose your next route";
     const emptyCopy =
       "Move along connected routes from your current area. Selecting a reachable location will travel there and immediately trigger the next encounter.";
+    const compactEmptyCopy = "Choose a reachable route to continue your journey.";
     if (headingEl)
       headingEl.textContent = emptyHeading;
     if (copyEl) copyEl.textContent = emptyCopy;
     if (mapTitleEl) mapTitleEl.textContent = emptyHeading;
-    if (mapCopyEl) mapCopyEl.textContent = emptyCopy;
+    if (mapCopyEl) mapCopyEl.textContent = compactEmptyCopy;
     if (chipEl) {
       chipEl.textContent = currentRegion
         ? `Current Area • ${currentRegion.name}`
@@ -2147,7 +2178,14 @@ function syncMapSelectionState() {
           : "This location is not directly connected to your current position.";
     const fullCopy = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. ${locationFlavor ? `${locationFlavor} ` : ""}Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
     copyEl.textContent = fullCopy;
-    if (mapCopyEl) mapCopyEl.textContent = fullCopy;
+    if (mapCopyEl) {
+      mapCopyEl.textContent = buildJourneyMapHeaderSummary(
+        G.selectedRegion,
+        selectedPathContext,
+        isSelectedCurrent,
+        isSelectedReachable,
+      );
+    }
   }
   if (chipEl) {
     chipEl.textContent = isSelectedCurrent
