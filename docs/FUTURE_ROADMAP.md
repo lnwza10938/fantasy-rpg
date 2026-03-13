@@ -50,6 +50,19 @@ Clear state machine
 
 Required outcomes:
 
+### Mythic Atlas Theme Lock
+
+The UI system should now standardize around the official theme tokens in:
+
+- `docs/MYTHIC_ATLAS_COLOR_SYSTEM.md`
+
+This means:
+
+- stop mixing earlier dashboard-green styling with atlas-dark styling
+- use the locked gold / dark-stone / restrained-accent palette
+- keep route responsibilities clean enough that each page can share one design language
+- treat the color system as a stable dependency for future UI work
+
 ### Hub
 
 `/hub` should act as a dashboard only.

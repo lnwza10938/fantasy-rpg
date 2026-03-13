@@ -4,6 +4,8 @@ This report summarizes the current implementation status of the **Procedural Fan
 
 The project now also has an updated sequencing plan in [FUTURE_ROADMAP.md](/Users/mon/game_project/docs/FUTURE_ROADMAP.md), and that roadmap should be treated as the main guide for post-stabilization work.
 
+The project also now has a locked UI palette reference in [MYTHIC_ATLAS_COLOR_SYSTEM.md](/Users/mon/game_project/docs/MYTHIC_ATLAS_COLOR_SYSTEM.md), which should be treated as the visual source of truth for future frontend cleanup.
+
 ## Current Product State
 
 The project is now a deployed multi-page web RPG with:
@@ -207,6 +209,22 @@ The following are already in place and functioning together:
 ## What Is Partially Complete
 
 These systems now have a solid base, but are not finished yet:
+
+### 0. Mythic Atlas Theme Migration
+
+The project now has a locked official color system, but the full migration is still in progress.
+
+Current status:
+
+- core atlas values are now documented and available for frontend use
+- route cleanup has improved visual consistency
+- several pages still contain older visual remnants from earlier UI passes
+
+Still to do:
+
+- finish aligning all player-facing pages to the atlas token set
+- reduce leftover green dashboard styling where it still dominates
+- extract reusable component-level style rules from the current page-specific CSS
 
 ### 1. Traversal Engine - Phase 2
 

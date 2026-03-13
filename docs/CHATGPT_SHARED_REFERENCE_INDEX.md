@@ -110,6 +110,19 @@ At the product-structure level, the current UI direction should also remain:
   - informs the current hub refactor
   - sharpens route intent across `/hub`, `/adventure`, `/forge`, and `/vault`
 
+### 6. Mythic Atlas Color System Lock
+
+- Link: `https://chatgpt.com/s/t_69b3dbe54a588191973eaffb2e40b9e0`
+- Published: March 13, 2026
+- Role: visual token and palette reference
+- Main value:
+  - locks the official Mythic Atlas background, surface, gold, accent, danger, and text palette
+  - defines map node color states
+  - defines glow intensity expectations
+  - gives a stable frontend color contract for future UI cleanup
+- Local derived doc:
+  - `docs/MYTHIC_ATLAS_COLOR_SYSTEM.md`
+
 ## How To Use These References
 
 When a future task touches the systems below, start from these links and then move to the local docs:
@@ -130,6 +143,9 @@ When a future task touches the systems below, start from these links and then mo
 
 - for hub/dashboard and route-boundary decisions:
   - use reference 5 before mixing hub, wizard, gameplay, vault, or forge concerns again
+
+- for theme and color-system decisions:
+  - use reference 6 before changing palette, node colors, button hierarchy, or dialogue/combat surfaces
 
 ## Notes
 
