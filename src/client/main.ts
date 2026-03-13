@@ -1381,6 +1381,8 @@ function renderAdventureLandingState() {
   setAdventureMode("map");
   toggleMapCombatStage(false);
   clearAdventureLog();
+  const headerStatusEl = document.getElementById("header-hero-status");
+  if (headerStatusEl) headerStatusEl.textContent = "No active hero";
   setMapEventState(
     "🧭 Journey Chamber",
     "Continue a saved journey from Home, or begin a new journey to choose a realm and hero.",
@@ -1740,7 +1742,7 @@ function clearAdventureLog() {
   if (visibleLog) {
     visibleLog.innerHTML = `
       <div style="color: var(--muted); font-style: italic">
-        Choose a region and explore to begin your adventure...
+        Choose a location and explore to begin your journey...
       </div>
     `;
     visibleLog.setAttribute("data-pristine", "true");
@@ -1757,6 +1759,19 @@ function setAdventureMode(
   const shell = document.getElementById("game-ui-screen");
   if (!shell) return;
   shell.setAttribute("data-adventure-mode", mode);
+  const kickerEl = document.getElementById("story-scene-kicker");
+  if (kickerEl) {
+    kickerEl.textContent =
+      mode === "combat"
+        ? "Battle"
+        : mode === "result"
+          ? "Outcome"
+          : mode === "event"
+            ? "Encounter"
+            : mode === "story"
+              ? "Story"
+              : "Journey";
+  }
 }
 
 function appendSharedLog(html: string, targetIds: string[]) {
@@ -1775,8 +1790,41 @@ function appendSharedLog(html: string, targetIds: string[]) {
 function setMapEventState(title: string, description: string) {
   const titleEl = document.getElementById("explore-title");
   const copyEl = document.getElementById("map-event-copy");
+  const storyTitleEl = document.getElementById("story-scene-title");
+  const storyCopyEl = document.getElementById("story-scene-dialogue");
+  const storySpeakerEl = document.getElementById("story-scene-speaker");
+  const storyPortraitEl = document.getElementById("story-scene-portrait");
   if (titleEl) titleEl.textContent = title;
   if (copyEl) copyEl.textContent = description;
+  if (storyTitleEl) {
+    storyTitleEl.textContent =
+      title.replace(/^[^\p{L}\p{N}]+/u, "").trim() || title;
+  }
+  if (storyCopyEl) {
+    storyCopyEl.textContent = description;
+    storyCopyEl.classList.remove("typewriting");
+    void storyCopyEl.offsetWidth;
+    storyCopyEl.classList.add("typewriting");
+  }
+  if (storySpeakerEl) {
+    storySpeakerEl.textContent =
+      G.selectedRegion?.name || getCurrentRegion()?.name || "Realm Chronicle";
+  }
+  if (storyPortraitEl) {
+    const mode =
+      document.getElementById("game-ui-screen")?.getAttribute("data-adventure-mode") ||
+      "map";
+    storyPortraitEl.textContent =
+      mode === "result"
+        ? "🏆"
+        : mode === "combat"
+          ? "⚔️"
+          : mode === "story"
+            ? "📖"
+            : mode === "event"
+              ? "✨"
+              : "🗺️";
+  }
 }
 
 function toggleMapCombatStage(visible: boolean) {
@@ -1816,11 +1864,11 @@ function syncMapWorldBoard() {
   worldNameEl.textContent = worldName;
   worldMetaEl.textContent = [
     worldPresetLabel(worldPreset),
-    `${nodeCount} nodes`,
+    `${nodeCount} locations`,
     `${routeCount} routes`,
     `Cleared ${clearedCount}`,
-    currentRegion ? `Current ${currentRegion.name}` : "No active node",
-    `Seed ${seedValue}`,
+    currentRegion ? `Current Area ${currentRegion.name}` : "No active area",
+    `Realm ID ${seedValue}`,
   ].join(" • ");
 }
 
@@ -1845,11 +1893,11 @@ function syncMapSelectionState() {
         : "Choose your next route";
     if (copyEl)
       copyEl.textContent =
-        "Move along connected routes from your current node. Selecting a reachable region will travel there and immediately trigger the next exploration event.";
+        "Move along connected routes from your current area. Selecting a reachable location will travel there and immediately trigger the next encounter.";
     if (chipEl) {
       chipEl.textContent = currentRegion
         ? `Current Area • ${currentRegion.name}`
-        : "No region selected";
+        : "No location selected";
     }
     renderAdventureCommandDeck();
     applyMapCamera();
@@ -1865,7 +1913,7 @@ function syncMapSelectionState() {
   if (copyEl) {
     const routeSummary = selectedPathContext
       ? `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty} • ${selectedPathContext.path.visibility === "fogged" ? "Fogged" : selectedPathContext.path.visibility === "hidden" ? "Hidden" : "Visible"}`
-      : "Current node";
+      : "Current area";
     const requirementSummary =
       selectedPathContext?.path.requirements?.length
         ? `Requirements: ${selectedPathContext.path.requirements
@@ -1873,14 +1921,14 @@ function syncMapSelectionState() {
             .join(" • ")}.`
         : "";
     const routeState = isSelectedCurrent
-      ? "You are already here. Explore this node to trigger the next event."
+      ? "You are already here. Explore this area to trigger the next encounter."
       : isSelectedReachable
-        ? "This route is reachable from your current node. Traveling there will trigger a travel step before the regional event resolves."
+        ? "This route is reachable from your current area. Traveling there will trigger a travel step before the encounter resolves."
         : selectedPathContext
           ? formatTraversalBlockedReason(
               selectedPathContext.evaluation.blockedReason,
             )
-          : "This node is not directly connected to your current position.";
+          : "This location is not directly connected to your current position.";
     copyEl.textContent = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
   }
   if (chipEl) {
@@ -1955,7 +2003,7 @@ function renderAdventureCommandDeck() {
   let title = "Choose your next move";
   let copy = "";
   let dialogue =
-    "Select a reachable region to begin exploring, or focus the current node to act in place.";
+    "Select a reachable location to begin exploring, or focus the current area to act in place.";
   let actions = [
     commandButtonMarkup({
       id: "command-focus-current",
@@ -2079,7 +2127,7 @@ function renderAdventureCommandDeck() {
     } else {
       stateLabel = "Detached";
       title = `${G.selectedRegion.name} is out of reach`;
-      dialogue = `${landmark}. This node belongs to the world, but not to your immediate route options.`;
+      dialogue = `${landmark}. This location belongs to the realm, but not to your immediate route options.`;
       actions = [
         commandButtonMarkup({
           icon: "🚫",
@@ -2105,7 +2153,7 @@ function renderAdventureCommandDeck() {
       ].join("");
     }
   } else if (currentRegion) {
-    title = `${currentRegion.name} is your current node`;
+    title = `${currentRegion.name} is your current area`;
     dialogue = `${currentRegion.landmark || "Waystation"} is your anchor point. Choose to act here or chart a reachable route next.`;
   }
 
@@ -2881,7 +2929,7 @@ function renderMapPreviewEmptyState() {
         </div>
         <div class="map-preview-empty-actions">
           <button class="btn btn-primary" onclick="startWizard()">⚔️ Start Adventure</button>
-          <button class="btn btn-action" onclick="showScreen('menu')">🏠 Main Menu</button>
+          <button class="btn btn-action" onclick="showScreen('menu')">🏠 Home</button>
         </div>
       </div>
     `;
@@ -3769,7 +3817,7 @@ async function submitNewGame() {
   clearAdventureLog();
   setMapEventState(
     "🧭 Choose your opening route",
-    "Your journey begins from the start node. Select a reachable route on the map to travel and trigger the first event.",
+    "Your journey begins from the starting location. Select a reachable route on the map to travel and trigger the first event.",
   );
   toggleMapCombatStage(false);
   showScreen("world");
@@ -4183,7 +4231,7 @@ async function loadGame(cid: string, charName?: string) {
   clearAdventureLog();
   setMapEventState(
     "🧭 Syncing traversal state",
-    "Load complete. Your current node and reachable routes will repopulate on the map in a moment.",
+    "Load complete. Your current area and reachable routes will repopulate on the map in a moment.",
   );
   toggleMapCombatStage(false);
   showScreen("world");
@@ -4404,6 +4452,11 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       const isVisited = visitedRegionIds.has(region.id);
       const isCleared = clearedRegionIds.has(region.id);
       const isLocked = lockedRegionIds.has(region.id);
+      const isSecret = (layout.paths || []).some(
+        (path: any) =>
+          (path.fromRegionId === region.id || path.toRegionId === region.id) &&
+          (path.kind === "secret" || path.visibility === "hidden"),
+      );
       const inactive = !isCurrent && !isReachable;
       const nodeStateClasses = [
         selected,
@@ -4412,6 +4465,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
         isDiscovered ? "discovered" : "",
         isVisited ? "visited" : "",
         isCleared ? "cleared" : "",
+        isSecret ? "secret" : "",
         isLocked ? "locked" : "",
         node.isStart ? "start" : "",
         node.isGoal ? "goal boss" : "",
@@ -4426,6 +4480,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           onclick="selectRegion(${regionIndex})"
           ${isLocked ? "disabled" : ""}
           ${isLocked ? "data-node-state=\"locked\"" : ""}
+          title="${escapeHtml(`${region.name} • Threat Level ${region.dangerLevel} • ${enemyList}`)}"
         >
           <div class="map-node-head">
             <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
@@ -4442,6 +4497,8 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
             ${isCurrent ? '<span class="map-flag current">Current</span>' : ""}
             ${isReachable ? '<span class="map-flag reachable">Reachable</span>' : ""}
             ${isCleared ? '<span class="map-flag cleared">Cleared</span>' : ""}
+            ${isSecret ? '<span class="map-flag secret">Secret</span>' : ""}
+            ${node.isGoal ? '<span class="map-flag boss">Boss</span>' : ""}
           </div>
         </button>
       `;
@@ -4490,7 +4547,7 @@ function renderRegions() {
     listEl.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:26px 18px;color:var(--muted)">
         <div style="font-size:34px;margin-bottom:10px">🗺️</div>
-        <div style="font-size:13px;font-weight:700;margin-bottom:6px">No regions loaded yet</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px">No locations loaded yet</div>
         <div style="font-size:11px;line-height:1.5">Create or load an adventure again and the world map will repopulate here.</div>
       </div>
     `;
@@ -4525,7 +4582,7 @@ function renderRegions() {
 
 function selectRegion(i: number) {
   if (G.activeCombat) {
-    showToast("Finish the current encounter before switching regions.", "info");
+    showToast("Finish the current encounter before switching locations.", "info");
     return;
   }
   const region = G.regions[i];
@@ -4580,6 +4637,12 @@ function updateHUD() {
       if (el.style.width !== w) el.style.width = w;
     }
   };
+
+  const headerStatusEl = document.getElementById("header-hero-status");
+  if (headerStatusEl) {
+    const summary = `${name} • ${s.hp}/${s.maxHP} HP • ${s.gold} Gold`;
+    if (headerStatusEl.textContent !== summary) headerStatusEl.textContent = summary;
+  }
 
   // ── Old HUD compat ──
   f("hud-char", `⚔️ ${name} (Lv.${s.level})`);
@@ -4732,7 +4795,7 @@ function renderInventory() {
 // --- EXPLORE ---
 async function exploreRegion() {
   if (!G.selectedRegion) {
-    showToast("Pick a region before exploring.", "info");
+    showToast("Pick a location before exploring.", "info");
     return;
   }
   if (G.activeCombat) {
@@ -4757,8 +4820,8 @@ async function exploreRegion() {
       ? `🧭 Exploring ${G.selectedRegion.name}`
       : `🧭 Traveling to ${G.selectedRegion.name}`,
     G.selectedRegion.id === currentRegionId
-      ? "The party moves deeper into the current region. Any discovery or enemy encounter will appear here immediately."
-      : "The party follows a reachable route into the selected node. Travel and the next event resolve directly on this map.",
+      ? "The party moves deeper into the current area. Any discovery or enemy encounter will appear here immediately."
+      : "The party follows a reachable route into the selected location. Travel and the next event resolve directly on this map.",
   );
   appendSharedLog(
     '<div class="log-info">───────────────────</div>',
@@ -5046,6 +5109,10 @@ function renderCombatActions() {
 
   if (G.activeCombat.isFinished) {
     setAdventureMode("result");
+    setMapEventState(
+      "🏆 Outcome",
+      "The battle is over. Gather yourself, review the outcome, and choose what the journey does next.",
+    );
     if (deckTitleEl) deckTitleEl.textContent = "Encounter complete";
     if (deckCopyEl) deckCopyEl.textContent = "";
     if (deckStateEl) deckStateEl.textContent = "Victory";
@@ -5086,7 +5153,7 @@ function renderCombatActions() {
           G.selectedRegion
             ? `🧭 ${G.selectedRegion.name} is clear for now`
             : "🗺️ The path is clear",
-          "The encounter is over. Explore again or pick a different region.",
+          "The encounter is over. Explore again or pick a different location.",
         );
         showScreen("world");
       });
@@ -5100,7 +5167,7 @@ function renderCombatActions() {
 
   if (deckTitleEl) deckTitleEl.textContent = "Combat commands";
   if (deckCopyEl) deckCopyEl.textContent = "";
-  if (deckStateEl) deckStateEl.textContent = "Combat";
+  if (deckStateEl) deckStateEl.textContent = "Battle";
   setAdventureMode("combat");
   if (!resultBox.textContent?.trim()) {
     resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
@@ -5152,7 +5219,7 @@ async function executeCombatTurn() {
   });
   if (attackBtn) {
     attackBtn.innerHTML =
-      "<strong>Resolving...</strong><span>Processing this turn</span>";
+      '<span class="battle-action-emoji">⏳</span><strong>Resolving</strong>';
   }
 
   try {
@@ -5192,7 +5259,7 @@ async function executeCombatTurn() {
     if (attackBtn && !G.activeCombat?.isFinished) {
       attackBtn.disabled = false;
       attackBtn.innerHTML =
-        "<strong>Attack</strong><span>Resolve one turn right now</span>";
+        '<span class="battle-action-emoji">⚔️</span><strong>Fight</strong>';
     }
   }
 }

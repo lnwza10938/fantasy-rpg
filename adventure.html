@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Realm Chronicle</title>
+    <title>Realm Chronicle · Journey</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
@@ -15,7 +15,6 @@
   </head>
 
   <body>
-    <a href="/dev-panel" class="dev-launch-btn">🛠 Dev</a>
     <!-- Google Translate hidden element -->
     <div id="google_translate_element" style="display: none"></div>
 
@@ -250,6 +249,7 @@
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
+        <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
 
       <div class="container">
@@ -639,9 +639,9 @@
                   margin-bottom: 12px;
                 "
               >
-                <h3>📜 Step 2: Choose a Legend</h3>
+                <h3>📜 Step 2: Choose a Hero</h3>
                 <button class="btn btn-action" onclick="showForge('wizard')">
-                  ⚡ Forge New Legend
+                  ⚡ Create New Hero
                 </button>
               </div>
               <p
@@ -700,7 +700,7 @@
           <!-- STEP 4: Confirm & Start -->
           <div id="wizard-step-4" class="fade-in" style="display: none">
             <div class="card">
-              <h3>⚔️ Step 3: Begin Your Legend</h3>
+              <h3>⚔️ Step 3: Begin Your Journey</h3>
               <div
                 id="confirm-summary"
                 style="
@@ -965,7 +965,7 @@
                 style="font-size: 11px; width: 100%"
                 onclick="showScreen('menu')"
               >
-                🏠 Main Menu
+                🏠 Home
               </button>
             </div>
           </div>
@@ -1000,6 +1000,20 @@
 
               <div class="map-scene-shell">
                 <div id="region-list" class="region-grid map-region-grid"></div>
+
+                <div id="story-scene-stage" class="story-scene-stage">
+                  <div class="story-scene-copy">
+                    <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
+                    <div id="story-scene-title" class="story-scene-title">Choose your next route</div>
+                    <div id="story-scene-speaker" class="story-scene-speaker">Realm Chronicle</div>
+                    <div id="story-scene-dialogue" class="story-scene-dialogue typewriting">
+                      Travel, dialogue, and outcomes will take the focus here whenever the journey shifts away from the map.
+                    </div>
+                  </div>
+                  <div class="story-scene-portrait">
+                    <div id="story-scene-portrait" class="story-scene-portrait-frame">📜</div>
+                  </div>
+                </div>
 
                 <div
                   id="map-combat-stage"
@@ -1103,7 +1117,7 @@
                       Choose your next move
                     </div>
                     <div id="command-deck-copy" class="command-deck-copy">
-                      Select a reachable region to unlock travel, exploration, and
+                      Select a reachable location to unlock travel, exploration, and
                       combat commands here.
                     </div>
                   </div>
@@ -1111,8 +1125,8 @@
                 </div>
 
                 <div id="combat-result" class="battle-dialogue command-deck-dialogue">
-                  Select a reachable region to begin exploring, or focus the current
-                  node to act in place.
+                  Select a reachable location to begin exploring, or focus the current
+                  area to act in place.
                 </div>
 
                 <div
@@ -1221,13 +1235,13 @@
                     No world loaded yet
                   </div>
                   <div id="map-region-chip" class="map-region-chip map-camera-region-chip">
-                    No region selected
+                    No location selected
                   </div>
                   <div id="map-region-heading" class="map-camera-region-heading">
                     Choose your next route
                   </div>
                   <div id="map-region-copy" class="map-camera-region-copy">
-                    Follow connected routes from your current node. Travel and the
+                    Follow connected routes from your current area. Travel and the
                     next event resolve right here on the map.
                   </div>
 
@@ -1376,7 +1390,7 @@
               onclick="showScreen('menu')"
               style="margin-top: 20px; width: 100%"
             >
-              Back to Main Menu
+              Back to Home
             </button>
           </div>
         </div>
@@ -1413,9 +1427,7 @@
                 "
               >
                 <span style="color: var(--muted); font-size: 12px">
-                  <b>Dev Note:</b><br /><br />Character portrait will be
-                  dynamically generated here based on the selected appearance
-                  settings later.
+                  Portrait preview will appear here as your hero's look comes together.
                 </span>
               </div>
 

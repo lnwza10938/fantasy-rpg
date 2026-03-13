@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Realm Chronicle</title>
+    <title>Realm Chronicle · Create Hero</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Bree+Serif&family=Silkscreen:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
@@ -15,7 +15,6 @@
   </head>
 
   <body>
-    <a href="/dev-panel" class="dev-launch-btn">🛠 Dev</a>
     <!-- Google Translate hidden element -->
     <div id="google_translate_element" style="display: none"></div>
 
@@ -250,6 +249,7 @@
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
+        <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
 
       <div class="container">
@@ -675,9 +675,9 @@
                   margin-bottom: 12px;
                 "
               >
-                <h3>📜 Step 2: Choose a Legend</h3>
+                <h3>📜 Step 2: Choose a Hero</h3>
                 <button class="btn btn-action" onclick="showForge('wizard')">
-                  ⚡ Forge New Legend
+                  ⚡ Create New Hero
                 </button>
               </div>
               <p
@@ -725,7 +725,7 @@
                   style="flex: 2"
                   disabled
                 >
-                  Proceed with Legend
+                  Review Journey Setup
                 </button>
               </div>
             </div>
@@ -736,7 +736,7 @@
           <!-- STEP 4: Confirm & Start -->
           <div id="wizard-step-4" class="fade-in" style="display: none">
             <div class="card">
-              <h3>⚔️ Step 3: Begin Your Legend</h3>
+              <h3>⚔️ Step 3: Begin Your Journey</h3>
               <div
                 id="confirm-summary"
                 style="
@@ -1001,7 +1001,7 @@
                 style="font-size: 11px; width: 100%"
                 onclick="showScreen('menu')"
               >
-                🏠 Main Menu
+                🏠 Home
               </button>
             </div>
           </div>
@@ -1292,7 +1292,7 @@
               onclick="showScreen('menu')"
               style="margin-top: 20px; width: 100%"
             >
-              Back to Main Menu
+              Back to Home
             </button>
           </div>
         </div>
@@ -1329,9 +1329,7 @@
                 "
               >
                 <span style="color: var(--muted); font-size: 12px">
-                  <b>Dev Note:</b><br /><br />Character portrait will be
-                  dynamically generated here based on the selected appearance
-                  settings later.
+                  Portrait preview will appear here as your hero's look comes together.
                 </span>
               </div>
 
