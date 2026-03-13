@@ -4,6 +4,10 @@ import {
   type DevCategoryConfig,
 } from "../models/devPanelCatalog.js";
 import { uploadDevFile } from "./devAssetUpload.js";
+import {
+  buildNameDrivenAutofillPrompt,
+  requestDevAIDraft,
+} from "./devAIAutofill.js";
 
 type SortOrder = "latest" | "oldest";
 
@@ -1983,6 +1987,81 @@ async function generateEditorDraftWithAI() {
   }
 }
 
+async function autofillEditorRecordFromName() {
+  const textareaEl = document.getElementById("dev-editor-json") as HTMLTextAreaElement;
+  const buttonEl = document.getElementById("dev-editor-autofill") as HTMLButtonElement | null;
+  if (!textareaEl || !buttonEl || !state.editor.source) return;
+
+  let currentRecord: Record<string, unknown> = {};
+  try {
+    currentRecord = JSON.parse(textareaEl.value || "{}");
+  } catch (error: any) {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      `Fix JSON before using Auto Fill: ${error.message}`,
+      true,
+    );
+    return;
+  }
+
+  const anchorName = [
+    currentRecord.title,
+    currentRecord.name,
+    currentRecord.npc_name,
+    currentRecord.world_name,
+  ].find((value) => typeof value === "string" && value.trim().length > 0);
+
+  if (!anchorName || typeof anchorName !== "string") {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      "Add a title or name in the JSON first, then use Auto Fill.",
+      true,
+    );
+    return;
+  }
+
+  buttonEl.disabled = true;
+  setInlineStatus("dev-editor-ai-status", "AI is filling the record from the current name...");
+
+  try {
+    const response = await requestDevAIDraft(
+      state.editor.sourceKey,
+      buildNameDrivenAutofillPrompt({
+        entityLabel: state.editor.source.label,
+        anchorName,
+        summary:
+          typeof currentRecord.summary === "string"
+            ? currentRecord.summary
+            : typeof currentRecord.description === "string"
+              ? currentRecord.description
+              : "",
+        notes: collectDraftTextFromRecord(currentRecord),
+        extraLines: [
+          `Source label: ${state.editor.source.label}`,
+          `Source description: ${state.editor.source.description}`,
+          "Return a practical record that keeps existing bindings, IDs, and uploaded file fields intact where already present.",
+        ],
+      }),
+      currentRecord,
+    );
+
+    mergeEditorJson(response.record || {});
+    setInlineStatus(
+      "dev-editor-ai-status",
+      response.warning || "Auto Fill merged new fields into the editor JSON.",
+      !!response.fallback,
+    );
+  } catch (error: any) {
+    setInlineStatus(
+      "dev-editor-ai-status",
+      error.message || "Could not autofill this record",
+      true,
+    );
+  } finally {
+    buttonEl.disabled = false;
+  }
+}
+
 async function importEditorFile(file: File) {
   const source = state.editor.source;
   if (!source) return;
@@ -2193,6 +2272,12 @@ function bindGlobalControls() {
     if (state.editor.sourceKey === "world_overrides") {
       syncOverrideBuilderFromJson();
       setInlineStatus("dev-override-status", "Reset to the source template.");
+    }
+  });
+  document.getElementById("dev-editor-autofill")?.addEventListener("click", async () => {
+    await autofillEditorRecordFromName();
+    if (state.editor.sourceKey === "world_overrides") {
+      syncOverrideBuilderFromJson();
     }
   });
   document.getElementById("dev-editor-ai-draft")?.addEventListener("click", async () => {
