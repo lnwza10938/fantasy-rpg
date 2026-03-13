@@ -49,6 +49,13 @@ interface ValidationResult {
   message: string;
 }
 
+interface EditorHistorySnapshot {
+  definition: Record<string, unknown> | null;
+  layout: TopologyLayoutDraft | null;
+  selectedNodeId: string | null;
+  selectedPathId: string | null;
+}
+
 const DEV_PANEL_KEY = "rpg_dev_panel_key";
 const API = "/dev";
 const LOCAL_DRAFT_PREFIX = "rpg_map_editor_draft";
@@ -86,6 +93,9 @@ const state = {
     lastPointerX: 0,
     lastPointerY: 0,
   },
+  historyPast: [] as EditorHistorySnapshot[],
+  historyFuture: [] as EditorHistorySnapshot[],
+  dirty: false,
 };
 
 function cloneRecord<T>(value: T): T {
@@ -233,6 +243,63 @@ function normalizePathEffects(value: unknown) {
   return [] as string[];
 }
 
+function slugifyRegionId(value: string) {
+  const base = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return base || "new_location";
+}
+
+function nextDraftRegionIdentity() {
+  const takenIds = new Set(
+    safeArray<Record<string, unknown>>(state.currentDefinition?.regions).map((region) =>
+      String(region.id || "").trim(),
+    ),
+  );
+  let index = 1;
+  while (takenIds.has(`new_location_${index}`)) index += 1;
+  return {
+    id: `new_location_${index}`,
+    name: `New Location ${index}`,
+  };
+}
+
+function isDraftOnlyRegionId(regionId: string) {
+  return regionId.startsWith("new_location_");
+}
+
+function getUnusedCanonicalRegion() {
+  return safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
+    (region) =>
+      !state.currentLayout?.nodes.some(
+        (node) => node.regionId === String(region.id || ""),
+      ),
+  );
+}
+
+function createDraftRegionRecord() {
+  const identity = nextDraftRegionIdentity();
+  const region = {
+    id: identity.id,
+    name: identity.name,
+    biome: "wilds",
+    dangerLevel: 1,
+    description: "A newly drafted location awaiting world details.",
+    enemyPool: [],
+    icon: "🗺️",
+    landmark: "Unmarked Landmark",
+    accentColor: "#d4a65a",
+    tier: 0,
+    isStart: false,
+    isGoal: false,
+  } as Record<string, unknown>;
+  const currentRegions = safeArray<Record<string, unknown>>(state.currentDefinition?.regions);
+  currentRegions.push(region);
+  if (state.currentDefinition) state.currentDefinition.regions = currentRegions;
+  return region;
+}
+
 function deriveTopologyLayoutDraft(
   definition: Record<string, unknown> | null,
 ): TopologyLayoutDraft | null {
@@ -327,6 +394,69 @@ function resetViewport() {
   state.viewport.panX = 0;
   state.viewport.panY = 0;
   state.viewport.dragging = false;
+}
+
+function buildHistorySnapshot(): EditorHistorySnapshot {
+  return {
+    definition: state.currentDefinition ? cloneRecord(state.currentDefinition) : null,
+    layout: state.currentLayout ? cloneRecord(state.currentLayout) : null,
+    selectedNodeId: state.selectedNodeId,
+    selectedPathId: state.selectedPathId,
+  };
+}
+
+function applyHistorySnapshot(snapshot: EditorHistorySnapshot) {
+  state.currentDefinition = snapshot.definition ? cloneRecord(snapshot.definition) : null;
+  state.currentLayout = snapshot.layout ? cloneRecord(snapshot.layout) : null;
+  state.selectedNodeId = snapshot.selectedNodeId;
+  state.selectedPathId = snapshot.selectedPathId;
+  state.pendingPathFrom = null;
+}
+
+function resetHistory() {
+  state.historyPast = [];
+  state.historyFuture = [];
+  state.dirty = false;
+}
+
+function pushHistorySnapshot() {
+  const next = buildHistorySnapshot();
+  const previous = state.historyPast[state.historyPast.length - 1];
+  if (previous && JSON.stringify(previous) === JSON.stringify(next)) {
+    return;
+  }
+  state.historyPast.push(next);
+  if (state.historyPast.length > 80) state.historyPast.shift();
+  state.historyFuture = [];
+  state.dirty = true;
+}
+
+function undoHistory() {
+  if (!state.historyPast.length) {
+    setStatus("Nothing to undo.");
+    return;
+  }
+  const current = buildHistorySnapshot();
+  const previous = state.historyPast.pop()!;
+  state.historyFuture.push(current);
+  applyHistorySnapshot(previous);
+  state.dirty = true;
+  renderAll();
+  setStatus("Undo applied.");
+}
+
+function redoHistory() {
+  if (!state.historyFuture.length) {
+    setStatus("Nothing to redo.");
+    return;
+  }
+  const current = buildHistorySnapshot();
+  const next = state.historyFuture.pop()!;
+  state.historyPast.push(current);
+  applyHistorySnapshot(next);
+  state.dirty = true;
+  renderAll();
+  setStatus("Redo applied.");
 }
 
 function diffObject(
@@ -524,6 +654,7 @@ function renderWorldList() {
 }
 
 function renderTopbar() {
+  const hasWorld = !!getSelectedWorld();
   const worldSelect = document.getElementById(
     "map-editor-world-select",
   ) as HTMLSelectElement | null;
@@ -573,10 +704,37 @@ function renderTopbar() {
           : localDraftExists
             ? "New draft (local draft available)"
             : "New draft";
+    const dirtyLabel = state.dirty ? "Unsaved changes" : "Clean draft";
     metaEl.textContent = world
-      ? `${world.mode} • ${world.preset} • ${world.regions.length} regions • ${countWorldOverrides(world.id)} overrides • ${overrideLabel}`
+      ? `${world.mode} • ${world.preset} • ${world.regions.length} regions • ${countWorldOverrides(world.id)} overrides • ${overrideLabel} • ${dirtyLabel}`
       : "Choose a canonical world to begin.";
   }
+
+  [
+    "map-editor-preview-btn",
+    "map-editor-undo-btn",
+    "map-editor-redo-btn",
+    "map-editor-validate-btn",
+    "map-editor-save-draft-btn",
+    "map-editor-reset-btn",
+    "map-editor-save-btn",
+  ].forEach((id) => {
+    const el = document.getElementById(id) as HTMLButtonElement | null;
+    if (!el) return;
+    if (!hasWorld && id !== "map-editor-undo-btn" && id !== "map-editor-redo-btn") {
+      el.disabled = true;
+      return;
+    }
+    if (id === "map-editor-undo-btn") {
+      el.disabled = state.historyPast.length === 0;
+      return;
+    }
+    if (id === "map-editor-redo-btn") {
+      el.disabled = state.historyFuture.length === 0;
+      return;
+    }
+    el.disabled = !hasWorld;
+  });
 }
 
 function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[] {
@@ -703,8 +861,21 @@ function buildValidation(layout: TopologyLayoutDraft | null): ValidationResult[]
 
 function renderValidation() {
   const listEl = document.getElementById("map-editor-validation");
+  const summaryEl = document.getElementById("map-editor-validation-summary");
   if (!listEl) return;
   state.validation = buildValidation(state.currentLayout);
+  const okCount = state.validation.filter((entry) => entry.severity === "ok").length;
+  const warnCount = state.validation.filter((entry) => entry.severity === "warn").length;
+  const errorCount = state.validation.filter((entry) => entry.severity === "error").length;
+  if (summaryEl) {
+    summaryEl.textContent =
+      errorCount > 0
+        ? `${errorCount} error${errorCount === 1 ? "" : "s"}`
+        : warnCount > 0
+          ? `${warnCount} warning${warnCount === 1 ? "" : "s"}`
+          : `${okCount} checks passed`;
+    summaryEl.className = `dev-map-meta-pill ${errorCount ? "is-error" : warnCount ? "is-warn" : "is-ok"}`;
+  }
   listEl.innerHTML = state.validation
     .map(
       (entry) =>
@@ -741,11 +912,30 @@ function renderDraftPanel() {
   const jsonEl = document.getElementById(
     "map-editor-draft-json",
   ) as HTMLTextAreaElement | null;
+  const draftStateEl = document.getElementById("map-editor-draft-state");
   const draft = buildOverrideDraft();
   if (draftMetaEl) {
     draftMetaEl.textContent = draft
       ? `Type: ${String(draft.override_type)} • Scope: ${String(draft.scope_type || "world")} • World: ${state.selectedWorldId}`
       : "No world selected.";
+  }
+  if (draftStateEl) {
+    const draftState =
+      state.selectedOverrideId === "local-draft"
+        ? "Local Draft"
+        : state.dirty
+          ? "Unsaved"
+          : state.selectedOverrideId !== "new"
+            ? "Saved Override"
+            : "Clean";
+    draftStateEl.textContent = draftState;
+    draftStateEl.className = `dev-map-meta-pill ${
+      draftState === "Unsaved"
+        ? "is-warn"
+        : draftState === "Saved Override" || draftState === "Local Draft"
+          ? "is-ok"
+          : ""
+    }`;
   }
   if (summaryEl) {
     summaryEl.innerHTML = draftSummaryRows()
@@ -1042,6 +1232,7 @@ function renderCanvas() {
       const pathId = pathEl.dataset.pathId || "";
       if (!state.currentLayout) return;
       if (state.toolMode === "delete") {
+        pushHistorySnapshot();
         state.currentLayout.paths = state.currentLayout.paths.filter((path) => path.id !== pathId);
         state.selectedPathId = null;
       } else {
@@ -1058,10 +1249,16 @@ function renderCanvas() {
       const nodeId = nodeEl.dataset.nodeId || "";
       if (!state.currentLayout) return;
       if (state.toolMode === "delete") {
+        pushHistorySnapshot();
         state.currentLayout.nodes = state.currentLayout.nodes.filter((node) => node.regionId !== nodeId);
         state.currentLayout.paths = state.currentLayout.paths.filter(
           (path) => path.fromRegionId !== nodeId && path.toRegionId !== nodeId,
         );
+        if (state.currentDefinition && isDraftOnlyRegionId(nodeId)) {
+          state.currentDefinition.regions = safeArray<Record<string, unknown>>(
+            state.currentDefinition.regions,
+          ).filter((region) => String(region.id || "") !== nodeId);
+        }
         state.selectedNodeId = null;
         renderAll();
         return;
@@ -1075,6 +1272,7 @@ function renderCanvas() {
           return;
         }
         if (state.pendingPathFrom !== nodeId) {
+          pushHistorySnapshot();
           state.currentLayout.paths.push({
             id: `${state.pendingPathFrom}::${nodeId}::${Date.now()}`,
             fromRegionId: state.pendingPathFrom,
@@ -1128,16 +1326,8 @@ function renderCanvas() {
     }
 
     if (state.toolMode === "add-node") {
-      const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
-        (region) =>
-          !state.currentLayout!.nodes.some(
-            (node) => node.regionId === String(region.id || ""),
-          ),
-      );
-      if (!unusedRegion) {
-        setStatus("No unused canonical region is available for a new node.", true);
-        return;
-      }
+      pushHistorySnapshot();
+      const unusedRegion = getUnusedCanonicalRegion() || createDraftRegionRecord();
       const point = screenPointToLayoutPoint(event, boardEl);
       state.currentLayout.nodes.push({
         regionId: String(unusedRegion.id || ""),
@@ -1170,6 +1360,10 @@ function renderAll() {
   renderInspector();
   renderDraftPanel();
   renderValidation();
+  const undoBtn = document.getElementById("map-editor-undo-btn") as HTMLButtonElement | null;
+  const redoBtn = document.getElementById("map-editor-redo-btn") as HTMLButtonElement | null;
+  if (undoBtn) undoBtn.disabled = state.historyPast.length === 0;
+  if (redoBtn) redoBtn.disabled = state.historyFuture.length === 0;
   document.querySelectorAll<HTMLElement>("[id^='map-tool-']").forEach((button) => {
     button.classList.toggle("active", button.id === `map-tool-${state.toolMode}`);
   });
@@ -1180,6 +1374,7 @@ function applyWorkingDefinition(definition: Record<string, unknown>) {
   state.originalDefinition = cloneRecord(definition);
   state.currentLayout = deriveTopologyLayoutDraft(state.currentDefinition);
   state.originalLayout = state.currentLayout ? cloneRecord(state.currentLayout) : null;
+  resetHistory();
 }
 
 function loadLocalDraft(worldId: string) {
@@ -1192,6 +1387,8 @@ function loadLocalDraft(worldId: string) {
     state.currentDefinition = nextDefinition;
     state.currentLayout = deriveTopologyLayoutDraft(nextDefinition);
     state.selectedOverrideId = "local-draft";
+    resetHistory();
+    state.dirty = true;
     return true;
   } catch {
     localStorage.removeItem(getLocalDraftKey(worldId));
@@ -1211,6 +1408,7 @@ function loadPersistedOverride(overrideId: string) {
   state.currentDefinition = nextDefinition;
   state.currentLayout = deriveTopologyLayoutDraft(nextDefinition);
   state.selectedOverrideId = overrideId;
+  resetHistory();
   return true;
 }
 
@@ -1256,6 +1454,7 @@ function loadSelectedDraftSelection(nextValue: string) {
 
 function autoLayout() {
   if (!state.currentLayout) return;
+  pushHistorySnapshot();
   const tiers = new Map<number, TopologyNodeDraft[]>();
   state.currentLayout.nodes.forEach((node) => {
     const bucket = tiers.get(node.tier) || [];
@@ -1279,16 +1478,8 @@ function duplicateNode() {
   if (!state.currentLayout || !state.selectedNodeId) return;
   const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
   if (!sourceNode) return;
-  const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
-    (region) =>
-      !state.currentLayout!.nodes.some(
-        (node) => node.regionId === String(region.id || ""),
-      ),
-  );
-  if (!unusedRegion) {
-    setStatus("No unused canonical region is available to duplicate into.", true);
-    return;
-  }
+  pushHistorySnapshot();
+  const unusedRegion = getUnusedCanonicalRegion() || createDraftRegionRecord();
   state.currentLayout.nodes.push({
     regionId: String(unusedRegion.id || ""),
     x: sourceNode.x + 96,
@@ -1308,16 +1499,8 @@ function createBranch() {
   if (!state.currentLayout || !state.selectedNodeId) return;
   const sourceNode = state.currentLayout.nodes.find((node) => node.regionId === state.selectedNodeId);
   if (!sourceNode) return;
-  const unusedRegion = safeArray<Record<string, unknown>>(state.currentDefinition?.regions).find(
-    (region) =>
-      !state.currentLayout!.nodes.some(
-        (node) => node.regionId === String(region.id || ""),
-      ),
-  );
-  if (!unusedRegion) {
-    setStatus("No unused canonical region is available to branch into.", true);
-    return;
-  }
+  pushHistorySnapshot();
+  const unusedRegion = getUnusedCanonicalRegion() || createDraftRegionRecord();
   const branchRegionId = String(unusedRegion.id || "");
   state.currentLayout.nodes.push({
     regionId: branchRegionId,
@@ -1388,7 +1571,8 @@ function bindControls() {
     if (!draft || !state.selectedWorldId) return;
     localStorage.setItem(getLocalDraftKey(state.selectedWorldId), JSON.stringify(draft));
     state.selectedOverrideId = "local-draft";
-    renderTopbar();
+    state.dirty = true;
+    renderAll();
     setStatus("Saved local override draft.");
   });
 
@@ -1403,6 +1587,14 @@ function bindControls() {
     const world = getSelectedWorld();
     if (!world) return;
     window.open(`/map?worldDefinitionId=${encodeURIComponent(world.id)}`, "_blank");
+  });
+
+  document.getElementById("map-editor-undo-btn")?.addEventListener("click", () => {
+    undoHistory();
+  });
+
+  document.getElementById("map-editor-redo-btn")?.addEventListener("click", () => {
+    redoHistory();
   });
 
   document.getElementById("map-editor-save-btn")?.addEventListener("click", async () => {
@@ -1439,6 +1631,7 @@ function bindControls() {
       applyWorkingDefinition(cloneRecord(state.currentDefinition || world.definition));
     }
     state.selectedOverrideId = String(payload.data?.id || existingOverrideId || "new");
+    state.dirty = false;
     renderAll();
   });
 
@@ -1497,6 +1690,7 @@ function bindControls() {
     const regions = safeArray<Record<string, unknown>>(state.currentDefinition.regions);
     const region = regions.find((entry) => String(entry.id || "") === state.selectedNodeId);
     if (!region) return;
+    pushHistorySnapshot();
     mutator(region);
     renderAll();
   };
@@ -1505,6 +1699,7 @@ function bindControls() {
     if (!state.currentLayout || !state.selectedNodeId) return;
     const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.selectedNodeId);
     if (!node) return;
+    pushHistorySnapshot();
     const previousId = node.regionId;
     mutator(node);
     if (node.regionId !== previousId) {
@@ -1535,6 +1730,7 @@ function bindControls() {
     if (!state.currentLayout || !state.selectedPathId) return;
     const path = state.currentLayout.paths.find((entry) => entry.id === state.selectedPathId);
     if (!path) return;
+    pushHistorySnapshot();
     mutator(path);
     renderAll();
   };
@@ -1543,6 +1739,7 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
+      pushHistorySnapshot();
       state.currentLayout.width = Math.max(
         320,
         Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.width)),
@@ -1554,6 +1751,7 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
+      pushHistorySnapshot();
       state.currentLayout.height = Math.max(
         240,
         Math.round(toFiniteNumber((event.target as HTMLInputElement).value, state.currentLayout.height)),
@@ -1565,6 +1763,7 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
+      pushHistorySnapshot();
       state.currentLayout.startRegionId = (event.target as HTMLSelectElement).value;
       state.currentLayout.nodes.forEach((node) => {
         node.isStart = node.regionId === state.currentLayout!.startRegionId;
@@ -1576,6 +1775,7 @@ function bindControls() {
     "change",
     (event) => {
       if (!state.currentLayout) return;
+      pushHistorySnapshot();
       state.currentLayout.goalRegionId = (event.target as HTMLSelectElement).value;
       state.currentLayout.nodes.forEach((node) => {
         node.isGoal = node.regionId === state.currentLayout!.goalRegionId;
@@ -1651,36 +1851,48 @@ function bindControls() {
     "input",
     (event) => {
       const nextValue = (event.target as HTMLInputElement).value || "";
-      updateNode((node) => {
-        node.icon = nextValue || node.icon;
-      });
-      updateRegion((region) => {
-        region.icon = nextValue;
-      });
+      if (!state.currentLayout || !state.currentDefinition || !state.selectedNodeId) return;
+      const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.selectedNodeId);
+      const region = safeArray<Record<string, unknown>>(state.currentDefinition.regions).find(
+        (entry) => String(entry.id || "") === state.selectedNodeId,
+      );
+      if (!node || !region) return;
+      pushHistorySnapshot();
+      node.icon = nextValue || node.icon;
+      region.icon = nextValue;
+      renderAll();
     },
   );
   (document.getElementById("map-editor-node-landmark") as HTMLInputElement | null)?.addEventListener(
     "input",
     (event) => {
       const nextValue = (event.target as HTMLInputElement).value || "";
-      updateNode((node) => {
-        node.landmark = nextValue;
-      });
-      updateRegion((region) => {
-        region.landmark = nextValue;
-      });
+      if (!state.currentLayout || !state.currentDefinition || !state.selectedNodeId) return;
+      const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.selectedNodeId);
+      const region = safeArray<Record<string, unknown>>(state.currentDefinition.regions).find(
+        (entry) => String(entry.id || "") === state.selectedNodeId,
+      );
+      if (!node || !region) return;
+      pushHistorySnapshot();
+      node.landmark = nextValue;
+      region.landmark = nextValue;
+      renderAll();
     },
   );
   (document.getElementById("map-editor-node-accent") as HTMLInputElement | null)?.addEventListener(
     "input",
     (event) => {
       const nextValue = (event.target as HTMLInputElement).value || "";
-      updateNode((node) => {
-        node.accentColor = nextValue || node.accentColor;
-      });
-      updateRegion((region) => {
-        region.accentColor = nextValue;
-      });
+      if (!state.currentLayout || !state.currentDefinition || !state.selectedNodeId) return;
+      const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.selectedNodeId);
+      const region = safeArray<Record<string, unknown>>(state.currentDefinition.regions).find(
+        (entry) => String(entry.id || "") === state.selectedNodeId,
+      );
+      if (!node || !region) return;
+      pushHistorySnapshot();
+      node.accentColor = nextValue || node.accentColor;
+      region.accentColor = nextValue;
+      renderAll();
     },
   );
   (document.getElementById("map-editor-node-start") as HTMLInputElement | null)?.addEventListener(
@@ -1795,6 +2007,10 @@ function bindControls() {
       if (!boardEl) return;
       const node = state.currentLayout.nodes.find((entry) => entry.regionId === state.dragNodeId);
       if (!node) return;
+      if (!state.viewport.dragging) {
+        pushHistorySnapshot();
+        state.viewport.dragging = true;
+      }
       const point = screenPointToLayoutPoint(event, boardEl);
       node.x = Math.round(Math.max(36, Math.min(state.currentLayout.width - 36, point.x)));
       node.y = Math.round(Math.max(36, Math.min(state.currentLayout.height - 36, point.y)));
@@ -1815,6 +2031,68 @@ function bindControls() {
   window.addEventListener("pointerup", () => {
     state.dragNodeId = null;
     state.viewport.dragging = false;
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const target = event.target as HTMLElement | null;
+    const typing =
+      !!target &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable);
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redoHistory();
+      else undoHistory();
+      return;
+    }
+
+    if (typing) return;
+
+    if (event.key === "Escape") {
+      state.pendingPathFrom = null;
+      state.dragNodeId = null;
+      state.toolMode = "select";
+      renderAll();
+      setStatus("Editor focus returned to Select mode.");
+      return;
+    }
+
+    if (event.key !== "Delete" && event.key !== "Backspace") return;
+    if (!state.currentLayout) return;
+
+    if (state.selectedPathId) {
+      pushHistorySnapshot();
+      state.currentLayout.paths = state.currentLayout.paths.filter(
+        (path) => path.id !== state.selectedPathId,
+      );
+      state.selectedPathId = null;
+      renderAll();
+      setStatus("Selected route removed.");
+      return;
+    }
+
+    if (state.selectedNodeId) {
+      pushHistorySnapshot();
+      state.currentLayout.nodes = state.currentLayout.nodes.filter(
+        (node) => node.regionId !== state.selectedNodeId,
+      );
+      state.currentLayout.paths = state.currentLayout.paths.filter(
+        (path) =>
+          path.fromRegionId !== state.selectedNodeId &&
+          path.toRegionId !== state.selectedNodeId,
+      );
+      if (state.currentDefinition && isDraftOnlyRegionId(state.selectedNodeId)) {
+        state.currentDefinition.regions = safeArray<Record<string, unknown>>(
+          state.currentDefinition.regions,
+        ).filter((region) => String(region.id || "") !== state.selectedNodeId);
+      }
+      state.selectedNodeId = null;
+      renderAll();
+      setStatus("Selected location removed.");
+    }
   });
 }
 

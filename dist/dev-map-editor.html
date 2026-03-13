@@ -8,9 +8,9 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" crossorigin src="/assets/devMapEditor-EztC53O8.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/translateWidget-CMaAhDKN.js">
-    <link rel="stylesheet" crossorigin href="/assets/translateWidget-BVORgKoO.css">
+    <script type="module" crossorigin src="/assets/devMapEditor-DEjhc0fM.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/translateWidget-CAyZH2qV.js">
+    <link rel="stylesheet" crossorigin href="/assets/translateWidget-P2FYhVgc.css">
   </head>
   <body class="dev-panel-page dev-map-editor-page">
     <a href="/dev-panel" class="dev-launch-btn dev-launch-btn-inline">← Dev Panel</a>
@@ -76,6 +76,12 @@
           <select id="map-editor-override-select"></select>
           <button id="map-editor-preview-btn" class="btn btn-action" type="button">
             Preview World
+          </button>
+          <button id="map-editor-undo-btn" class="btn btn-action" type="button">
+            Undo
+          </button>
+          <button id="map-editor-redo-btn" class="btn btn-action" type="button">
+            Redo
           </button>
           <button id="map-editor-validate-btn" class="btn btn-action" type="button">
             Validate
@@ -152,7 +158,12 @@
             <div id="map-editor-canvas" class="dev-topology-board dev-map-canvas"></div>
           </div>
           <div class="dev-map-validation-panel">
-            <div class="dev-panel-kicker">Validation</div>
+            <div class="dev-map-panel-head">
+              <div class="dev-panel-kicker">Validation</div>
+              <div id="map-editor-validation-summary" class="dev-map-meta-pill">
+                Not checked
+              </div>
+            </div>
             <div id="map-editor-validation" class="dev-map-validation-list"></div>
           </div>
         </main>
@@ -297,7 +308,10 @@
           </div>
 
           <div class="dev-map-panel">
-            <div class="dev-panel-kicker">Override Draft</div>
+            <div class="dev-map-panel-head">
+              <div class="dev-panel-kicker">Override Draft</div>
+              <div id="map-editor-draft-state" class="dev-map-meta-pill">Clean</div>
+            </div>
             <div id="map-editor-draft-meta" class="dev-topology-selection-copy">
               No world selected.
             </div>

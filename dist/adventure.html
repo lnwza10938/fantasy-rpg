@@ -11,9 +11,9 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-    <script type="module" crossorigin src="/assets/translateWidget-CMaAhDKN.js"></script>
-    <script type="module" crossorigin src="/assets/main-Bg59moWT.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/translateWidget-BVORgKoO.css">
+    <script type="module" crossorigin src="/assets/translateWidget-CAyZH2qV.js"></script>
+    <script type="module" crossorigin src="/assets/main-CVcUBttF.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/translateWidget-P2FYhVgc.css">
   </head>
 
   <body>
@@ -999,6 +999,14 @@
                 <div id="map-world-selector" class="map-world-selector"></div>
                 </div>
 
+              <div class="journey-mode-rail" aria-label="Journey state">
+                <div class="journey-mode-pill" data-mode="map">🗺 Map</div>
+                <div class="journey-mode-pill" data-mode="story">📖 Story</div>
+                <div class="journey-mode-pill" data-mode="event">✨ Encounter</div>
+                <div class="journey-mode-pill" data-mode="combat">⚔ Battle</div>
+                <div class="journey-mode-pill" data-mode="result">🏆 Outcome</div>
+              </div>
+
               <div class="map-scene-shell">
                 <div id="region-list" class="region-grid map-region-grid"></div>
 
@@ -1031,6 +1039,9 @@
                   >
                     ⚔️ Battle
                   </h3>
+                  <div id="combat-stage-text" class="battle-dialogue-inline">
+                    An enemy blocks the route. Pick a battle command below.
+                  </div>
                   <div class="battlefield-shell">
                     <div class="battlefield-stage">
                       <div class="battle-status enemy-status">
@@ -1101,6 +1112,7 @@
                     </div>
 
                   </div>
+                  <div id="combat-log" class="battle-log-mini"></div>
                 </div>
               </div>
 
@@ -1357,11 +1369,10 @@
               </div>
               <div id="gp-log" class="map-log-box" data-pristine="true">
                 <div style="color: var(--muted); font-style: italic">
-                  Choose a region and explore to begin your adventure...
+                  Choose a location and explore to begin your journey...
                 </div>
               </div>
               <div id="event-log" style="display: none"></div>
-              <div id="combat-log" style="display: none"></div>
               <div id="combat-rewards" style="display: none"></div>
             </div>
           </div>

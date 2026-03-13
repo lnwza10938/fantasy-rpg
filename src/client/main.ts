@@ -1792,12 +1792,14 @@ function appendSharedLog(html: string, targetIds: string[]) {
 function setMapEventState(title: string, description: string) {
   const titleEl = document.getElementById("explore-title");
   const copyEl = document.getElementById("map-event-copy");
+  const combatStageTextEl = document.getElementById("combat-stage-text");
   const storyTitleEl = document.getElementById("story-scene-title");
   const storyCopyEl = document.getElementById("story-scene-dialogue");
   const storySpeakerEl = document.getElementById("story-scene-speaker");
   const storyPortraitEl = document.getElementById("story-scene-portrait");
   if (titleEl) titleEl.textContent = title;
   if (copyEl) copyEl.textContent = description;
+  if (combatStageTextEl) combatStageTextEl.textContent = description;
   if (storyTitleEl) {
     storyTitleEl.textContent =
       title.replace(/^[^\p{L}\p{N}]+/u, "").trim() || title;
@@ -5021,6 +5023,7 @@ function showCombat(ev: any) {
 function appendCombatLog(line: string) {
   const logBox = document.getElementById("combat-log");
   const resultBox = document.getElementById("combat-result");
+  const stageTextEl = document.getElementById("combat-stage-text");
   if (!logBox) return;
   const cls =
     line.includes("Victory") || line.includes("defeats")
@@ -5030,6 +5033,7 @@ function appendCombatLog(line: string) {
         : "log-info";
   appendSharedLog(`<div class="${cls}">${line}</div>`, ["combat-log", "gp-log"]);
   if (resultBox) resultBox.textContent = line;
+  if (stageTextEl) stageTextEl.textContent = line;
 }
 
 function applyCombatSprite(
@@ -5130,6 +5134,11 @@ function renderCombatActions() {
     if (deckCopyEl) deckCopyEl.textContent = "";
     if (deckStateEl) deckStateEl.textContent = "Victory";
     resultBox.textContent = "Battle complete. Choose your next move.";
+    const stageTextEl = document.getElementById("combat-stage-text");
+    if (stageTextEl) {
+      stageTextEl.textContent =
+        "The battle is over. Review the outcome, then continue the journey.";
+    }
     actionBox.innerHTML = [
       commandButtonMarkup({
         id: "btn-post-combat-explore",
@@ -5182,6 +5191,12 @@ function renderCombatActions() {
   if (deckCopyEl) deckCopyEl.textContent = "";
   if (deckStateEl) deckStateEl.textContent = "Battle";
   setAdventureMode("combat");
+  const stageTextEl = document.getElementById("combat-stage-text");
+  if (stageTextEl) {
+    stageTextEl.textContent = `${
+      G.activeCombat.enemy?.name || "Enemy"
+    } stands ready. Choose a battle command.`;
+  }
   if (!resultBox.textContent?.trim()) {
     resultBox.textContent = `${G.activeCombat.enemy?.name || "Enemy"} stands ready. Choose a command.`;
   }

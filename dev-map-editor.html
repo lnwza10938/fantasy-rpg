@@ -75,6 +75,12 @@
           <button id="map-editor-preview-btn" class="btn btn-action" type="button">
             Preview World
           </button>
+          <button id="map-editor-undo-btn" class="btn btn-action" type="button">
+            Undo
+          </button>
+          <button id="map-editor-redo-btn" class="btn btn-action" type="button">
+            Redo
+          </button>
           <button id="map-editor-validate-btn" class="btn btn-action" type="button">
             Validate
           </button>
@@ -150,7 +156,12 @@
             <div id="map-editor-canvas" class="dev-topology-board dev-map-canvas"></div>
           </div>
           <div class="dev-map-validation-panel">
-            <div class="dev-panel-kicker">Validation</div>
+            <div class="dev-map-panel-head">
+              <div class="dev-panel-kicker">Validation</div>
+              <div id="map-editor-validation-summary" class="dev-map-meta-pill">
+                Not checked
+              </div>
+            </div>
             <div id="map-editor-validation" class="dev-map-validation-list"></div>
           </div>
         </main>
@@ -295,7 +306,10 @@
           </div>
 
           <div class="dev-map-panel">
-            <div class="dev-panel-kicker">Override Draft</div>
+            <div class="dev-map-panel-head">
+              <div class="dev-panel-kicker">Override Draft</div>
+              <div id="map-editor-draft-state" class="dev-map-meta-pill">Clean</div>
+            </div>
             <div id="map-editor-draft-meta" class="dev-topology-selection-copy">
               No world selected.
             </div>
