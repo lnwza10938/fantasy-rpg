@@ -751,628 +751,331 @@
           </div>
         </div>
 
-        <!-- ===== 4-PANEL GAME UI ===== -->
+        <!-- ===== JOURNEY GAME UI ===== -->
         <div id="game-ui-screen" data-adventure-mode="map">
-          <!-- ═══ LEFT: Character ═══ -->
-          <div id="gp-left" class="gp">
-            <h3>🧙 Hero</h3>
-            <!-- Avatar + Name -->
-            <div style="text-align: center; margin-bottom: 10px">
-              <div style="font-size: 40px; line-height: 1">🧙</div>
-              <div
-                id="gp-char-name"
-                style="font-weight: 700; font-size: 13px; margin-top: 4px"
-              >
-                Hero
-              </div>
-              <div
-                id="gp-char-class"
-                style="font-size: 10px; color: var(--muted)"
-              >
-                Level 1 Hero
-              </div>
-            </div>
-
-            <!-- HP / MP / EXP Bars -->
-            <div style="margin-bottom: 10px">
-              <div class="bar-label">
-                <span>❤️ HP</span
-                ><span
-                  id="gp-hp-txt"
-                  style="color: var(--green); font-size: 10px"
-                  >100/100</span
-                >
-              </div>
-              <div class="bar" style="margin-bottom: 5px">
-                <div
-                  id="gp-hp-bar"
-                  class="bar-fill bar-hp"
-                  style="width: 100%"
-                ></div>
-              </div>
-
-              <div class="bar-label">
-                <span>💧 MP</span
-                ><span
-                  id="gp-mp-txt"
-                  style="color: var(--accent); font-size: 10px"
-                  >50/50</span
-                >
-              </div>
-              <div class="bar" style="margin-bottom: 5px">
-                <div
-                  id="gp-mp-bar"
-                  class="bar-fill bar-mana"
-                  style="width: 100%"
-                ></div>
-              </div>
-
-              <div class="bar-label">
-                <span>⭐ EXP</span
-                ><span
-                  id="gp-exp-txt"
-                  style="color: var(--gold); font-size: 10px"
-                  >0/100</span
-                >
-              </div>
-              <div class="bar">
-                <div
-                  id="gp-exp-bar"
-                  class="bar-fill bar-exp"
-                  style="width: 0%"
-                ></div>
-              </div>
-            </div>
-
-            <!-- Stats -->
-            <div
-              style="
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 4px;
-                margin-bottom: 10px;
-              "
-              id="gp-stats"
-            >
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 6px;
-                  text-align: center;
-                "
-              >
-                <div style="font-size: 9px; color: var(--muted)">ATK</div>
-                <div
-                  id="gp-atk"
-                  style="font-weight: 700; color: var(--red); font-size: 14px"
-                >
-                  10
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 6px;
-                  text-align: center;
-                "
-              >
-                <div style="font-size: 9px; color: var(--muted)">DEF</div>
-                <div
-                  id="gp-def"
-                  style="font-weight: 700; color: var(--green); font-size: 14px"
-                >
-                  5
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 6px;
-                  text-align: center;
-                "
-              >
-                <div style="font-size: 9px; color: var(--muted)">SPD</div>
-                <div
-                  id="gp-spd"
-                  style="
-                    font-weight: 700;
-                    color: var(--accent);
-                    font-size: 14px;
-                  "
-                >
-                  8
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 6px;
-                  text-align: center;
-                "
-              >
-                <div style="font-size: 9px; color: var(--muted)">GOLD</div>
-                <div
-                  id="gp-gold"
-                  style="font-weight: 700; color: var(--gold); font-size: 14px"
-                >
-                  0
-                </div>
-              </div>
-            </div>
-
-            <!-- Signature Skill Preview -->
-            <div
-              id="gp-skill-preview"
-              style="
-                background: var(--surface2);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                padding: 10px;
-                margin-bottom: 12px;
-              "
-            >
-              <div
-                style="
-                  font-size: 9px;
-                  color: var(--muted);
-                  text-transform: uppercase;
-                  margin-bottom: 4px;
-                "
-              >
-                Signature Skill
-              </div>
-              <div
-                id="gp-skill-name"
-                style="font-size: 11px; font-weight: 700; color: var(--accent)"
-              >
-                — None —
-              </div>
-              <div
-                id="gp-skill-brief"
-                style="
-                  font-size: 10px;
-                  color: var(--text);
-                  line-height: 1.3;
-                  margin-top: 2px;
-                  opacity: 0.8;
-                  height: 26px;
-                  overflow: hidden;
-                  display: -webkit-box;
-                  -webkit-line-clamp: 2;
-                  line-clamp: 2;
-                  -webkit-box-orient: vertical;
-                "
-              >
-                No skill selected
-              </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div style="display: flex; flex-direction: column; gap: 5px">
-              <button
-                class="btn btn-gold"
-                style="font-size: 11px; width: 100%"
-                onclick="saveGame()"
-              >
-                💾 Save Game
-              </button>
-              <button
-                class="btn btn-action"
-                style="font-size: 11px; width: 100%"
-                onclick="showScreen('menu')"
-              >
-                🏠 Home
-              </button>
-            </div>
-          </div>
-
-          <!-- ═══ CENTER: Integrated Map / Explore / Combat ═══ -->
+          <!-- ═══ CENTER TOP: World Map ═══ -->
           <div
             id="gp-center-top"
-            class="gp"
+            class="gp journey-map-panel"
             style="display: flex; flex-direction: column; min-height: 0"
           >
+            <div class="journey-map-header">
+              <div class="journey-map-copy-block">
+                <div class="map-section-kicker">World Map</div>
+                <div id="journey-map-title" class="journey-map-title">
+                  Choose your next route
+                </div>
+                <div id="journey-map-copy" class="journey-map-copy">
+                  Travel through discovered routes to trigger encounters, story
+                  scenes, and battles.
+                </div>
+              </div>
+              <div id="map-region-chip" class="map-region-chip journey-map-chip">
+                No location selected
+              </div>
+            </div>
+
             <div
-              class="gp-sub active"
+              class="gp-sub active journey-map-stage"
               id="sub-map"
               style="flex: 1; display: flex; flex-direction: column; min-height: 0"
             >
-              <div
-                id="map-progress-panel"
-                class="map-progress-panel"
-                style="display: none"
-              >
-                <div class="map-progress-header">
-                  <div>
-                    <div class="map-section-kicker">Tracked Worlds</div>
-                    <div class="map-progress-title">World Map Progress Feed</div>
-                  </div>
-                  <div id="map-preview-note" class="map-progress-note">
-                    Choose a saved realm to inspect its current world map progress.
-                  </div>
-                </div>
-                <div id="map-world-selector" class="map-world-selector"></div>
-                </div>
-
-              <div class="journey-mode-rail" aria-label="Journey state">
-                <div class="journey-mode-pill" data-mode="map">🗺 Map</div>
-                <div class="journey-mode-pill" data-mode="story">📖 Story</div>
-                <div class="journey-mode-pill" data-mode="event">✨ Encounter</div>
-                <div class="journey-mode-pill" data-mode="combat">⚔ Battle</div>
-                <div class="journey-mode-pill" data-mode="result">🏆 Outcome</div>
-              </div>
-
-              <div class="map-scene-shell">
-                <div id="region-list" class="region-grid map-region-grid"></div>
-
-                <div id="story-scene-stage" class="story-scene-stage">
-                  <div class="story-scene-copy">
-                    <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
-                    <div id="story-scene-title" class="story-scene-title">Choose your next route</div>
-                    <div id="story-scene-speaker" class="story-scene-speaker">Realm Chronicle</div>
-                    <div id="story-scene-dialogue" class="story-scene-dialogue typewriting">
-                      Travel, dialogue, and outcomes take the focus here whenever the journey shifts away from the map.
-                    </div>
-                  </div>
-                  <div class="story-scene-portrait">
-                    <div id="story-scene-portrait" class="story-scene-portrait-frame">📜</div>
-                  </div>
-                </div>
-
-                <div
-                  id="map-combat-stage"
-                  class="map-combat-stage map-scene-overlay"
-                  style="display: none"
-                >
-                  <h3
-                    id="combat-title"
-                    style="
-                      color: var(--red);
-                      font-size: 11px;
-                      margin-bottom: 10px;
-                    "
-                  >
-                    ⚔️ Battle
-                  </h3>
-                  <div id="combat-stage-text" class="battle-dialogue-inline">
-                    An enemy blocks the route. Pick a battle command below.
-                  </div>
-                  <div class="battlefield-shell">
-                    <div class="battlefield-stage">
-                      <div class="battle-status enemy-status">
-                        <div class="battle-status-row">
-                          <div id="combat-enemy-name" class="battle-name">
-                            Enemy
-                          </div>
-                          <div id="combat-enemy-level" class="battle-level">
-                            Lv.1
-                          </div>
-                        </div>
-                        <div class="battle-hp-row">
-                          <span>HP</span>
-                          <span id="combat-enemy-hp">100/100</span>
-                        </div>
-                        <div class="battle-hp-track">
-                          <div
-                            id="combat-enemy-bar"
-                            class="battle-hp-fill enemy-fill"
-                            style="width: 100%"
-                          ></div>
-                        </div>
-                      </div>
-
-                      <div class="battlefield-enemy">
-                        <div class="battlefield-platform enemy-platform"></div>
-                        <div
-                          id="combat-enemy-sprite"
-                          class="battle-sprite enemy-sprite"
-                          data-placeholder="Enemy Art"
-                        >
-                          <span class="sprite-fallback">👾</span>
-                        </div>
-                      </div>
-
-                      <div class="battlefield-player">
-                        <div class="battlefield-platform player-platform"></div>
-                        <div
-                          id="combat-player-sprite"
-                          class="battle-sprite player-sprite"
-                          data-placeholder="Hero Art"
-                        >
-                          <span class="sprite-fallback">🧙</span>
-                        </div>
-                      </div>
-
-                      <div class="battle-status player-status">
-                        <div class="battle-status-row">
-                          <div id="combat-player-name" class="battle-name">
-                            Hero
-                          </div>
-                          <div id="combat-player-level" class="battle-level">
-                            Lv.1
-                          </div>
-                        </div>
-                        <div class="battle-hp-row">
-                          <span>HP</span>
-                          <span id="combat-player-hp">100/100</span>
-                        </div>
-                        <div class="battle-hp-track">
-                          <div
-                            id="combat-player-bar"
-                            class="battle-hp-fill player-fill"
-                            style="width: 100%"
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                  <div id="combat-log" class="battle-log-mini"></div>
-                </div>
-              </div>
-
+              <div id="region-list" class="region-grid map-region-grid"></div>
             </div>
           </div>
 
-          <!-- ═══ CENTER BOTTOM: Command Deck ═══ -->
-          <div id="gp-center-bot" class="gp command-deck-panel">
-            <div class="command-deck-shell">
-              <div class="command-deck-main">
+          <!-- ═══ CENTER BOTTOM: Story / Encounter / Battle ═══ -->
+          <div id="gp-center-bot" class="gp journey-stage-panel">
+            <div class="journey-mode-rail" aria-label="Journey state">
+              <div class="journey-mode-pill" data-mode="map">🗺 Map</div>
+              <div class="journey-mode-pill" data-mode="story">📖 Story</div>
+              <div class="journey-mode-pill" data-mode="event">✨ Encounter</div>
+              <div class="journey-mode-pill" data-mode="combat">⚔ Battle</div>
+              <div class="journey-mode-pill" data-mode="result">🏆 Outcome</div>
+            </div>
+
+            <div class="journey-scene-stack">
+              <div id="journey-dialogue-shell" class="journey-dialogue-shell">
                 <div class="command-deck-header">
                   <div>
-                    <div class="map-section-kicker">Command Deck</div>
+                    <div class="map-section-kicker">Journey Scene</div>
                     <div id="command-deck-title" class="command-deck-title">
                       Choose your next move
                     </div>
                     <div id="command-deck-copy" class="command-deck-copy">
-                      Select a reachable location to unlock travel, exploration, and
-                      combat commands here.
+                      Select a reachable location to unlock travel, exploration,
+                      story, and battle actions.
                     </div>
                   </div>
-                  <div id="command-deck-state" class="command-deck-state">Idle</div>
-                </div>
-
-                <div id="combat-result" class="battle-dialogue command-deck-dialogue">
-                  Select a reachable location to begin exploring, or focus the current
-                  area to act in place.
+                  <div id="command-deck-state" class="command-deck-state">Map</div>
                 </div>
 
                 <div
-                  id="combat-actions"
-                  class="battle-actions-grid command-actions-grid"
-                ></div>
+                  id="combat-result"
+                  class="battle-dialogue command-deck-dialogue"
+                >
+                  Select a reachable location to begin exploring, or choose the
+                  current area to act in place.
+                </div>
               </div>
 
-              <aside class="map-camera-panel">
-                <div class="map-camera-controls-card">
-                    <div class="map-section-kicker">Map Controls</div>
-                  <div class="map-camera-dpad">
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-spacer"
-                      aria-hidden="true"
-                      tabindex="-1"
-                    ></button>
-                    <button
-                      type="button"
-                      class="map-camera-btn"
-                      data-map-control
-                      onclick="panMap('up')"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-spacer"
-                      aria-hidden="true"
-                      tabindex="-1"
-                    ></button>
-                    <button
-                      type="button"
-                      class="map-camera-btn"
-                      data-map-control
-                      onclick="panMap('left')"
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      class="map-camera-btn"
-                      data-map-control
-                      onclick="resetMapCamera()"
-                    >
-                      •
-                    </button>
-                    <button
-                      type="button"
-                      class="map-camera-btn"
-                      data-map-control
-                      onclick="panMap('right')"
-                    >
-                      →
-                    </button>
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-spacer"
-                      aria-hidden="true"
-                      tabindex="-1"
-                    ></button>
-                    <button
-                      type="button"
-                      class="map-camera-btn"
-                      data-map-control
-                      onclick="panMap('down')"
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-spacer"
-                      aria-hidden="true"
-                      tabindex="-1"
-                    ></button>
-                  </div>
-                  <div class="map-camera-zoom-row">
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-zoom-btn"
-                      data-map-control
-                      onclick="zoomMap(-0.12)"
-                    >
-                      －
-                    </button>
-                    <div id="map-camera-status" class="map-camera-status">100%</div>
-                    <button
-                      type="button"
-                      class="map-camera-btn map-camera-zoom-btn"
-                      data-map-control
-                      onclick="zoomMap(0.12)"
-                    >
-                      ＋
-                    </button>
-                  </div>
-                </div>
-
-                <div class="map-camera-summary-card">
-                  <div class="map-camera-summary">
-                  <div class="map-section-kicker">Map Intel</div>
-                  <div id="map-world-name" class="map-camera-world-name">
-                    Uncharted Realm
-                  </div>
-                  <div id="map-world-meta" class="map-camera-world-meta">
-                    No world loaded yet
-                  </div>
-                  <div id="map-region-chip" class="map-region-chip map-camera-region-chip">
-                    No location selected
-                  </div>
-                  <div id="map-region-heading" class="map-camera-region-heading">
+              <div id="story-scene-stage" class="story-scene-stage">
+                <div class="story-scene-copy">
+                  <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
+                  <div id="story-scene-title" class="story-scene-title">
                     Choose your next route
                   </div>
-                  <div id="map-region-copy" class="map-camera-region-copy">
-                    Follow connected routes from your current area. Travel and the
-                    next event resolve right here on the map.
+                  <div id="story-scene-speaker" class="story-scene-speaker">
+                    Realm Chronicle
                   </div>
                   <div
-                    id="map-preview-diff-block"
-                    class="map-preview-diff-block"
-                    style="display: none"
+                    id="story-scene-dialogue"
+                    class="story-scene-dialogue typewriting"
                   >
-                    <div class="map-section-kicker">Draft Changes</div>
-                    <div id="map-preview-diff-list" class="map-preview-diff-list"></div>
-                  </div>
-
-                  <div class="map-camera-event-block">
-                    <div class="map-section-kicker">Current Event</div>
-                    <div id="explore-title" class="map-camera-event-title">
-                      🧭 Select a location first
-                    </div>
-                    <div id="map-event-copy" class="map-camera-event-copy">
-                      Encounters, discoveries, and monster battles appear here.
-                    </div>
-                  </div>
+                    Travel, dialogue, and outcomes take the focus here whenever
+                    the journey shifts away from the map.
                   </div>
                 </div>
-              </aside>
+                <div class="story-scene-portrait">
+                  <div id="story-scene-portrait" class="story-scene-portrait-frame">
+                    📜
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="map-combat-stage"
+                class="map-combat-stage"
+                style="display: none"
+              >
+                <h3
+                  id="combat-title"
+                  style="
+                    color: var(--red);
+                    font-size: 11px;
+                    margin-bottom: 10px;
+                  "
+                >
+                  ⚔️ Battle
+                </h3>
+                <div id="combat-stage-text" class="battle-dialogue-inline">
+                  An enemy blocks the route. Pick a battle command below.
+                </div>
+                <div class="battlefield-shell">
+                  <div class="battlefield-stage">
+                    <div class="battle-status enemy-status">
+                      <div class="battle-status-row">
+                        <div id="combat-enemy-name" class="battle-name">Enemy</div>
+                        <div id="combat-enemy-level" class="battle-level">Lv.1</div>
+                      </div>
+                      <div class="battle-hp-row">
+                        <span>HP</span>
+                        <span id="combat-enemy-hp">100/100</span>
+                      </div>
+                      <div class="battle-hp-track">
+                        <div
+                          id="combat-enemy-bar"
+                          class="battle-hp-fill enemy-fill"
+                          style="width: 100%"
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div class="battlefield-enemy">
+                      <div class="battlefield-platform enemy-platform"></div>
+                      <div
+                        id="combat-enemy-sprite"
+                        class="battle-sprite enemy-sprite"
+                        data-placeholder="Enemy Art"
+                      >
+                        <span class="sprite-fallback">👾</span>
+                      </div>
+                    </div>
+
+                    <div class="battlefield-player">
+                      <div class="battlefield-platform player-platform"></div>
+                      <div
+                        id="combat-player-sprite"
+                        class="battle-sprite player-sprite"
+                        data-placeholder="Hero Art"
+                      >
+                        <span class="sprite-fallback">🧙</span>
+                      </div>
+                    </div>
+
+                    <div class="battle-status player-status">
+                      <div class="battle-status-row">
+                        <div id="combat-player-name" class="battle-name">Hero</div>
+                        <div id="combat-player-level" class="battle-level">Lv.1</div>
+                      </div>
+                      <div class="battle-hp-row">
+                        <span>HP</span>
+                        <span id="combat-player-hp">100/100</span>
+                      </div>
+                      <div class="battle-hp-track">
+                        <div
+                          id="combat-player-bar"
+                          class="battle-hp-fill player-fill"
+                          style="width: 100%"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div id="combat-log" class="battle-log-mini"></div>
+              </div>
             </div>
+
+            <div
+              id="combat-actions"
+              class="battle-actions-grid command-actions-grid"
+            ></div>
           </div>
 
-          <!-- ═══ RIGHT: Equipment + Inventory ═══ -->
-          <div id="gp-right" class="gp">
-            <h3>🎒 Gear</h3>
-            <div
-              style="
-                display: flex;
-                flex-direction: column;
-                gap: 5px;
-                margin-bottom: 12px;
-              "
-            >
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 7px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 9px;
-                    color: var(--muted);
-                    margin-bottom: 2px;
-                  "
-                >
-                  ⚔️ WEAPON
-                </div>
-                <div id="inv-weapon" style="font-size: 11px; font-weight: 600">
-                  — None —
+          <!-- ═══ RIGHT TOP: Hero + Realm Info ═══ -->
+          <div id="gp-left" class="gp journey-side-panel">
+            <section class="journey-sidebar-section hero-summary-card">
+              <div class="map-section-kicker">Hero</div>
+              <div class="hero-panel-top">
+                <div id="gp-hero-portrait" class="hero-portrait-frame">🧙</div>
+                <div class="hero-panel-copy">
+                  <div id="gp-char-name" class="hero-panel-name">Hero</div>
+                  <div id="gp-char-class" class="hero-panel-class">
+                    Level 1 Hero
+                  </div>
                 </div>
               </div>
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 7px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 9px;
-                    color: var(--muted);
-                    margin-bottom: 2px;
-                  "
-                >
-                  🛡️ ARMOR
-                </div>
-                <div id="inv-armor" style="font-size: 11px; font-weight: 600">
-                  — None —
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--surface2);
-                  border-radius: 6px;
-                  padding: 7px;
-                "
-              >
-                <div
-                  style="
-                    font-size: 9px;
-                    color: var(--muted);
-                    margin-bottom: 2px;
-                  "
-                >
-                  💍 ACCESSORY
-                </div>
-                <div id="inv-access" style="font-size: 11px; font-weight: 600">
-                  — None —
-                </div>
-              </div>
-            </div>
 
-            <h3>🧪 Items</h3>
-            <div id="inv-display" style="font-size: 11px; color: var(--muted)">
-              <p>No items yet.</p>
-            </div>
+              <div class="hero-bars">
+                <div class="bar-label">
+                  <span>❤️ HP</span><span id="gp-hp-txt">100/100</span>
+                </div>
+                <div class="bar hero-bar-track">
+                  <div
+                    id="gp-hp-bar"
+                    class="bar-fill bar-hp"
+                    style="width: 100%"
+                  ></div>
+                </div>
 
+                <div class="bar-label">
+                  <span>💧 MP</span><span id="gp-mp-txt">50/50</span>
+                </div>
+                <div class="bar hero-bar-track">
+                  <div
+                    id="gp-mp-bar"
+                    class="bar-fill bar-mana"
+                    style="width: 100%"
+                  ></div>
+                </div>
+
+                <div class="bar-label">
+                  <span>⭐ EXP</span><span id="gp-exp-txt">0/100</span>
+                </div>
+                <div class="bar hero-bar-track">
+                  <div
+                    id="gp-exp-bar"
+                    class="bar-fill bar-exp"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+
+              <div id="gp-stats" class="hero-stat-grid">
+                <div class="hero-stat-card">
+                  <div class="hero-stat-label">ATK</div>
+                  <div id="gp-atk" class="hero-stat-value attack">10</div>
+                </div>
+                <div class="hero-stat-card">
+                  <div class="hero-stat-label">DEF</div>
+                  <div id="gp-def" class="hero-stat-value defense">5</div>
+                </div>
+                <div class="hero-stat-card">
+                  <div class="hero-stat-label">SPD</div>
+                  <div id="gp-spd" class="hero-stat-value speed">8</div>
+                </div>
+                <div class="hero-stat-card">
+                  <div class="hero-stat-label">GOLD</div>
+                  <div id="gp-gold" class="hero-stat-value gold">0</div>
+                </div>
+              </div>
+
+              <div id="gp-skill-preview" class="hero-skill-card">
+                <div class="map-section-kicker">Signature Skill</div>
+                <div id="gp-skill-name" class="hero-skill-name">— None —</div>
+                <div id="gp-skill-brief" class="hero-skill-brief">
+                  No skill selected
+                </div>
+              </div>
+
+              <div class="hero-side-columns">
+                <div class="hero-side-card">
+                  <div class="map-section-kicker">Gear</div>
+                  <div class="hero-gear-list">
+                    <div><strong>Weapon</strong><span id="inv-weapon">— None —</span></div>
+                    <div><strong>Armor</strong><span id="inv-armor">— None —</span></div>
+                    <div><strong>Relic</strong><span id="inv-access">— None —</span></div>
+                  </div>
+                </div>
+                <div class="hero-side-card">
+                  <div class="map-section-kicker">Items</div>
+                  <div id="inv-display" class="hero-item-list">
+                    <p>No items yet.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hero-panel-actions">
+                <button class="btn btn-gold" onclick="saveGame()">💾 Save Game</button>
+                <button class="btn btn-action" onclick="showScreen('menu')">
+                  🏠 Home
+                </button>
+              </div>
+            </section>
+
+            <section class="journey-sidebar-section realm-summary-card">
+              <div class="map-section-kicker">Realm</div>
+              <div id="map-world-name" class="map-camera-world-name">
+                Uncharted Realm
+              </div>
+              <div id="map-world-meta" class="map-camera-world-meta">
+                No world loaded yet
+              </div>
+              <div
+                id="map-preview-diff-block"
+                class="map-preview-diff-block"
+                style="display: none"
+              >
+                <div class="map-section-kicker">Draft Changes</div>
+                <div id="map-preview-diff-list" class="map-preview-diff-list"></div>
+              </div>
+              <div class="journey-realm-card">
+                <div class="map-section-kicker">Current Location</div>
+                <div id="map-region-heading" class="map-camera-region-heading">
+                  Choose your next route
+                </div>
+                <div id="map-region-copy" class="map-camera-region-copy">
+                  Follow connected routes from your current area. Travel and the
+                  next encounter resolve through the journey panel below.
+                </div>
+              </div>
+              <div class="journey-realm-card">
+                <div class="map-section-kicker">Current Encounter</div>
+                <div id="explore-title" class="map-camera-event-title">
+                  🧭 Select a location first
+                </div>
+                <div id="map-event-copy" class="map-camera-event-copy">
+                  Encounters, discoveries, and monster battles appear here.
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <!-- ═══ RIGHT BOTTOM: Action Log ═══ -->
+          <div id="gp-right" class="gp journey-log-panel">
             <div class="map-log-panel sidebar-action-log">
               <div class="map-log-header">
                 <h3 style="margin-bottom: 0">📜 Action Log</h3>
-                <button
-                  onclick="clearAdventureLog()"
-                  style="
-                    background: none;
-                    border: none;
-                    color: var(--muted);
-                    cursor: pointer;
-                    font-size: 10px;
-                  "
-                >
-                  Clear
-                </button>
               </div>
               <div id="gp-log" class="map-log-box" data-pristine="true">
                 <div style="color: var(--muted); font-style: italic">

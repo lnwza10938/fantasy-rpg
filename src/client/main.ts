@@ -2085,6 +2085,8 @@ function syncMapSelectionState() {
   const headingEl = document.getElementById("map-region-heading");
   const copyEl = document.getElementById("map-region-copy");
   const chipEl = document.getElementById("map-region-chip");
+  const mapTitleEl = document.getElementById("journey-map-title");
+  const mapCopyEl = document.getElementById("journey-map-copy");
   const currentRegion = getCurrentRegion();
   const currentRegionId = currentRegion?.id || getCurrentRegionId();
   const selectedPathContext = getSelectedPathContext();
@@ -2096,13 +2098,16 @@ function syncMapSelectionState() {
 
   if (!G.selectedRegion) {
     if (!G.activeCombat) setAdventureMode("map");
+    const emptyHeading = currentRegion
+      ? `${currentRegion.name} is your current position`
+      : "Choose your next route";
+    const emptyCopy =
+      "Move along connected routes from your current area. Selecting a reachable location will travel there and immediately trigger the next encounter.";
     if (headingEl)
-      headingEl.textContent = currentRegion
-        ? `${currentRegion.name} is your current position`
-        : "Choose your next route";
-    if (copyEl)
-      copyEl.textContent =
-        "Move along connected routes from your current area. Selecting a reachable location will travel there and immediately trigger the next encounter.";
+      headingEl.textContent = emptyHeading;
+    if (copyEl) copyEl.textContent = emptyCopy;
+    if (mapTitleEl) mapTitleEl.textContent = emptyHeading;
+    if (mapCopyEl) mapCopyEl.textContent = emptyCopy;
     if (chipEl) {
       chipEl.textContent = currentRegion
         ? `Current Area • ${currentRegion.name}`
@@ -2120,6 +2125,7 @@ function syncMapSelectionState() {
     ? G.selectedRegion.connections.length
     : 0;
   if (headingEl) headingEl.textContent = G.selectedRegion.name;
+  if (mapTitleEl) mapTitleEl.textContent = G.selectedRegion.name;
   if (copyEl) {
     const routeSummary = selectedPathContext
       ? `${pathKindLabel(selectedPathContext.path.kind)} • Difficulty ${selectedPathContext.path.difficulty} • ${selectedPathContext.path.visibility === "fogged" ? "Fogged" : selectedPathContext.path.visibility === "hidden" ? "Hidden" : "Visible"}`
@@ -2139,7 +2145,9 @@ function syncMapSelectionState() {
               selectedPathContext.evaluation.blockedReason,
             )
           : "This location is not directly connected to your current position.";
-    copyEl.textContent = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. ${locationFlavor ? `${locationFlavor} ` : ""}Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
+    const fullCopy = `${landmark}. Threat Level ${G.selectedRegion.dangerLevel}. Known enemies: ${enemyList}. ${locationFlavor ? `${locationFlavor} ` : ""}Connected routes: ${exitCount}. ${routeSummary}. ${requirementSummary} ${routeState}`.trim();
+    copyEl.textContent = fullCopy;
+    if (mapCopyEl) mapCopyEl.textContent = fullCopy;
   }
   if (chipEl) {
     chipEl.textContent = isSelectedCurrent
@@ -2213,13 +2221,13 @@ function renderAdventureCommandDeck() {
   let title = "Choose your next move";
   let copy = "";
   let dialogue =
-    "Select a reachable location to begin exploring, or focus the current area to act in place.";
+    "Select a reachable location to begin exploring, or choose the current area to act in place.";
   let actions = [
     commandButtonMarkup({
-      id: "command-focus-current",
-      icon: "🧭",
-      label: "Focus",
-      primary: true,
+      id: "command-select-current",
+      icon: "🎯",
+      label: "Current",
+      primary: !!currentRegion,
       disabled: !currentRegion,
     }),
     commandButtonMarkup({
@@ -2228,14 +2236,14 @@ function renderAdventureCommandDeck() {
       label: "Save",
     }),
     commandButtonMarkup({
-      id: "command-clear-log",
-      icon: "🧹",
-      label: "Clear",
+      id: "command-open-world-map",
+      icon: "🗺️",
+      label: "Map",
     }),
     commandButtonMarkup({
-      id: "command-open-map",
-      icon: "🗺️",
-      label: "Atlas",
+      id: "command-go-home",
+      icon: "🏠",
+      label: "Home",
     }),
   ].join("");
 
@@ -2258,14 +2266,14 @@ function renderAdventureCommandDeck() {
           label: "Save",
         }),
         commandButtonMarkup({
-          id: "command-clear-log",
-          icon: "🧹",
-          label: "Clear",
+          id: "command-open-world-map",
+          icon: "🗺️",
+          label: "Map",
         }),
         commandButtonMarkup({
-          id: "command-open-map",
-          icon: "🗺️",
-          label: "Atlas",
+          id: "command-go-home",
+          icon: "🏠",
+          label: "Home",
         }),
       ].join("");
     } else if (selectedPathContext && isSelectedReachable) {
@@ -2282,13 +2290,13 @@ function renderAdventureCommandDeck() {
         commandButtonMarkup({
           id: "command-travel-explore",
           icon: "👣",
-          label: "Travel",
+          label: "Journey",
           primary: true,
         }),
         commandButtonMarkup({
-          id: "command-focus-current",
+          id: "command-select-current",
           icon: "⛺",
-          label: "Camp",
+          label: "Current",
         }),
         commandButtonMarkup({
           id: "command-save",
@@ -2296,9 +2304,9 @@ function renderAdventureCommandDeck() {
           label: "Save",
         }),
         commandButtonMarkup({
-          id: "command-clear-log",
-          icon: "🧹",
-          label: "Clear",
+          id: "command-go-home",
+          icon: "🏠",
+          label: "Home",
         }),
       ].join("");
     } else if (selectedPathContext) {
@@ -2319,9 +2327,9 @@ function renderAdventureCommandDeck() {
           ),
         }),
         commandButtonMarkup({
-          id: "command-focus-current",
+          id: "command-select-current",
           icon: "↩️",
-          label: "Back",
+          label: "Current",
         }),
         commandButtonMarkup({
           id: "command-save",
@@ -2329,9 +2337,9 @@ function renderAdventureCommandDeck() {
           label: "Save",
         }),
         commandButtonMarkup({
-          id: "command-clear-log",
-          icon: "🧹",
-          label: "Clear",
+          id: "command-go-home",
+          icon: "🏠",
+          label: "Home",
         }),
       ].join("");
     } else {
@@ -2341,14 +2349,14 @@ function renderAdventureCommandDeck() {
       actions = [
         commandButtonMarkup({
           icon: "🚫",
-          label: "Locked",
+          label: "Sealed",
           primary: true,
           disabled: true,
         }),
         commandButtonMarkup({
-          id: "command-focus-current",
+          id: "command-select-current",
           icon: "↩️",
-          label: "Back",
+          label: "Current",
         }),
         commandButtonMarkup({
           id: "command-save",
@@ -2356,9 +2364,9 @@ function renderAdventureCommandDeck() {
           label: "Save",
         }),
         commandButtonMarkup({
-          id: "command-clear-log",
-          icon: "🧹",
-          label: "Clear",
+          id: "command-go-home",
+          icon: "🏠",
+          label: "Home",
         }),
       ].join("");
     }
@@ -2375,17 +2383,17 @@ function renderAdventureCommandDeck() {
 
   bindCommandDeckAction("command-explore-current", () => exploreRegion());
   bindCommandDeckAction("command-travel-explore", () => exploreRegion());
-  bindCommandDeckAction("command-focus-current", () => {
+  bindCommandDeckAction("command-select-current", () => {
     focusCurrentRegionSelection();
   });
   bindCommandDeckAction("command-save", () => {
     saveGame();
   });
-  bindCommandDeckAction("command-clear-log", () => {
-    clearAdventureLog();
-  });
-  bindCommandDeckAction("command-open-map", () => {
+  bindCommandDeckAction("command-open-world-map", () => {
     showMapPage();
+  });
+  bindCommandDeckAction("command-go-home", () => {
+    showScreen("menu");
   });
 }
 
@@ -4803,6 +4811,14 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       if (!node) return "";
       const regionIndex = regions.findIndex((entry: any) => entry.id === region.id);
       const enemyList = summarizeEnemyList(region.enemyTypes || []);
+      const routeCount = Array.isArray(region.connections)
+        ? region.connections.length
+        : Array.isArray(layout.paths)
+          ? layout.paths.filter(
+              (path: any) =>
+                path.fromRegionId === region.id || path.toRegionId === region.id,
+            ).length
+          : 0;
       const left = ((node.x || 0) / Math.max(1, layout.width || 1)) * 100;
       const top = ((node.y || 0) / Math.max(1, layout.height || 1)) * 100;
       const selected =
@@ -4818,7 +4834,10 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
           (path.fromRegionId === region.id || path.toRegionId === region.id) &&
           (path.kind === "secret" || path.visibility === "hidden"),
       );
+      const isUndiscovered =
+        !isCurrent && !isReachable && !isDiscovered && !isVisited && !isCleared;
       const inactive = !isCurrent && !isReachable;
+      const shape = node.isGoal ? "star" : isSecret ? "diamond" : "circle";
       const nodeStateClasses = [
         selected,
         isCurrent ? "current" : "",
@@ -4826,6 +4845,7 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
         isDiscovered ? "discovered" : "",
         isVisited ? "visited" : "",
         isCleared ? "cleared" : "",
+        isUndiscovered ? "undiscovered" : "",
         isSecret ? "secret" : "",
         isLocked ? "locked" : "",
         node.isStart ? "start" : "",
@@ -4834,33 +4854,27 @@ function renderTopologyMap(listEl: HTMLElement, regions: any[]) {
       ]
         .filter(Boolean)
         .join(" ");
+      const tooltip = `${region.name}
+Threat Level ${region.dangerLevel}
+Enemies: ${enemyList}
+Routes: ${routeCount}`;
       return `
         <button
-          class="map-node ${nodeStateClasses}"
+          class="map-node ${nodeStateClasses} shape-${shape}"
           style="left:${left}%; top:${top}%; --map-node-accent:${escapeHtml(node.accentColor || region.accentColor || "#4fc3f7")}"
           onclick="selectRegion(${regionIndex})"
           ${isLocked ? "disabled" : ""}
           ${isLocked ? "data-node-state=\"locked\"" : ""}
-          title="${escapeHtml(`${region.name} • Threat Level ${region.dangerLevel} • ${enemyList}`)}"
+          title="${escapeHtml(tooltip)}"
+          data-tooltip="${escapeHtml(tooltip)}"
         >
-          <div class="map-node-head">
-            <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
-            <span class="map-node-title">${escapeHtml(region.name)}</span>
-          </div>
-          <div class="map-node-meta">
-            <span>${escapeHtml(node.landmark || region.landmark || "Waystation")}</span>
-            <span>Threat Level ${escapeHtml(region.dangerLevel)}</span>
-          </div>
-          <div class="map-node-enemies">${escapeHtml(enemyList)}</div>
-          <div class="map-node-flags">
-            ${node.isStart ? '<span class="map-flag start">Start</span>' : ""}
-            ${node.isGoal ? '<span class="map-flag goal">Goal</span>' : ""}
-            ${isCurrent ? '<span class="map-flag current">Current</span>' : ""}
-            ${isReachable ? '<span class="map-flag reachable">Reachable</span>' : ""}
-            ${isCleared ? '<span class="map-flag cleared">Cleared</span>' : ""}
-            ${isSecret ? '<span class="map-flag secret">Secret</span>' : ""}
-            ${node.isGoal ? '<span class="map-flag boss">Boss</span>' : ""}
-          </div>
+          <span class="map-node-core">
+            <span class="map-node-core-inner">
+              <span class="map-node-icon">${escapeHtml(node.icon || region.icon || "🗺️")}</span>
+            </span>
+          </span>
+          <span class="map-node-label">${escapeHtml(region.name)}</span>
+          <span class="map-node-threat">Threat ${escapeHtml(region.dangerLevel)}</span>
         </button>
       `;
     })
@@ -5037,6 +5051,26 @@ function updateHUD() {
   f("gp-def", s.effectiveStats?.defense ?? 5);
   f("gp-spd", s.effectiveStats?.speed ?? 8);
   f("gp-gold", s.gold);
+
+  const heroPortraitEl = document.getElementById("gp-hero-portrait");
+  if (heroPortraitEl) {
+    const portraitUrl =
+      s.portraitUrl ||
+      G.selectedLegend?.portrait_url ||
+      G.selectedLegend?.portraitUrl ||
+      G.selectedLegend?.image_url ||
+      G.selectedLegend?.imageUrl ||
+      "";
+    if (portraitUrl) {
+      heroPortraitEl.innerHTML = "";
+      heroPortraitEl.style.backgroundImage = `linear-gradient(180deg, rgba(22, 20, 26, 0.4), rgba(10, 10, 14, 0.72)), url("${portraitUrl}")`;
+      heroPortraitEl.style.backgroundSize = "cover";
+      heroPortraitEl.style.backgroundPosition = "center";
+    } else {
+      heroPortraitEl.style.backgroundImage = "";
+      heroPortraitEl.textContent = "🧙";
+    }
+  }
 
   // ── Signature Skill Preview ──
   const skill = s.signatureSkill;
@@ -5508,6 +5542,7 @@ function renderCombatActions() {
 
   if (G.activeCombat.isFinished) {
     setAdventureMode("result");
+    toggleMapCombatStage(false);
     setMapEventState(
       "🏆 Outcome",
       "The battle is over. Gather yourself, review the outcome, and choose what the journey does next.",
@@ -5529,21 +5564,19 @@ function renderCombatActions() {
         primary: true,
       }),
       commandButtonMarkup({
-        id: "btn-post-combat-stats",
-        icon: "🧙",
-        label: "Status",
+        id: "btn-post-combat-save",
+        icon: "💾",
+        label: "Save",
       }),
       commandButtonMarkup({
-        icon: "🪤",
-        label: "Catch",
-        disabled: true,
-        title: "Planned for a future update",
+        id: "btn-post-combat-map",
+        icon: "🗺️",
+        label: "Map",
       }),
       commandButtonMarkup({
-        icon: "🖼️",
-        label: "Art",
-        disabled: true,
-        title: "Wire monster art from the dev panel here later",
+        id: "btn-post-combat-home",
+        icon: "🏠",
+        label: "Home",
       }),
     ].join("");
     document
@@ -5562,9 +5595,19 @@ function renderCombatActions() {
         showScreen("world");
       });
     document
-      .getElementById("btn-post-combat-stats")
+      .getElementById("btn-post-combat-save")
       ?.addEventListener("click", () => {
-        showScreen("character");
+        saveGame();
+      });
+    document
+      .getElementById("btn-post-combat-map")
+      ?.addEventListener("click", () => {
+        showMapPage();
+      });
+    document
+      .getElementById("btn-post-combat-home")
+      ?.addEventListener("click", () => {
+        showScreen("menu");
       });
     return;
   }
