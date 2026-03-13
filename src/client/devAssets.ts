@@ -1,4 +1,9 @@
 import { uploadDevFile } from "./devAssetUpload.js";
+import {
+  buildNameDrivenAutofillPrompt,
+  mergeAutofillRecord,
+  requestDevAIDraft,
+} from "./devAIAutofill.js";
 
 interface AssetSourceSnapshot {
   key: string;
@@ -328,6 +333,58 @@ function applyReviewSuggestions() {
   }
 
   setInlineStatus("asset-review-status", "Applied AI review suggestions to the intake form.");
+}
+
+async function autofillCurrentAsset() {
+  const source = getSource();
+  if (!source) return;
+
+  const currentRecord = getCurrentRecordFromForm();
+  const anchorName = String(currentRecord.title || "").trim();
+  if (!anchorName) {
+    setInlineStatus("asset-autofill-status", "Enter a title first so AI knows what to build.", true);
+    return;
+  }
+
+  const buttonEl = document.getElementById("asset-autofill-btn") as HTMLButtonElement | null;
+  if (buttonEl) buttonEl.disabled = true;
+  setInlineStatus("asset-autofill-status", "AI is filling the asset details...");
+
+  try {
+    const response = await requestDevAIDraft(
+      source.key,
+      buildNameDrivenAutofillPrompt({
+        entityLabel: source.label,
+        anchorName,
+        summary: String(currentRecord.summary || ""),
+        notes: String(currentRecord.body_text || ""),
+        extraLines: [
+          `Source bucket: ${source.label}`,
+          `Biome hint: ${String(safeObject(currentRecord.metadata_json).biome || "")}`,
+          `Terrain type hint: ${String(safeObject(currentRecord.metadata_json).terrainType || "")}`,
+          `Intended use hint: ${String(safeObject(currentRecord.metadata_json).intendedUse || "")}`,
+          "Prefer tags and metadata that help terrain generation and atlas building.",
+        ],
+      }),
+      currentRecord,
+    );
+
+    const mergedRecord = mergeAutofillRecord(currentRecord, response.record);
+    fillFormFromRecord(source.key, mergedRecord, state.editorMode);
+    setInlineStatus(
+      "asset-autofill-status",
+      response.warning || "Asset form filled from the current title.",
+      !!response.fallback,
+    );
+  } catch (error: any) {
+    setInlineStatus(
+      "asset-autofill-status",
+      error.message || "Could not autofill the asset form",
+      true,
+    );
+  } finally {
+    if (buttonEl) buttonEl.disabled = false;
+  }
 }
 
 function fillFormFromRecord(sourceKey: string, record?: Record<string, unknown>, mode: "create" | "edit" = "create") {
@@ -775,6 +832,9 @@ function bindGlobalControls() {
   });
   document.getElementById("asset-review-btn")?.addEventListener("click", async () => {
     await reviewCurrentAsset();
+  });
+  document.getElementById("asset-autofill-btn")?.addEventListener("click", async () => {
+    await autofillCurrentAsset();
   });
   document.getElementById("asset-apply-ai-btn")?.addEventListener("click", () => {
     applyReviewSuggestions();
