@@ -7903,7 +7903,8 @@ html[data-app-page="map"] .lang-btn.active {
 }
 
 .map-editor-shell {
-  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -7940,9 +7941,10 @@ html[data-app-page="map"] .lang-btn.active {
 .map-editor-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 340px;
+  grid-template-columns: 240px minmax(720px, 1fr) 300px;
   gap: 16px;
   min-height: 0;
+  min-width: 1260px;
 }
 
 .map-editor-panel {
@@ -8041,6 +8043,11 @@ html[data-app-page="map"] .lang-btn.active {
   overflow: hidden;
 }
 
+.map-editor-canvas-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
 /* Functional states for JS compatibility */
 .dev-map-tab-panel {
   display: none;
@@ -8082,16 +8089,23 @@ html[data-app-page="map"] .lang-btn.active {
 }
 
 @media (max-width: 1200px) {
-  .map-editor-layout {
-    grid-template-columns: 240px minmax(0, 1fr);
+  .map-editor-shell {
+    overflow-x: auto;
+    overflow-y: hidden;
   }
+
+  .map-editor-layout {
+    grid-template-columns: 240px minmax(720px, 1fr) 300px;
+    min-width: 1260px;
+  }
+
   .map-editor-inspector {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    grid-column: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     height: auto;
-    max-height: 400px;
+    max-height: none;
   }
 }
 
