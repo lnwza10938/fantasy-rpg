@@ -17,7 +17,7 @@
 - [x] Created dedicated Map Editor Shell (TASK 007).
 - [x] Refactored Map Editor into 3-column workspace (TASK 009) - RE-PATCHED on correct root file.
 - [x] Refactored Dev Panel and Asset Library layouts (TASK 008).
-- [x] Removed Command Deck from /map and expanded map dominance (TASK 010).
+- [x] Removed Command Deck from /map and expanded map dominance (TASK 010) - FULLY PATCHED (JS + CSS).
 - [x] Verified Round 2 consistency patches and updated `docs/planner-sync.md`.
 
 ## Filename Convention Decision

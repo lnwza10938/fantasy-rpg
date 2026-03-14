@@ -8326,6 +8326,7 @@ html[data-app-page="map"] #gp-center-top {
   grid-column: 1;
   grid-row: 1;
   min-height: 0;
+  padding: 16px;
 }
 
 html[data-app-page="map"] #gp-center-bot {
@@ -8341,10 +8342,6 @@ html[data-app-page="map"] .command-deck-copy,
 html[data-app-page="map"] .command-deck-dialogue,
 html[data-app-page="map"] .command-actions-grid {
   display: none !important;
-}
-
-html[data-app-page="map"] #gp-center-top {
-  padding: 16px;
 }
 
 html[data-app-page="map"] .journey-map-panel,

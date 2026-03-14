@@ -24,18 +24,20 @@
 
 ### FILE: src/client/main.ts
 - **Role**: Frontend entry point and route manager.
-- **Issue**: UI desync during multi-page transitions.
+- **Issue**: UI desync during multi-page transitions; unnecessary command deck rendering on map.
 - **Implemented Change**: 
   - Added `pendingSave` guard.
-  - `navigateToPage` now awaits `pendingSave` to ensure data persistence before exit.
-  - Updated `saveGame` to send `revision` and handle `409 Conflict` with a user notification.
+  - `navigateToPage` now awaits `pendingSave`.
+  - Updated `saveGame` to send `revision` and handle `409 Conflict`.
   - Integrated `validateSession` in `onLoginSuccess`.
-- **Status**: PATCHED (Round 2).
+  - **TASK 010**: Added early return in `renderAdventureCommandDeck` for `/map` to skip deck rendering.
+- **Status**: PATCHED (Round 2 + TASK 010).
 
 ### FILE: src/client/style.css
 - **Role**: Main stylesheet for all game and dev pages.
 - **Issue**: Map page was less dominant due to unnecessary command deck space.
-- **Implemented Change**: Removed Command Deck from `/map` route via CSS. Let map take full height.
+- **Implemented Change**: 
+  - **TASK 010**: Refactored `/map` to a single-row layout; hid all command deck components; ensured map canvas fills available height.
 - **Status**: PATCHED (TASK 010).
 
 ### FILE: src/core/worldSystem.ts

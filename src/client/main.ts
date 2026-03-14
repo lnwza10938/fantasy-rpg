@@ -2276,6 +2276,18 @@ function renderAdventureCommandDeck() {
   const actionBox = document.getElementById("combat-actions");
   if (!titleEl || !copyEl || !stateEl || !resultBox || !actionBox) return;
 
+  // TASK 010:
+  // /map must not render the command deck UI.
+  // Keep this deck for /adventure only.
+  if (APP_PAGE === "map") {
+    titleEl.textContent = "";
+    copyEl.textContent = "";
+    stateEl.textContent = "";
+    resultBox.textContent = "";
+    actionBox.innerHTML = "";
+    return;
+  }
+
   if (G.activeCombat) {
     renderCombatActions();
     return;
