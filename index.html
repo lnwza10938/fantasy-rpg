@@ -13,9 +13,44 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-    
-      
-  <style id="i18n-style">
+    <style>
+      .i18n-switcher-fixed {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        gap: 6px;
+        background: rgba(14, 16, 21, 0.9);
+        padding: 5px;
+        border-radius: 99px;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(212, 188, 132, 0.25);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      }
+      .i18n-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.4);
+        font-size: 11px;
+        font-weight: 800;
+        cursor: pointer;
+        padding: 6px 14px;
+        border-radius: 99px;
+        transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+      }
+      .i18n-btn.active {
+        background: rgba(212, 188, 132, 0.25);
+        color: #f4ead2;
+        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
+      }
+      .i18n-btn:hover:not(.active) {
+        color: #fff;
+        background: rgba(255,255,255,0.05);
+      }
+    </style>
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -63,14 +98,14 @@
 
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
-        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1>
         <p data-i18n="auth.subtitle">A realm that remembers every hero, route, and battle</p>
       </div>
       <div class="landing-shell">
         <div class="landing-grid">
           <div class="card landing-hero fade-in">
             <div>
-              <div class="landing-kicker" data-i18n="auth.welcome">Welcome to the Realm data-i18n="hub.welcome" data-i18n="hub.welcome"</div>
+              <div class="landing-kicker" data-i18n="auth.welcome" data-i18n="hub.welcome">Welcome to the Realm</div>
               <h2 class="landing-title" data-i18n="auth.hero_choice">
                 Choose a hero, enter a realm, and let the journey grow.
               </h2>
@@ -96,7 +131,7 @@
             </div>
           </div>
           <div class="card fade-in auth-card">
-            <h3 id="auth-title" data-i18n="auth.login">🔐 Enter the Realm</h3>
+            <h3 id="auth-title" data-i18n="auth.login" data-i18n="auth.login">🔐 Enter the Realm</h3>
             <p class="auth-copy" data-i18n="auth.login_copy">
               Sign in with email, continue as a guest, or use an invite code to
               reopen the same profile from another device.
@@ -104,21 +139,21 @@
             <form id="form-auth" onsubmit="handleAuth(event)">
               <div style="display: flex; flex-direction: column; gap: 12px">
                 <div>
-                  <label data-i18n="auth.email">Email Address</label>
+                  <label data-i18n="auth.email" data-i18n="auth.email">Email Address</label>
                   <input
                     type="email"
                     id="auth-email"
-                    placeholder="hero@example.com" data-i18n="auth.email"
+                    placeholder="hero@example.com" data-i18n-placeholder="auth.email"
                     autocomplete="email"
                     required
                   />
                 </div>
                 <div>
-                  <label data-i18n="auth.password">Password</label>
+                  <label data-i18n="auth.password" data-i18n="auth.password">Password</label>
                   <input
                     type="password"
                     id="auth-password"
-                    placeholder="••••••••" data-i18n="auth.password"
+                    placeholder="••••••••" data-i18n-placeholder="auth.password"
                     autocomplete="current-password"
                     required
                   />
@@ -152,11 +187,11 @@
                     border-top: 1px solid var(--border);
                   "
                 >
-                  <label data-i18n="auth.invite">Invite Code</label>
+                  <label data-i18n="auth.invite" data-i18n="auth.invite">Invite Code</label>
                   <input
                     type="text"
                     id="auth-invite-code"
-                    placeholder="STREAMER-ACCESS" data-i18n="auth.invite"
+                    placeholder="STREAMER-ACCESS" data-i18n-placeholder="auth.invite"
                     autocomplete="off"
                     spellcheck="false"
                   />
@@ -167,9 +202,7 @@
                     style="width: 100%; margin-top: 10px"
                     onclick="enterInviteMode()"
                     data-i18n="auth.invite_btn"
-                  >
-                    Enter with Invite Code
-                  </button>
+                   data-i18n="auth.invite_btn">Enter with Invite Code</button>
                   <div
                     style="
                       margin-top: 8px;
@@ -202,34 +235,24 @@
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">
-            🏠 Home
-          </button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home" data-i18n="nav.home">🏠 Home</button>
           <button
             class="btn btn-nav"
             data-nav-page="adventure"
             onclick="showAdventurePage()"
             data-i18n="nav.journey"
-          >
-            🧭 Journey
-          </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">
-            🗺 World Map
-          </button>
+           data-i18n="nav.journey">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map" data-i18n="nav.map">🗺 World Map</button>
           <button
             class="btn btn-nav"
             data-nav-page="forge"
             onclick="showForge('menu')"
             data-i18n="nav.create_hero"
-          >
-            ⚒ Create Hero
-          </button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">
-            🧙 Hero data-i18n="game.hero_section" Archive
-          </button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
+           data-i18n="nav.create_hero">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive" data-i18n="nav.archive">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout" data-i18n="nav.logout">⇦ Logout</button>
         </div>
-        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1>
         <p id="user-display" data-i18n="auth.subtitle">A world that remembers</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
@@ -240,9 +263,7 @@
           <div class="hub-grid">
             <div class="card hub-hero-card">
               <div class="landing-kicker" data-i18n="nav.home">Home</div>
-              <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="hub.welcome">
-                Welcome to the Realm data-i18n="hub.welcome" data-i18n="hub.welcome"
-              </h2>
+              <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="hub.welcome" data-i18n="hub.welcome">Welcome to the Realm</h2>
               <p class="landing-copy" style="max-width: 680px" data-i18n="hub.copy">
                 Use the hub to choose your next step: begin a new run, reopen a
                 saved journey, or check the world map before heading back out.
@@ -250,37 +271,29 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.realms">Realm Archive data-i18n="hub.realms" data-i18n="hub.realms"</div>
+                  <div class="label" data-i18n="hub.realms" data-i18n="hub.realms">Realm Archive</div>
                   <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.journeys">Saved Journeys data-i18n="hub.journeys" data-i18n="hub.journeys"</div>
+                  <div class="label" data-i18n="hub.journeys" data-i18n="hub.journeys">Saved Journeys</div>
                   <div class="value" id="hub-save-count">0 journeys</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.access">Access Mode data-i18n="hub.access" data-i18n="hub.access"</div>
+                  <div class="label" data-i18n="hub.access" data-i18n="hub.access">Access Mode</div>
                   <div class="value" id="hub-access-mode">Account</div>
                 </div>
               </div>
 
               <div class="hub-action-grid">
-                <button class="btn btn-primary" onclick="startWizard()">
-                  🧭 Begin New Journey data-i18n="hub.new_journey" data-i18n="hub.new_journey"
-                </button>
-                <button class="btn btn-action" onclick="showMapPage()">
-                  🗺 Open World Map data-i18n="hub.open_map" data-i18n="hub.open_map"
-                </button>
-                <button class="btn btn-action" onclick="showForge('menu')">
-                  ⚒ Create Hero
-                </button>
-                <button class="btn btn-action" onclick="showVault()">
-                  🧙 Open Hero Archive data-i18n="hub.open_archive" data-i18n="hub.open_archive"
-                </button>
+                <button class="btn btn-primary" onclick="startWizard()" data-i18n="hub.new_journey">🧭 Begin New Journey</button>
+                <button class="btn btn-action" onclick="showMapPage()" data-i18n="hub.open_map">🗺 Open World Map</button>
+                <button class="btn btn-action" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
+                <button class="btn btn-action" onclick="showVault()" data-i18n="hub.open_archive">🧙 Open Hero Archive</button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker">Current Journey data-i18n="hub.current" data-i18n="hub.current"</div>
+              <div class="landing-kicker" data-i18n="hub.current">Current Journey</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
                 A quick snapshot of the latest journey before you return to
@@ -298,7 +311,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>📂 Recent Journeys data-i18n="hub.recent" data-i18n="hub.recent"</h3>
+                  <h3 data-i18n="hub.recent">📂 Recent Journeys</h3>
                   <p class="hub-panel-copy">
                     Your latest saved expeditions, ready to reopen.
                   </p>
@@ -317,7 +330,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>🗂️ Realm Archive data-i18n="hub.realms" data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
+                  <h3>🗂️ Realm Archive Preview</h3>
                   <p class="hub-panel-copy">
                     Saved realms with just enough detail to choose where to go next.
                   </p>
@@ -365,7 +378,7 @@
                 transition: all 0.3s;
               "
             >
-              1️⃣ World data-i18n="wizard.step_world"
+              1️⃣ World
             </div>
             <div
               id="step-indicator-2"
@@ -380,7 +393,7 @@
                 transition: all 0.3s;
               "
             >
-              2️⃣ Legend data-i18n="wizard.step_legend"
+              2️⃣ Legend
             </div>
             <div id="step-indicator-3" style="display: none"></div>
             <div
@@ -396,7 +409,7 @@
                 transition: all 0.3s;
               "
             >
-              3️⃣ Start data-i18n="wizard.step_start"
+              3️⃣ Start
             </div>
           </div>
 
@@ -520,7 +533,7 @@
                 </div>
               </div>
 
-              <!-- Seed data-i18n="wizard.seed" & Name Row (shown only for custom) -->
+              <!-- Seed & Name Row (shown only for custom) -->
               <div
                 id="seed-row"
                 style="
@@ -534,7 +547,7 @@
               >
                 <div style="display: flex; gap: 10px; align-items: flex-end">
                   <div style="flex: 2">
-                    <label>Custom World Name data-i18n="wizard.world_name"</label>
+                    <label>Custom World Name</label>
                     <input
                       type="text"
                       id="input-world-name"
@@ -544,7 +557,7 @@
                   </div>
                   <div style="flex: 1">
                     <label
-                      >Seed data-i18n="wizard.seed"
+                      >Seed
                       <span style="color: var(--muted); font-size: 9px"
                         >(optional)</span
                       ></label
@@ -552,14 +565,14 @@
                     <input
                       type="number"
                       id="input-seed"
-                      placeholder="e.g. 123456789" data-i18n="wizard.seed_ph"
+                      placeholder="e.g. 123456789" data-i18n-placeholder="wizard.seed_ph"
                       autocomplete="off"
                     />
                   </div>
                   <button
                     type="button"
                     class="btn btn-action"
-                    onclick="rollRandomSeed data-i18n="wizard.seed"()"
+                    onclick="rollRandomSeed()"
                   >
                     🎲 Roll
                   </button>
@@ -582,7 +595,7 @@
                     margin-bottom: 10px;
                   "
                 >
-                  <h3 style="margin-bottom: 0">🗂️ Realm Archive data-i18n="hub.realms" data-i18n="wizard.archive_title" data-i18n="hub.realms"</h3>
+                  <h3 style="margin-bottom: 0" data-i18n="wizard.archive_title">🗂️ Realm Archive</h3>
                   <button
                     class="btn btn-action"
                     type="button"
@@ -617,9 +630,7 @@
                     font-size: 15px;
                   "
                   onclick="wizardGoStep(2)"
-                >
-                  Next: Choose a Legend → data-i18n="wizard.next_legend"
-                </button>
+                 data-i18n="wizard.next_legend">Next: Choose a Legend →</button>
               </div>
               <div class="card fade-in">
                 <h3>👾 Monsters in this World</h3>
@@ -657,10 +668,8 @@
                   margin-bottom: 12px;
                 "
               >
-                <h3>📜 Step 2: Choose a Hero data-i18n="wizard.choose_hero"</h3>
-                <button class="btn btn-action" onclick="showForge('wizard')">
-                  ⚡ Create New Hero data-i18n="wizard.create_new"
-                </button>
+                <h3 data-i18n="wizard.choose_hero">📜 Step 2: Choose a Hero</h3>
+                <button class="btn btn-action" onclick="showForge('wizard')" data-i18n="wizard.create_new">⚡ Create New Hero</button>
               </div>
               <p
                 style="
@@ -706,9 +715,7 @@
                   onclick="wizardGoStep(4)"
                   style="flex: 2"
                   disabled
-                >
-                  Review Journey Setup data-i18n="wizard.review_setup"
-                </button>
+                 data-i18n="wizard.review_setup">Review Journey Setup</button>
               </div>
             </div>
           </div>
@@ -718,7 +725,7 @@
           <!-- STEP 4: Confirm & Start -->
           <div id="wizard-step-4" class="fade-in" style="display: none">
             <div class="card">
-              <h3>⚔️ Step 3: Begin Your Journey data-i18n="wizard.begin_journey"</h3>
+              <h3 data-i18n="wizard.begin_journey">⚔️ Step 3: Begin Your Journey</h3>
               <div
                 id="confirm-summary"
                 style="
@@ -922,7 +929,7 @@
               </div>
             </div>
 
-            <!-- Signature Skill data-i18n="game.signature_skill" Preview -->
+            <!-- Signature Skill Preview -->
             <div
               id="gp-skill-preview"
               style="
@@ -940,9 +947,7 @@
                   text-transform: uppercase;
                   margin-bottom: 4px;
                 "
-              >
-                Signature Skill data-i18n="game.signature_skill"
-              </div>
+               data-i18n="game.signature_skill">Signature Skill</div>
               <div
                 id="gp-skill-name"
                 style="font-size: 11px; font-weight: 700; color: var(--accent)"
@@ -976,15 +981,13 @@
                 style="font-size: 11px; width: 100%"
                 onclick="saveGame()"
               >
-                <span data-i18n="common.save">💾 Save Game</span>
+                💾 Save Game
               </button>
               <button
                 class="btn btn-action"
                 style="font-size: 11px; width: 100%"
                 onclick="showScreen('menu')"
-              >
-                🏠 Home
-              </button>
+               data-i18n="nav.home">🏠 Home</button>
             </div>
           </div>
 
@@ -1035,7 +1038,7 @@
                 id="explore-title"
                 style="font-size: 12px; font-weight: 700; margin-bottom: 6px"
               >
-                🧭 Select a region first data-i18n="game.select_region_first"
+                🧭 Select a region first
               </div>
               <button
                 class="btn btn-primary"
@@ -1132,7 +1135,7 @@
                 align-items: center;
               "
             >
-              <h3 style="margin-bottom: 0">📜 Action Log data-i18n="game.log_section"</h3>
+              <h3 style="margin-bottom: 0" data-i18n="game.log_section">📜 Action Log</h3>
               <button
                 onclick="document.getElementById('gp-log').innerHTML = ''"
                 style="
@@ -1142,9 +1145,7 @@
                   cursor: pointer;
                   font-size: 10px;
                 "
-              >
-                Clear data-i18n="game.clear_log"
-              </button>
+               data-i18n="game.clear_log">Clear</button>
             </div>
             <!-- Shared log that both explore and combat write to -->
             <div
@@ -1194,9 +1195,7 @@
                     color: var(--muted);
                     margin-bottom: 2px;
                   "
-                >
-                  ⚔️ WEAPON data-i18n="game.weapon"
-                </div>
+                 data-i18n="game.weapon">⚔️ WEAPON</div>
                 <div id="inv-weapon" style="font-size: 11px; font-weight: 600">
                   — None —
                 </div>
@@ -1214,9 +1213,7 @@
                     color: var(--muted);
                     margin-bottom: 2px;
                   "
-                >
-                  🛡️ ARMOR data-i18n="game.armor"
-                </div>
+                 data-i18n="game.armor">🛡️ ARMOR</div>
                 <div id="inv-armor" style="font-size: 11px; font-weight: 600">
                   — None —
                 </div>
@@ -1243,9 +1240,9 @@
               </div>
             </div>
 
-            <h3>🧪 Items data-i18n="game.items_section"</h3>
+            <h3 data-i18n="game.items_section">🧪 Items</h3>
             <div id="inv-display" style="font-size: 11px; color: var(--muted)">
-              <p>No items yet. data-i18n="game.no_items"</p>
+              <p>No items yet.</p>
             </div>
           </div>
         </div>
@@ -1317,7 +1314,7 @@
 
               <!-- Basic Identity -->
               <div style="margin-bottom: 20px">
-                <label>Hero Name data-i18n="forge.hero_name"</label>
+                <label>Hero Name</label>
                 <input
                   type="text"
                   id="forge-name"
@@ -1358,7 +1355,7 @@
                 </div>
                 <div>
                   <label
-                    >Skin Tone data-i18n="forge.skin"
+                    >Skin Tone
                     <span style="font-size: 10px">(สีผิว)</span></label
                   >
                   <select
@@ -1373,16 +1370,16 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="fair">Fair value="fair" data-i18n="forge.options.fair">Fair</option>
-                    <option value="tanned">Tanned value="tanned" data-i18n="forge.options.tanned">Tanned</option>
-                    <option value="dark">Dark value="dark" data-i18n="forge.options.dark">Dark</option>
-                    <option value="pale">Pale value="pale" data-i18n="forge.options.pale">Pale</option>
+                    <option value="fair">Fair</option>
+                    <option value="tanned">Tanned</option>
+                    <option value="dark">Dark</option>
+                    <option value="pale">Pale</option>
                     <option value="obsidian">Obsidian (Fantasy)</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Face Shape data-i18n="forge.face"
+                    >Face Shape
                     <span style="font-size: 10px">(ใบหน้า)</span></label
                   >
                   <select
@@ -1397,15 +1394,15 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="round">Round value="round" data-i18n="forge.options.round">Round</option>
+                    <option value="round">Round</option>
                     <option value="sharp">Sharp & Angular</option>
-                    <option value="soft">Soft value="soft" data-i18n="forge.options.soft">Soft</option>
-                    <option value="rugged">Rugged value="rugged" data-i18n="forge.options.rugged">Rugged</option>
+                    <option value="soft">Soft</option>
+                    <option value="rugged">Rugged</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Hair Style & Color data-i18n="forge.hair"
+                    >Hair Style & Color
                     <span style="font-size: 10px">(สีผม)</span></label
                   >
                   <select
@@ -1420,16 +1417,16 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="black">Raven Black value="black" data-i18n="forge.options.black">Raven Black</option>
-                    <option value="blonde">Golden Blonde value="blonde" data-i18n="forge.options.blonde">Golden Blonde</option>
-                    <option value="brown">Chestnut Brown value="brown" data-i18n="forge.options.brown">Chestnut Brown</option>
-                    <option value="white">Ghost White value="white" data-i18n="forge.options.white">Ghost White</option>
-                    <option value="red">Crimson Red value="red" data-i18n="forge.options.red">Crimson Red</option>
+                    <option value="black">Raven Black</option>
+                    <option value="blonde">Golden Blonde</option>
+                    <option value="brown">Chestnut Brown</option>
+                    <option value="white">Ghost White</option>
+                    <option value="red">Crimson Red</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Eye Color data-i18n="forge.eyes"
+                    >Eye Color
                     <span style="font-size: 10px">(สีตา)</span></label
                   >
                   <select
@@ -1445,8 +1442,8 @@
                     "
                   >
                     <option value="brown">Earth Brown</option>
-                    <option value="blue">Ocean Blue value="blue" data-i18n="forge.options.blue">Ocean Blue</option>
-                    <option value="green">Emerald Green value="green" data-i18n="forge.options.green">Emerald Green</option>
+                    <option value="blue">Ocean Blue</option>
+                    <option value="green">Emerald Green</option>
                     <option value="red">Ruby Red (Fantasy)</option>
                     <option value="purple">Amethyst (Fantasy)</option>
                   </select>
@@ -1466,7 +1463,7 @@
                   onclick="forgeGoStep(2)"
                   style="flex: 2"
                 >
-                  Next: Manifest Destiny ✨ data-i18n="forge.manifest"
+                  Next: Manifest Destiny ✨
                 </button>
               </div>
             </div>
@@ -1493,15 +1490,13 @@
                       letter-spacing: 1px;
                       color: var(--accent);
                     "
-                  >
-                    Signature Skill data-i18n="game.signature_skill"
-                  </h4>
+                   data-i18n="game.signature_skill">Signature Skill</h4>
                   <button
                     id="btn-roll-forge"
                     class="btn btn-action"
                     onclick="rollForgeSkill()"
                   >
-                    🎲 Roll New Skill data-i18n="forge.roll_skill_btn"
+                    🎲 Roll New Skill
                   </button>
                 </div>
 
@@ -1589,7 +1584,7 @@
                         text-transform: uppercase;
                       "
                     >
-                      Technical Mechanics data-i18n="forge.tech_mech"
+                      Technical Mechanics
                     </div>
                     <p
                       id="forge-skill-mechanics"

@@ -13,8 +13,7 @@
       document.documentElement.classList.add("app-booting");
     </script>
   <script type="module" src="/src/client/i18n.ts"></script>
-      
-  <style id="i18n-style">
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -57,54 +56,19 @@
       <button class="i18n-btn" data-lang-set="en">EN</button>
       <button class="i18n-btn" data-lang-set="th">TH</button>
     </div>
-    <div id="google_translate_element" style="display: none"></div>
-    <button id="translate-btn" type="button">🌐 Translate ▾</button>
-    <div id="translate-panel">
-      <h4>🌍 Choose Language</h4>
-      <div class="lang-list">
-        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
-        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
-        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
-        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
-        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
-        <button class="lang-btn" data-lang="fr" type="button">🇫🇷 Français</button>
-        <button class="lang-btn" data-lang="es" type="button">🇪🇸 Español</button>
-        <button class="lang-btn" data-lang="de" type="button">🇩🇪 Deutsch</button>
-        <button class="lang-btn" data-lang="ru" type="button">🇷🇺 Русский</button>
-        <button class="lang-btn" data-lang="ar" type="button">🇸🇦 العربية</button>
-      </div>
-      <div class="auto-toggle">
-        <span style="color: var(--muted)">Auto-translate on load</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="auto-translate-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <div class="auto-toggle" style="border-top: none; margin-top: 0">
-        <span style="color: var(--accent)">Mobile Layout (Force)</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="ui-mode-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-    </div>
-    <script type="module" src="/src/client/translateWidget.ts"></script>
+    
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
-          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
-            🧭 Journey
-          </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
-          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
-            ⚒ Create Hero
-          </button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero data-i18n="game.hero_section" Archive<  data-i18n="nav.archive">🧙 Hero data-i18n="game.hero_section" Archive</button>
-          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()" data-i18n="nav.journey">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()" data-i18n="nav.logout">⇦ Logout</button>
         </div>
-        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas hero archive</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
