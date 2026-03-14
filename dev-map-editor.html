@@ -9,31 +9,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
-    <style>
-      .i18n-switcher {
-        display: flex;
-        gap: 8px;
-        background: rgba(0,0,0,0.3);
-        padding: 4px;
-        border-radius: 99px;
-        border: 1px solid rgba(212, 188, 132, 0.2);
-      }
-      .i18n-btn {
-        background: none;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        padding: 4px 10px;
-        border-radius: 90px;
-        transition: all 0.2s;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.2);
-        color: #f4ead2;
-      }
-    </style>
+    
       
   </head>
   <body class="map-editor-page">
@@ -246,26 +222,7 @@
 
     <div id="map-editor-context-menu" class="dev-map-context-menu" hidden></div>
 
-    <script type="module">
-      import { i18n } from "/src/client/i18n.ts";
-      
-      const updateSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          updateSwitcher();
-        });
-      });
-
-      // Simple wait for i18n to ready
-      window.addEventListener("languageChanged", updateSwitcher);
-      updateSwitcher();
-    </script>
+    
     <script type="module" src="/src/client/devMapEditor.ts"></script>
       
   </body>
