@@ -12,61 +12,22 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  <script type="module" src="/src/client/i18n.ts"></script>
-      <style id="i18n-style">
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
-    </style>
+  
+      
   </head>
   <body>
-    <div class="i18n-switcher-fixed">
-      <button class="i18n-btn" data-lang-set="en">EN</button>
-      <button class="i18n-btn" data-lang-set="th">TH</button>
-    </div>
+    
     
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
-          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()" data-i18n="nav.journey">🧭 Journey</button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">🗺 World Map</button>
-          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas hero archive</p>
@@ -84,7 +45,7 @@
                 gap: 12px;
                 margin-bottom: 20px;
               "
-            >
+          >
               <div>
                 <div class="landing-kicker" style="margin-bottom: 6px">Hero Archive</div>
                 <h2 style="margin: 0">Legends ready to resume</h2>
@@ -103,20 +64,6 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-      <script type="module" id="i18n-js">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+      
   </body>
 </html>

@@ -12,61 +12,22 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  <script type="module" src="/src/client/i18n.ts"></script>
-      <style id="i18n-style">
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
-    </style>
+  
+      
   </head>
   <body>
-    <div class="i18n-switcher-fixed">
-      <button class="i18n-btn" data-lang-set="en">EN</button>
-      <button class="i18n-btn" data-lang-set="th">TH</button>
-    </div>
+    
     
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
-          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()" data-i18n="nav.journey">🧭 Journey</button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">🗺 World Map</button>
-          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas hero forge</p>
@@ -98,7 +59,7 @@
                   text-align: center;
                   padding: 24px;
                 "
-              >
+            >
                 <span style="color: var(--muted); font-size: 13px">
                   Portrait preview will appear here as your hero's features and signature skill are set.
                 </span>
@@ -192,7 +153,7 @@
                     justify-content: space-between;
                     margin-bottom: 15px;
                   "
-                >
+              >
                   <h4
                     style="
                       margin: 0;
@@ -200,8 +161,7 @@
                       font-size: 12px;
                       letter-spacing: 1px;
                       color: var(--accent);
-                    "
-                   data-i18n="game.signature_skill">Signature Skill</h4>
+                    ">Signature Skill</h4>
                   <button id="btn-roll-forge" class="btn btn-action" onclick="rollForgeSkill()">
                     🎲 Roll New Skill
                   </button>
@@ -218,7 +178,7 @@
                     margin: 20px auto;
                     display: none;
                   "
-                >
+              >
                   <div id="skill-code-forge" style="position: absolute; inset: 0"></div>
                 </div>
 
@@ -230,7 +190,7 @@
                     color: var(--muted);
                     font-size: 13px;
                   "
-                >
+              >
                   Roll to awaken your hero's rune circle.
                 </div>
 
@@ -243,14 +203,14 @@
                     margin-top: 15px;
                     text-align: left;
                   "
-                >
+              >
                   <div
                     style="
                       display: flex;
                       justify-content: space-between;
                       align-items: flex-start;
                     "
-                  >
+                >
                     <h3 id="forge-skill-name" style="color: var(--accent); margin: 0"></h3>
                     <div id="forge-skill-cost" class="tag"></div>
                   </div>
@@ -263,7 +223,7 @@
                       font-style: italic;
                       color: var(--muted);
                     "
-                  ></p>
+                ></p>
                   <div
                     style="
                       background: rgba(0, 0, 0, 0.2);
@@ -271,7 +231,7 @@
                       padding: 8px;
                       margin-bottom: 15px;
                     "
-                  >
+                >
                     <div
                       style="
                         font-size: 10px;
@@ -280,7 +240,7 @@
                         margin-bottom: 4px;
                         text-transform: uppercase;
                       "
-                    >
+                  >
                       Technical Mechanics
                     </div>
                     <p
@@ -291,7 +251,7 @@
                         margin: 0;
                         color: var(--text);
                       "
-                    ></p>
+                  ></p>
                   </div>
                   <div
                     style="
@@ -300,7 +260,7 @@
                       gap: 8px;
                       font-size: 10px;
                     "
-                  >
+                >
                     <div>
                       <label>CD</label>
                       <div id="forge-skill-cd" style="font-weight: 700; color: var(--gold)"></div>
@@ -326,7 +286,7 @@
                   margin-top: 15px;
                   text-align: center;
                 "
-              ></div>
+            ></div>
 
               <div
                 style="
@@ -335,7 +295,7 @@
                   font-size: 11px;
                   color: var(--muted);
                 "
-              >
+            >
                 When ready, create the hero and record them in the Hero Archive for future journeys.
               </div>
 
@@ -349,7 +309,7 @@
                   onclick="confirmForge()"
                   style="flex: 2"
                   disabled
-                >
+              >
                   Create Hero ⚔️
                 </button>
               </div>
@@ -362,20 +322,6 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-      <script type="module" id="i18n-js">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+      
   </body>
 </html>

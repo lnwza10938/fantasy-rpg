@@ -12,61 +12,22 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  <script type="module" src="/src/client/i18n.ts"></script>
-      <style id="i18n-style">
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
-    </style>
+  
+      
   </head>
   <body>
-    <div class="i18n-switcher-fixed">
-      <button class="i18n-btn" data-lang-set="en">EN</button>
-      <button class="i18n-btn" data-lang-set="th">TH</button>
-    </div>
+    
     
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
-          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()" data-i18n="nav.journey">🧭 Journey</button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">🗺 World Map</button>
-          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas world map</p>
@@ -76,7 +37,7 @@
       <div class="container">
         <div id="game-ui-screen" data-adventure-mode="map">
           <div id="gp-left" class="gp">
-            <h3 data-i18n="game.hero_section">🧙 Hero</h3>
+            <h3>🧙 Hero</h3>
             <div style="text-align: center; margin-bottom: 10px">
               <div style="font-size: 40px; line-height: 1">🧙</div>
               <div id="gp-char-name" style="font-weight: 700; font-size: 13px; margin-top: 4px">Hero</div>
@@ -97,13 +58,13 @@
               <div style="background: var(--surface2); border-radius: 6px; padding: 6px; text-align: center"><div style="font-size: 9px; color: var(--muted)">GOLD</div><div id="gp-gold" style="font-weight: 700; color: var(--gold); font-size: 14px">0</div></div>
             </div>
             <div id="gp-skill-preview" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px">
-              <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px" data-i18n="game.signature_skill">Signature Skill</div>
+              <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px">Signature Skill</div>
               <div id="gp-skill-name" style="font-size: 11px; font-weight: 700; color: var(--accent)">— None —</div>
               <div id="gp-skill-brief" style="font-size: 10px; color: var(--text); line-height: 1.3; margin-top: 2px; opacity: 0.8; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical">No skill selected</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px">
               <button class="btn btn-gold" style="font-size: 11px; width: 100%" onclick="saveGame()">💾 Save Game</button>
-              <button class="btn btn-action" style="font-size: 11px; width: 100%" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
+              <button class="btn btn-action" style="font-size: 11px; width: 100%" onclick="showHubPage()">🏠 Home</button>
             </div>
           </div>
 
@@ -134,7 +95,7 @@
                   type="button"
                   class="btn btn-action map-preview-draft-btn"
                   onclick="clearMapEditorPreview()"
-                >
+              >
                   Return to Saved Realms
                 </button>
               </div>
@@ -203,7 +164,7 @@
               <div class="command-deck-main">
                 <div class="command-deck-header">
                   <div>
-                    <div class="map-section-kicker" data-i18n="game.command_deck">Command Deck</div>
+                    <div class="map-section-kicker">Command Deck</div>
                     <div id="command-deck-title" class="command-deck-title">Choose your next move</div>
                     <div id="command-deck-copy" class="command-deck-copy">
                       Select a reachable location to unlock travel, exploration, and battle commands here.
@@ -221,7 +182,7 @@
 
               <aside class="map-camera-panel">
                 <div class="map-camera-controls-card">
-                  <div class="map-section-kicker" data-i18n="game.map_controls">Map Controls</div>
+                  <div class="map-section-kicker">Map Controls</div>
                   <div class="map-camera-dpad">
                     <button type="button" class="map-camera-btn map-camera-spacer" aria-hidden="true" tabindex="-1"></button>
                     <button type="button" class="map-camera-btn" data-map-control onclick="panMap('up')">↑</button>
@@ -242,8 +203,8 @@
 
                 <div class="map-camera-summary-card">
                   <div class="map-camera-summary">
-                    <div class="map-section-kicker" data-i18n="game.map_intel">Map Intel</div>
-                    <div id="map-world-name" class="map-camera-world-name" data-i18n="game.uncharted">Uncharted Realm</div>
+                    <div class="map-section-kicker">Map Intel</div>
+                    <div id="map-world-name" class="map-camera-world-name">Uncharted Realm</div>
                     <div id="map-world-meta" class="map-camera-world-meta">No world loaded yet</div>
                     <div id="map-region-chip" class="map-region-chip map-camera-region-chip">No location selected</div>
                     <div id="map-region-heading" class="map-camera-region-heading">Choose your next route</div>
@@ -251,11 +212,11 @@
                       Follow connected routes from your current area. Travel and the next encounter resolve on the map.
                     </div>
                     <div id="map-preview-diff-block" class="map-preview-diff-block" style="display: none">
-                      <div class="map-section-kicker" data-i18n="game.draft_changes">Draft Changes</div>
+                      <div class="map-section-kicker">Draft Changes</div>
                       <div id="map-preview-diff-list" class="map-preview-diff-list"></div>
                     </div>
                     <div class="map-camera-event-block">
-                      <div class="map-section-kicker" data-i18n="game.current_encounter">Current Encounter</div>
+                      <div class="map-section-kicker">Current Encounter</div>
                       <div id="explore-title" class="map-camera-event-title">🧭 Select a region first</div>
                       <div id="map-event-copy" class="map-camera-event-copy">
                         Encounters, discoveries, and monster battles appear here.
@@ -268,31 +229,31 @@
           </div>
 
           <div id="gp-right" class="gp">
-            <h3 data-i18n="game.gear_section">🎒 Gear</h3>
+            <h3>🎒 Gear</h3>
             <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px">
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px" data-i18n="game.weapon">⚔️ WEAPON</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">⚔️ WEAPON</div>
                 <div id="inv-weapon" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px" data-i18n="game.armor">🛡️ ARMOR</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">🛡️ ARMOR</div>
                 <div id="inv-armor" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px" data-i18n="game.relic">💍 RELIC</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">💍 RELIC</div>
                 <div id="inv-access" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
             </div>
 
-            <h3 data-i18n="game.items_section">🧪 Items</h3>
+            <h3>🧪 Items</h3>
             <div id="inv-display" style="font-size: 11px; color: var(--muted)">
               <p>No items yet.</p>
             </div>
 
             <div class="map-log-panel sidebar-action-log">
               <div class="map-log-header">
-                <h3 style="margin-bottom: 0" data-i18n="game.log_section">📜 Action Log</h3>
-                <button onclick="clearAdventureLog()" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px" data-i18n="game.clear_log">Clear</button>
+                <h3 style="margin-bottom: 0">📜 Action Log</h3>
+                <button onclick="clearAdventureLog()" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px">Clear</button>
               </div>
               <div id="gp-log" class="map-log-box" data-pristine="true">
                 <div style="color: var(--muted); font-style: italic">
@@ -325,20 +286,6 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-      <script type="module" id="i18n-js">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+      
   </body>
 </html>

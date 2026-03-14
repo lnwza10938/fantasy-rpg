@@ -34,43 +34,7 @@
         color: #f4ead2;
       }
     </style>
-      <style id="i18n-style">
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
-    </style>
+      
   </head>
   <body class="map-editor-page">
     <div class="map-editor-shell">
@@ -78,29 +42,29 @@
         <div class="map-editor-topbar-main">
           <div style="display: flex; align-items: center; gap: 12px;">
             <a href="/dev-panel" class="map-editor-tool" style="padding: 6px 12px; font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-               ← <span data-i18n="nav.dev_panel">Dev Panel</span>
+               ← <span>Dev Panel</span>
             </a>
-            <div class="map-editor-brand" id="map-editor-world-name" data-i18n="common.no_world">No world selected</div>
+            <div class="map-editor-brand" id="map-editor-world-name">No world selected</div>
           </div>
-          <div class="map-editor-topbar-subtitle" id="map-editor-world-meta" data-i18n="common.choose_world">Choose a canonical world to begin.</div>
+          <div class="map-editor-topbar-subtitle" id="map-editor-world-meta">Choose a canonical world to begin.</div>
         </div>
         <div class="map-editor-topbar-actions">
           <select id="map-editor-world-select" class="map-editor-field" style="width: auto;"></select>
           <select id="map-editor-override-select" class="map-editor-field" style="width: auto;"></select>
-          <button id="map-editor-preview-btn" class="map-editor-tool" type="button" data-i18n="common.preview">Preview</button>
-          <button id="map-editor-undo-btn" class="map-editor-tool" type="button" data-i18n="common.undo">Undo</button>
-          <button id="map-editor-redo-btn" class="map-editor-tool" type="button" data-i18n="common.redo">Redo</button>
-          <button id="map-editor-validate-btn" class="map-editor-tool" type="button" data-i18n="common.validate">Validate</button>
-          <button id="map-editor-save-draft-btn" class="map-editor-tool" type="button" data-i18n="common.draft">Draft</button>
-          <button id="map-editor-reset-btn" class="map-editor-tool" type="button" data-i18n="common.reset">Reset</button>
-          <button id="map-editor-save-btn" class="map-editor-tool active" type="button" data-i18n="common.save">Save</button>
+          <button id="map-editor-preview-btn" class="map-editor-tool" type="button">Preview</button>
+          <button id="map-editor-undo-btn" class="map-editor-tool" type="button">Undo</button>
+          <button id="map-editor-redo-btn" class="map-editor-tool" type="button">Redo</button>
+          <button id="map-editor-validate-btn" class="map-editor-tool" type="button">Validate</button>
+          <button id="map-editor-save-draft-btn" class="map-editor-tool" type="button">Draft</button>
+          <button id="map-editor-reset-btn" class="map-editor-tool" type="button">Reset</button>
+          <button id="map-editor-save-btn" class="map-editor-tool active" type="button">Save</button>
         </div>
       </header>
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 4px;">
         <div class="dev-inline-form" style="padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(212, 188, 132, 0.1); display: flex; align-items: center; gap: 12px;">
-          <input id="map-editor-dev-key" type="password" data-i18n-placeholder="common.status" placeholder="Dev Key" class="map-editor-field" style="max-width: 140px; padding: 6px 10px;" />
-          <button id="map-editor-save-key" class="map-editor-tool" type="button" style="padding: 6px 12px;" data-i18n="common.save">Set Key</button>
+          <input id="map-editor-dev-key" type="password" placeholder="Dev Key" class="map-editor-field" style="max-width: 140px; padding: 6px 10px;" />
+          <button id="map-editor-save-key" class="map-editor-tool" type="button" style="padding: 6px 12px;">Set Key</button>
           <div id="map-editor-status" style="font-size: 11px; color: var(--muted);"></div>
         </div>
         
@@ -112,44 +76,44 @@
 
       <main class="map-editor-layout">
         <aside class="map-editor-panel map-editor-toolbox">
-          <div class="map-editor-panel-title" data-i18n="editor.world_tools">World & Tools</div>
+          <div class="map-editor-panel-title">World & Tools</div>
           
           <section class="map-editor-group">
-            <input id="map-editor-search" type="text" data-i18n-placeholder="common.search" placeholder="Search worlds..." class="map-editor-field" />
+            <input id="map-editor-search" type="text" placeholder="Search worlds..." class="map-editor-field" />
             <div id="map-editor-world-list" class="dev-map-world-list" style="margin-top: 10px; display: grid; gap: 6px;"></div>
           </section>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title" data-i18n="editor.tool_mode">Tool Mode</div>
+            <div class="map-editor-group-title">Tool Mode</div>
             <div class="map-editor-tool-list">
-              <button id="map-tool-select" type="button" class="map-editor-tool active" data-i18n="editor.tools.select">🖱 Select</button>
-              <button id="map-tool-move" type="button" class="map-editor-tool" data-i18n="editor.tools.move">✥ Move Node</button>
-              <button id="map-tool-add-node" type="button" class="map-editor-tool" data-i18n="editor.tools.add_node">⊕ Add Node</button>
-              <button id="map-tool-add-path" type="button" class="map-editor-tool" data-i18n="editor.tools.add_path">⇄ Add Path</button>
-              <button id="map-tool-delete" type="button" class="map-editor-tool" data-i18n="editor.tools.delete">⌫ Delete</button>
-              <button id="map-tool-pan" type="button" class="map-editor-tool" data-i18n="editor.tools.pan">✋ Pan</button>
+              <button id="map-tool-select" type="button" class="map-editor-tool active">🖱 Select</button>
+              <button id="map-tool-move" type="button" class="map-editor-tool">✥ Move Node</button>
+              <button id="map-tool-add-node" type="button" class="map-editor-tool">⊕ Add Node</button>
+              <button id="map-tool-add-path" type="button" class="map-editor-tool">⇄ Add Path</button>
+              <button id="map-tool-delete" type="button" class="map-editor-tool">⌫ Delete</button>
+              <button id="map-tool-pan" type="button" class="map-editor-tool">✋ Pan</button>
             </div>
           </section>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title" data-i18n="editor.layers">Layers</div>
+            <div class="map-editor-group-title">Layers</div>
             <div class="map-editor-toggle-list" style="display: grid; gap: 6px;">
-              <label class="map-editor-toggle-row"><input id="map-layer-paths" type="checkbox" checked /> <span data-i18n="editor.layers_list.paths">Paths</span></label>
-              <label class="map-editor-toggle-row"><input id="map-layer-nodes" type="checkbox" checked /> <span data-i18n="editor.layers_list.nodes">Nodes</span></label>
-              <label class="map-editor-toggle-row"><input id="map-layer-labels" type="checkbox" checked /> <span data-i18n="editor.layers_list.labels">Labels</span></label>
-              <label class="map-editor-toggle-row"><input id="map-layer-regions" type="checkbox" checked /> <span data-i18n="editor.layers_list.regions">Regions</span></label>
-              <label class="map-editor-toggle-row"><input id="map-layer-locked" type="checkbox" checked /> <span data-i18n="editor.layers_list.fog">Fog/Hidden</span></label>
-              <label class="map-editor-toggle-row"><input id="map-layer-terrain" type="checkbox" checked /> <span data-i18n="editor.layers_list.terrain">Terrain</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-paths" type="checkbox" checked /> <span>Paths</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-nodes" type="checkbox" checked /> <span>Nodes</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-labels" type="checkbox" checked /> <span>Labels</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-regions" type="checkbox" checked /> <span>Regions</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-locked" type="checkbox" checked /> <span>Fog/Hidden</span></label>
+              <label class="map-editor-toggle-row"><input id="map-layer-terrain" type="checkbox" checked /> <span>Terrain</span></label>
             </div>
           </section>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title" data-i18n="editor.quick_actions">Quick Actions</div>
+            <div class="map-editor-group-title">Quick Actions</div>
             <div class="map-editor-tool-list">
-              <button id="map-editor-auto-layout" type="button" class="map-editor-tool" data-i18n="editor.actions.auto_layout">⟲ Auto Layout</button>
-              <button id="map-editor-center" type="button" class="map-editor-tool" data-i18n="editor.actions.center_map">◎ Center Map</button>
-              <button id="map-editor-duplicate" type="button" class="map-editor-tool" data-i18n="editor.actions.duplicate">⎘ Duplicate Node</button>
-              <button id="map-editor-branch" type="button" class="map-editor-tool" data-i18n="editor.actions.branch">⑂ Create Branch</button>
+              <button id="map-editor-auto-layout" type="button" class="map-editor-tool">⟲ Auto Layout</button>
+              <button id="map-editor-center" type="button" class="map-editor-tool">◎ Center Map</button>
+              <button id="map-editor-duplicate" type="button" class="map-editor-tool">⎘ Duplicate Node</button>
+              <button id="map-editor-branch" type="button" class="map-editor-tool">⑂ Create Branch</button>
             </div>
           </section>
         </aside>
@@ -157,8 +121,8 @@
         <section class="map-editor-panel map-editor-canvas-panel">
           <div class="map-editor-panel-head" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
             <div>
-              <div class="map-editor-panel-title" style="border: none; margin: 0; padding: 0;" data-i18n="editor.map_canvas">Map Canvas</div>
-              <div id="map-editor-selection-copy" style="font-size: 11px; color: var(--muted); margin-top: 4px;" data-i18n="editor.select_prompt">Select a node or path to edit.</div>
+              <div class="map-editor-panel-title" style="border: none; margin: 0; padding: 0;">Map Canvas</div>
+              <div id="map-editor-selection-copy" style="font-size: 11px; color: var(--muted); margin-top: 4px;">Select a node or path to edit.</div>
             </div>
             <div class="map-editor-canvas-chip" id="map-editor-validation-summary">Not checked</div>
           </div>
@@ -171,72 +135,72 @@
         </section>
 
         <aside class="map-editor-panel map-editor-inspector">
-          <div class="map-editor-panel-title" data-i18n="editor.inspector">Inspector</div>
+          <div class="map-editor-panel-title">Inspector</div>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title"><span data-i18n="editor.selection">Selection</span>: <span id="map-editor-selection-title" style="color: #f4ead2;" data-i18n="editor.world_layout">World Layout</span></div>
+            <div class="map-editor-group-title"><span>Selection</span>: <span id="map-editor-selection-title" style="color: #f4ead2;">World Layout</span></div>
           </section>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title" data-i18n="editor.global_layout">Global Layout</div>
+            <div class="map-editor-group-title">Global Layout</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted);"><span data-i18n="editor.fields.width">Width</span> <input id="map-editor-width" type="number" class="map-editor-field" /></label>
-               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted);"><span data-i18n="editor.fields.height">Height</span> <input id="map-editor-height" type="number" class="map-editor-field" /></label>
-               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); grid-column: span 2;"><span data-i18n="editor.fields.start">Start</span> <select id="map-editor-start-region" class="map-editor-field"></select></label>
-               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); grid-column: span 2;"><span data-i18n="editor.fields.goal">Goal</span> <select id="map-editor-goal-region" class="map-editor-field"></select></label>
+               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted);"><span>Width</span> <input id="map-editor-width" type="number" class="map-editor-field" /></label>
+               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted);"><span>Height</span> <input id="map-editor-height" type="number" class="map-editor-field" /></label>
+               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); grid-column: span 2;"><span>Start</span> <select id="map-editor-start-region" class="map-editor-field"></select></label>
+               <label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); grid-column: span 2;"><span>Goal</span> <select id="map-editor-goal-region" class="map-editor-field"></select></label>
             </div>
           </section>
 
           <section id="map-editor-node-card" class="map-editor-group">
             <div style="display: flex; gap: 4px; margin-bottom: 12px;">
-              <button id="map-editor-tab-node" class="map-editor-tool active" data-tab="node" style="flex: 1; text-align: center; padding: 6px 0;" data-i18n="editor.node_tab">Node</button>
-              <button id="map-editor-tab-story" class="map-editor-tool" data-tab="story" style="flex: 1; text-align: center; padding: 6px 0;" data-i18n="editor.story_tab">Story</button>
-              <button id="map-editor-tab-encounters" class="map-editor-tool" data-tab="encounters" style="flex: 1; text-align: center; padding: 6px 0;" data-i18n="editor.fights_tab">Fights</button>
+              <button id="map-editor-tab-node" class="map-editor-tool active" data-tab="node" style="flex: 1; text-align: center; padding: 6px 0;">Node</button>
+              <button id="map-editor-tab-story" class="map-editor-tool" data-tab="story" style="flex: 1; text-align: center; padding: 6px 0;">Story</button>
+              <button id="map-editor-tab-encounters" class="map-editor-tool" data-tab="encounters" style="flex: 1; text-align: center; padding: 6px 0;">Fights</button>
             </div>
 
             <div id="map-editor-node-tab-panel" class="dev-map-tab-panel is-active" data-tab-panel="node">
               <div style="display: grid; gap: 10px;">
                 <select id="map-editor-node-region" class="map-editor-field"></select>
-                <input id="map-editor-node-name" type="text" class="map-editor-field" placeholder="Location Name" data-i18n-placeholder="editor.fields.name" />
+                <input id="map-editor-node-name" type="text" class="map-editor-field" placeholder="Location Name" />
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                  <input id="map-editor-node-biome" type="text" class="map-editor-field" placeholder="Biome" data-i18n-placeholder="editor.fields.biome" />
-                  <input id="map-editor-node-danger" type="number" class="map-editor-field" placeholder="Danger" data-i18n-placeholder="editor.fields.danger" />
+                  <input id="map-editor-node-biome" type="text" class="map-editor-field" placeholder="Biome" />
+                  <input id="map-editor-node-danger" type="number" class="map-editor-field" placeholder="Danger" />
                   <input id="map-editor-node-x" type="number" class="map-editor-field" placeholder="X" />
                   <input id="map-editor-node-y" type="number" class="map-editor-field" placeholder="Y" />
-                  <input id="map-editor-node-tier" type="number" class="map-editor-field" placeholder="Tier" data-i18n-placeholder="editor.fields.tier" />
-                  <input id="map-editor-node-icon" type="text" class="map-editor-field" placeholder="Icon" data-i18n-placeholder="editor.fields.icon" />
+                  <input id="map-editor-node-tier" type="number" class="map-editor-field" placeholder="Tier" />
+                  <input id="map-editor-node-icon" type="text" class="map-editor-field" placeholder="Icon" />
                 </div>
-                <input id="map-editor-node-landmark" type="text" class="map-editor-field" placeholder="Landmark ID" data-i18n-placeholder="editor.fields.landmark" />
-                <input id="map-editor-node-accent" type="text" class="map-editor-field" placeholder="Accent Color (#hex)" data-i18n-placeholder="editor.fields.accent" />
+                <input id="map-editor-node-landmark" type="text" class="map-editor-field" placeholder="Landmark ID" />
+                <input id="map-editor-node-accent" type="text" class="map-editor-field" placeholder="Accent Color (#hex)" />
                 <div style="display: flex; gap: 8px;">
-                  <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-node-start" type="checkbox" /> <span data-i18n="editor.fields.start">Start</span></label>
-                  <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-node-goal" type="checkbox" /> <span data-i18n="editor.fields.goal">Goal</span></label>
+                  <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-node-start" type="checkbox" /> <span>Start</span></label>
+                  <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-node-goal" type="checkbox" /> <span>Goal</span></label>
                 </div>
-                <input id="map-editor-node-enemies" type="text" class="map-editor-field" placeholder="Enemy Pool (csv)" data-i18n-placeholder="editor.fields.enemies" />
+                <input id="map-editor-node-enemies" type="text" class="map-editor-field" placeholder="Enemy Pool (csv)" />
               </div>
             </div>
 
             <div id="map-editor-story-tab-panel" class="dev-map-tab-panel" data-tab-panel="story">
               <div style="display: grid; gap: 10px;">
-                <input id="map-editor-story-intro" type="text" class="map-editor-field" placeholder="Intro Text ID" data-i18n-placeholder="editor.fields.intro" />
-                <input id="map-editor-story-dialogue-pack" type="text" class="map-editor-field" placeholder="Dialogue Pack" data-i18n-placeholder="editor.fields.dialogue" />
-                <input id="map-editor-story-quest-hooks" type="text" class="map-editor-field" placeholder="Quest Hooks" data-i18n-placeholder="editor.fields.hooks" />
-                <textarea id="map-editor-story-beat" class="map-editor-field" style="min-height: 80px;" placeholder="Story Beat" data-i18n-placeholder="editor.fields.beat"></textarea>
+                <input id="map-editor-story-intro" type="text" class="map-editor-field" placeholder="Intro Text ID" />
+                <input id="map-editor-story-dialogue-pack" type="text" class="map-editor-field" placeholder="Dialogue Pack" />
+                <input id="map-editor-story-quest-hooks" type="text" class="map-editor-field" placeholder="Quest Hooks" />
+                <textarea id="map-editor-story-beat" class="map-editor-field" style="min-height: 80px;" placeholder="Story Beat"></textarea>
               </div>
             </div>
 
             <div id="map-editor-encounters-tab-panel" class="dev-map-tab-panel" data-tab-panel="encounters">
               <div style="display: grid; gap: 10px;">
-                <input id="map-editor-encounter-event-pack" type="text" class="map-editor-field" placeholder="Event Pack" data-i18n-placeholder="editor.fields.event" />
-                <input id="map-editor-encounter-table" type="text" class="map-editor-field" placeholder="Encounter Table" data-i18n-placeholder="editor.fields.table" />
-                <input id="map-editor-encounter-boss" type="text" class="map-editor-field" placeholder="Boss ID" data-i18n-placeholder="editor.fields.boss" />
-                <input id="map-editor-encounter-ambience" type="text" class="map-editor-field" placeholder="Ambience" data-i18n-placeholder="editor.fields.ambience" />
+                <input id="map-editor-encounter-event-pack" type="text" class="map-editor-field" placeholder="Event Pack" />
+                <input id="map-editor-encounter-table" type="text" class="map-editor-field" placeholder="Encounter Table" />
+                <input id="map-editor-encounter-boss" type="text" class="map-editor-field" placeholder="Boss ID" />
+                <input id="map-editor-encounter-ambience" type="text" class="map-editor-field" placeholder="Ambience" />
               </div>
             </div>
           </section>
 
           <section id="map-editor-path-card" class="map-editor-group">
-            <div class="map-editor-group-title" data-i18n="editor.path_inspector">Path Inspector</div>
+            <div class="map-editor-group-title">Path Inspector</div>
             <div style="display: grid; gap: 10px;">
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <select id="map-editor-path-from" class="map-editor-field"></select>
@@ -247,18 +211,18 @@
                 <option value="hazard">hazard</option>
                 <option value="secret">secret</option>
               </select>
-              <input id="map-editor-path-difficulty" type="number" class="map-editor-field" placeholder="Difficulty" data-i18n-placeholder="editor.fields.diff" />
+              <input id="map-editor-path-difficulty" type="number" class="map-editor-field" placeholder="Difficulty" />
               <select id="map-editor-path-visibility" class="map-editor-field">
                 <option value="visible">visible</option>
                 <option value="fogged">fogged</option>
                 <option value="hidden">hidden</option>
               </select>
-              <input id="map-editor-path-requirements" type="text" class="map-editor-field" placeholder="Requirements" data-i18n-placeholder="editor.fields.reqs" />
+              <input id="map-editor-path-requirements" type="text" class="map-editor-field" placeholder="Requirements" />
               <div style="display: flex; gap: 8px;">
-                <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-path-gated" type="checkbox" /> <span data-i18n="editor.fields.gated">Gated</span></label>
-                <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-path-one-way" type="checkbox" /> <span data-i18n="editor.fields.one_way">1-Way</span></label>
+                <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-path-gated" type="checkbox" /> <span>Gated</span></label>
+                <label class="map-editor-toggle-row" style="flex: 1;"><input id="map-editor-path-one-way" type="checkbox" /> <span>1-Way</span></label>
               </div>
-              <input id="map-editor-path-effects" type="text" class="map-editor-field" placeholder="Travel Effects" data-i18n-placeholder="editor.fields.effects" />
+              <input id="map-editor-path-effects" type="text" class="map-editor-field" placeholder="Travel Effects" />
             </div>
           </section>
 
@@ -271,8 +235,8 @@
           </div>
 
           <section class="map-editor-group">
-            <div class="map-editor-group-title"><span data-i18n="editor.override_draft">Override Draft</span> (<span id="map-editor-draft-state">Clean</span>)</div>
-            <div id="map-editor-draft-meta" style="font-size: 11px; margin-bottom: 8px; color: var(--muted);" data-i18n="common.no_world">No world selected.</div>
+            <div class="map-editor-group-title"><span>Override Draft</span> (<span id="map-editor-draft-state">Clean</span>)</div>
+            <div id="map-editor-draft-meta" style="font-size: 11px; margin-bottom: 8px; color: var(--muted);">No world selected.</div>
             <div id="map-editor-draft-summary" style="max-height: 100px; overflow-y: auto; display: grid; gap: 4px; margin-bottom: 10px;"></div>
             <textarea id="map-editor-draft-json" class="map-editor-field" style="font-family: monospace; font-size: 10px; height: 120px;" readonly></textarea>
           </section>
@@ -303,20 +267,6 @@
       updateSwitcher();
     </script>
     <script type="module" src="/src/client/devMapEditor.ts"></script>
-      <script type="module" id="i18n-js">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+      
   </body>
 </html>

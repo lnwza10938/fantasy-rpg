@@ -12,62 +12,23 @@
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  <script type="module" src="/src/client/i18n.ts"></script>
-      <style id="i18n-style">
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
-    </style>
+  
+      
   </head>
 
   <body>
-    <div class="i18n-switcher-fixed">
-      <button class="i18n-btn" data-lang-set="en">EN</button>
-      <button class="i18n-btn" data-lang-set="th">TH</button>
-    </div>
+    
     
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()" data-i18n="nav.home">🏠 Home</button>
-          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()" data-i18n="nav.journey">🧭 Journey</button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()" data-i18n="nav.map">🗺 World Map</button>
-          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">🧭 Journey</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">⚒ Create Hero</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
@@ -79,7 +40,7 @@
           <div class="hub-grid">
             <div class="card hub-hero-card">
               <div class="landing-kicker">Home</div>
-              <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="hub.welcome">Welcome to the Realm</h2>
+              <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)">Welcome to the Realm</h2>
               <p class="landing-copy" style="max-width: 680px">
                 Use the hub to choose your next step: begin a new run, reopen a
                 saved journey, or check the world map before heading back out.
@@ -87,29 +48,29 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.realms">Realm Archive</div>
+                  <div class="label">Realm Archive</div>
                   <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.journeys">Saved Journeys</div>
+                  <div class="label">Saved Journeys</div>
                   <div class="value" id="hub-save-count">0 journeys</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.access">Access Mode</div>
+                  <div class="label">Access Mode</div>
                   <div class="value" id="hub-access-mode">Account</div>
                 </div>
               </div>
 
               <div class="hub-action-grid">
-                <button class="btn btn-primary" onclick="startWizard()" data-i18n="hub.new_journey">🧭 Begin New Journey</button>
-                <button class="btn btn-action" onclick="showMapPage()" data-i18n="hub.open_map">🗺 Open World Map</button>
-                <button class="btn btn-action" onclick="showForge('menu')" data-i18n="nav.create_hero">⚒ Create Hero</button>
-                <button class="btn btn-action" onclick="showVault()" data-i18n="hub.open_archive">🧙 Open Hero Archive</button>
+                <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey</button>
+                <button class="btn btn-action" onclick="showMapPage()">🗺 Open World Map</button>
+                <button class="btn btn-action" onclick="showForge('menu')">⚒ Create Hero</button>
+                <button class="btn btn-action" onclick="showVault()">🧙 Open Hero Archive</button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker" data-i18n="hub.current">Current Journey</div>
+              <div class="landing-kicker">Current Journey</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
                 A quick snapshot of the latest journey before you return to
@@ -127,7 +88,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3 data-i18n="hub.recent">📂 Recent Journeys</h3>
+                  <h3>📂 Recent Journeys</h3>
                   <p class="hub-panel-copy">Your latest saved expeditions, ready to reopen.</p>
                 </div>
                 <button class="btn btn-action" onclick="fetchSaveList()">🔄 Refresh</button>
@@ -147,7 +108,7 @@
                     A quick legend shelf so the hub stays a dashboard instead of opening the full vault.
                   </p>
                 </div>
-                <button class="btn btn-action" onclick="showVault()" data-i18n="nav.archive">🧙 Hero Archive</button>
+                <button class="btn btn-action" onclick="showVault()">🧙 Hero Archive</button>
               </div>
               <div id="hub-legend-preview" class="hub-dashboard-list">
                 <div class="hub-list-empty">
@@ -180,20 +141,6 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-      <script type="module" id="i18n-js">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+      
   </body>
 </html>
