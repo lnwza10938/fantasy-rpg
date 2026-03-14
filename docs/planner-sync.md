@@ -38,10 +38,15 @@
 - **Planned Change**: Move from a singleton `worldSystem` to a per-session context for instances.
 - **Status**: Identified.
 
-### FILE: dev/map-editor.html
-- **Role**: Standalone developer tool for visual map editing.
-- **Implemented Change**: Created a new dedicated editor-style layout with toolbox, canvas, and inspector.
-- **Status**: ARCHITECTURE SHIPPED (TASK 007).
+### FILE: dev-assets.html
+- **Role**: Standalone developer tool for asset management.
+- **Implemented Change**: Refactored into a library-style workspace with filters, grid, and inspector.
+- **Status**: ARCHITECTURE SHIPPED (TASK 008).
+
+### FILE: dev.html
+- **Role**: Developer command center.
+- **Implemented Change**: Refactored into a grouped command-center page for navigation and system tools.
+- **Status**: ARCHITECTURE SHIPPED (TASK 008).
 - **Path**: `src/api/gameplayRoutes.ts` -> `/battle/action`
 - **Issue**: If the client refreshes during a combat turn, the `combatSessions` map (in-memory) is lost.
 - **Planned Change**: Persist `ActiveCombatSession` to a dedicated `combat_states` table so combat can survive page refreshes.

@@ -3,465 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Realm Chronicle · World Editor</title>
+    <title>Realm Chronicle · Dev Panel</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
   </head>
-  <body class="dev-panel-page">
-    <a href="/hub" class="dev-launch-btn dev-launch-btn-inline">← Hub</a>
-    <div id="google_translate_element" style="display: none"></div>
-    <button id="translate-btn" type="button">🌐 Translate ▾</button>
-    <div id="translate-panel">
-      <h4>🌍 Choose Language</h4>
-      <div class="lang-list">
-        <button class="lang-btn active" data-lang="" type="button">
-          🇺🇸 English
-        </button>
-        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
-        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
-        <button class="lang-btn" data-lang="zh-CN" type="button">
-          🇨🇳 中文
-        </button>
-        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
-        <button class="lang-btn" data-lang="fr" type="button">
-          🇫🇷 Français
-        </button>
-        <button class="lang-btn" data-lang="es" type="button">
-          🇪🇸 Español
-        </button>
-        <button class="lang-btn" data-lang="de" type="button">
-          🇩🇪 Deutsch
-        </button>
-        <button class="lang-btn" data-lang="ru" type="button">
-          🇷🇺 Русский
-        </button>
-        <button class="lang-btn" data-lang="ar" type="button">
-          🇸🇦 العربية
-        </button>
-      </div>
-      <div class="auto-toggle">
-        <span style="color: var(--muted)">Auto-translate on load</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="auto-translate-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-      <div class="auto-toggle" style="border-top: none; margin-top: 0">
-        <span style="color: var(--accent)">Mobile Layout (Force)</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="ui-mode-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="dev-panel-shell">
-      <header class="dev-panel-hero">
-        <div class="dev-panel-kicker">Mythic Atlas</div>
-        <h1 class="dev-panel-title">World Editor And Content Registry</h1>
-        <p class="dev-panel-copy">
-          Browse the database by category, inspect the latest or oldest records,
-          and create story, image, audio, and gameplay entries from one place.
-        </p>
-        <div class="dev-panel-hero-actions">
-          <a href="/dev-assets" class="btn btn-primary">Asset Library</a>
-          <a href="/dev/map-editor" class="btn btn-action">Map Editor</a>
-          <a href="/dev-assets/slices" class="btn btn-action">Sheet Slicer</a>
-          <a href="/dev-assets/audio" class="btn btn-action">Audio Intake</a>
-          <a href="/dev-terrain" class="btn btn-action">Terrain Recipes</a>
+  <body class="dev-route-page">
+    <div class="dev-route-shell">
+      <header class="dev-route-header">
+        <div>
+          <div class="dev-route-kicker">Developer Route</div>
+          <h1>Dev Panel</h1>
+          <p>Command center for navigation, world tooling, content tooling, and system actions.</p>
         </div>
       </header>
 
-      <section class="dev-panel-topbar">
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">Quick Start</div>
-          <div class="dev-panel-card-copy">
-            Add one record at a time. Use `AI To DB` for rough notes, then verify the JSON before saving.
+      <main class="dev-command-grid">
+        <section class="dev-command-card">
+          <div class="dev-command-heading">World Tools</div>
+          <div class="dev-command-actions">
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/dev-map-editor'">Open Map Editor</button>
+            <button type="button" class="btn btn-action">Open World Builder</button>
+            <button type="button" class="btn btn-action">Validate Realm</button>
           </div>
-          <ul class="dev-help-list">
-            <li>`Asset Library` for original files</li>
-            <li>`Sheet Slicer` for sprite sheets and atlases</li>
-            <li>`Terrain Recipes` for map-generation bindings</li>
-          </ul>
-        </div>
-        <div class="dev-panel-topbar-card" id="dev-key-card">
-          <div class="dev-panel-card-title">Dev Access</div>
-          <div class="dev-panel-card-copy" id="dev-key-copy">
-            Checking whether this panel requires a key...
-          </div>
-          <div class="dev-inline-form" id="dev-key-form">
-            <input
-              id="dev-key-input"
-              type="password"
-              placeholder="Enter dev key if required"
-            />
-            <button id="dev-key-save" class="btn btn-action" type="button">
-              Save Key
-            </button>
-          </div>
-        </div>
+        </section>
 
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">Browse Order</div>
-          <div class="dev-panel-card-copy">
-            Choose whether each category shows the latest or oldest records
-            first.
+        <section class="dev-command-card">
+          <div class="dev-command-heading">Content Tools</div>
+          <div class="dev-command-actions">
+            <button type="button" class="btn btn-primary" onclick="window.location.href='/dev-assets'">Open Asset Library</button>
+            <button type="button" class="btn btn-action">Open Story Library</button>
+            <button type="button" class="btn btn-action">Open Dialogue Tools</button>
           </div>
-          <div class="dev-inline-form">
-            <select id="dev-sort-order">
-              <option value="latest">Latest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-            <button id="dev-refresh" class="btn btn-primary" type="button">
-              Refresh
-            </button>
-          </div>
-        </div>
+        </section>
 
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">AI Config</div>
-          <div class="dev-panel-card-copy">
-            Configure the provider used by the in-game AI tooling and content
-            generation flows.
+        <section class="dev-command-card">
+          <div class="dev-command-heading">System Tools</div>
+          <div class="dev-command-actions">
+            <button type="button" class="btn btn-primary">Sync Data</button>
+            <button type="button" class="btn btn-action">Run Checks</button>
+            <button type="button" class="btn btn-action">Export Snapshot</button>
           </div>
-          <div class="dev-inline-form">
-            <select id="dev-ai-provider">
-              <option value="openai">OpenAI</option>
-              <option value="gemini">Google Gemini</option>
-              <option value="groq">Groq</option>
-              <option value="openrouter">OpenRouter</option>
-            </select>
-            <input
-              id="dev-ai-model"
-              type="text"
-              placeholder="Model name"
-              value="gpt-4o-mini"
-            />
-            <input
-              id="dev-ai-base-url"
-              type="text"
-              placeholder="Base URL"
-              value="https://api.openai.com/v1"
-            />
-            <input
-              id="dev-ai-key"
-              type="password"
-              placeholder="API key (leave blank to keep current)"
-            />
-            <button id="dev-ai-save" class="btn btn-action" type="button">
-              Save AI
-            </button>
-          </div>
-          <div id="dev-ai-status" class="dev-inline-status"></div>
-        </div>
-      </section>
-
-      <section class="dev-panel-layout">
-        <aside class="dev-panel-sidebar">
-          <div class="dev-panel-card-title">Categories</div>
-          <div class="dev-panel-card-copy">
-            Switch between gameplay data, story, assets, and player-state
-            records.
-          </div>
-          <div id="dev-category-list" class="dev-category-list"></div>
-        </aside>
-
-        <main class="dev-panel-main">
-          <div class="dev-panel-section-header">
-            <div>
-              <div id="dev-section-kicker" class="dev-panel-kicker">
-                Category
-              </div>
-              <h2 id="dev-section-title" class="dev-panel-section-title">
-                Loading category...
-              </h2>
-              <p id="dev-section-copy" class="dev-panel-copy">
-                Pulling current database records...
-              </p>
-            </div>
-            <div id="dev-section-meta" class="dev-panel-section-meta">...</div>
-          </div>
-
-          <div id="dev-source-grid" class="dev-source-grid"></div>
-        </main>
-      </section>
+        </section>
+      </main>
     </div>
-
-    <div id="dev-editor-overlay" class="dev-editor-overlay">
-      <div class="dev-editor-shell">
-        <div class="dev-editor-header">
-          <div>
-            <div class="dev-panel-kicker">Record Editor</div>
-            <h2 id="dev-editor-title" class="dev-panel-section-title">
-              Edit Record
-            </h2>
-            <p id="dev-editor-copy" class="dev-panel-copy">
-              Review the JSON and save it back into the selected source.
-            </p>
-          </div>
-          <button id="dev-editor-close" class="btn btn-action" type="button">
-            Close
-          </button>
-        </div>
-
-        <div class="dev-editor-tools">
-          <button id="dev-editor-template" class="btn btn-action" type="button">
-            Load Template
-          </button>
-          <button id="dev-editor-autofill" class="btn btn-action" type="button">
-            Auto Fill
-          </button>
-          <button id="dev-editor-ai-draft" class="btn btn-action" type="button">
-            AI To DB
-          </button>
-          <label class="btn btn-action dev-file-import-btn">
-            Import File
-            <input id="dev-editor-file" type="file" hidden />
-          </label>
-          <div id="dev-editor-file-meta" class="dev-inline-status"></div>
-        </div>
-
-        <div class="dev-ai-draft-box">
-          <div class="dev-panel-kicker">AI Draft</div>
-          <p class="dev-panel-copy dev-ai-draft-copy">
-            Paste free text, lore notes, or design instructions. AI will map it
-            into the JSON shape for this database source.
-          </p>
-          <textarea
-            id="dev-editor-ai-brief"
-            class="dev-editor-ai-brief"
-            placeholder="Describe the record in natural language, or leave this blank and let the tool read the text already inside the JSON editor."
-          ></textarea>
-          <div id="dev-editor-ai-status" class="dev-inline-status"></div>
-        </div>
-
-        <div id="dev-override-builder" class="dev-ai-draft-box dev-override-builder hidden">
-          <div class="dev-panel-kicker">World Override Builder</div>
-          <p class="dev-panel-copy dev-ai-draft-copy">
-            Choose a world, pick the patch target, and seed a safe override
-            payload without writing the whole JSON structure by hand.
-          </p>
-          <div class="dev-override-grid">
-            <label class="dev-override-field">
-              <span>World</span>
-              <select id="dev-override-world"></select>
-            </label>
-            <label class="dev-override-field">
-              <span>Override Type</span>
-              <select id="dev-override-type">
-                <option value="patch_region">Patch Region</option>
-                <option value="set_map_layout">Set Map Layout</option>
-                <option value="patch_metadata">Patch Metadata</option>
-                <option value="replace_definition">Replace Definition</option>
-              </select>
-            </label>
-            <label class="dev-override-field">
-              <span>Scope</span>
-              <select id="dev-override-scope">
-                <option value="region">Region</option>
-                <option value="world">World</option>
-              </select>
-            </label>
-            <label class="dev-override-field">
-              <span>Target</span>
-              <select id="dev-override-region"></select>
-            </label>
-            <label class="dev-override-field dev-override-field-wide">
-              <span>Template</span>
-              <select id="dev-override-template-select"></select>
-            </label>
-          </div>
-          <div class="dev-editor-tools dev-override-actions">
-            <button id="dev-override-apply-template" class="btn btn-action" type="button">
-              Apply Template
-            </button>
-            <button id="dev-override-mirror-current" class="btn btn-action" type="button">
-              Mirror Current Data
-            </button>
-            <button id="dev-override-sync-json" class="btn btn-action" type="button">
-              Sync From JSON
-            </button>
-          </div>
-          <div id="dev-override-world-summary" class="dev-override-summary"></div>
-          <div id="dev-override-status" class="dev-inline-status"></div>
-          <section id="dev-topology-editor" class="dev-topology-editor">
-            <div class="dev-topology-toolbar">
-              <div class="dev-topology-mode-group">
-                <button
-                  id="dev-topology-mode-select"
-                  class="btn btn-action dev-topology-mode-btn active"
-                  type="button"
-                >
-                  Select
-                </button>
-                <button
-                  id="dev-topology-mode-add-node"
-                  class="btn btn-action dev-topology-mode-btn"
-                  type="button"
-                >
-                  Add Node
-                </button>
-                <button
-                  id="dev-topology-mode-add-path"
-                  class="btn btn-action dev-topology-mode-btn"
-                  type="button"
-                >
-                  Add Path
-                </button>
-              </div>
-              <div class="dev-topology-toolbar-actions">
-                <button id="dev-topology-auto-layout" class="btn btn-action" type="button">
-                  Auto Layout
-                </button>
-                <button id="dev-topology-remove" class="btn btn-action" type="button">
-                  Remove Selected
-                </button>
-              </div>
-            </div>
-
-            <div class="dev-topology-stage">
-              <div class="dev-topology-board-shell">
-                <div id="dev-topology-board" class="dev-topology-board"></div>
-              </div>
-
-              <aside class="dev-topology-inspector">
-                <div class="dev-topology-inspector-card">
-                  <div class="dev-panel-kicker">Selection</div>
-                  <div id="dev-topology-selection-title" class="dev-topology-selection-title">
-                    World Layout
-                  </div>
-                  <div id="dev-topology-selection-copy" class="dev-topology-selection-copy">
-                    Select a node or path to edit it, or use Add Path to connect two nodes.
-                  </div>
-                </div>
-
-                <div class="dev-topology-inspector-card">
-                  <div class="dev-panel-kicker">Layout</div>
-                  <div class="dev-topology-form-grid">
-                    <label class="dev-topology-field">
-                      <span>Width</span>
-                      <input id="dev-topology-width" type="number" min="320" step="10" />
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Height</span>
-                      <input id="dev-topology-height" type="number" min="240" step="10" />
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Start Region</span>
-                      <select id="dev-topology-start-region"></select>
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Goal Region</span>
-                      <select id="dev-topology-goal-region"></select>
-                    </label>
-                  </div>
-                </div>
-
-                <div id="dev-topology-node-card" class="dev-topology-inspector-card">
-                  <div class="dev-panel-kicker">Node</div>
-                  <div class="dev-topology-form-grid">
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Region</span>
-                      <select id="dev-topology-node-region"></select>
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>X</span>
-                      <input id="dev-topology-node-x" type="number" step="1" />
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Y</span>
-                      <input id="dev-topology-node-y" type="number" step="1" />
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Tier</span>
-                      <input id="dev-topology-node-tier" type="number" min="0" step="1" />
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Icon</span>
-                      <input id="dev-topology-node-icon" type="text" maxlength="8" />
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Landmark</span>
-                      <input id="dev-topology-node-landmark" type="text" />
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Accent</span>
-                      <input id="dev-topology-node-accent" type="text" placeholder="#4fc3f7" />
-                    </label>
-                    <label class="dev-topology-check">
-                      <input id="dev-topology-node-start" type="checkbox" />
-                      <span>Start Node</span>
-                    </label>
-                    <label class="dev-topology-check">
-                      <input id="dev-topology-node-goal" type="checkbox" />
-                      <span>Goal Node</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div id="dev-topology-path-card" class="dev-topology-inspector-card">
-                  <div class="dev-panel-kicker">Path</div>
-                  <div class="dev-topology-form-grid">
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>From</span>
-                      <select id="dev-topology-path-from"></select>
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>To</span>
-                      <select id="dev-topology-path-to"></select>
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Kind</span>
-                      <select id="dev-topology-path-kind">
-                        <option value="road">Road</option>
-                        <option value="hazard">Hazard</option>
-                        <option value="secret">Secret</option>
-                      </select>
-                    </label>
-                    <label class="dev-topology-field">
-                      <span>Difficulty</span>
-                      <input id="dev-topology-path-difficulty" type="number" min="1" step="1" />
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Visibility</span>
-                      <select id="dev-topology-path-visibility">
-                        <option value="visible">Visible</option>
-                        <option value="fogged">Fogged</option>
-                        <option value="hidden">Hidden</option>
-                      </select>
-                    </label>
-                    <label class="dev-topology-field dev-topology-field-wide">
-                      <span>Requirements</span>
-                      <input
-                        id="dev-topology-path-requirements"
-                        type="text"
-                        placeholder="level_5, key_crystal"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </section>
-        </div>
-
-        <textarea id="dev-editor-json" class="dev-editor-json"></textarea>
-
-        <div class="dev-editor-actions">
-          <button id="dev-editor-delete" class="btn btn-action" type="button">
-            Delete
-          </button>
-          <button id="dev-editor-save" class="btn btn-primary" type="button">
-            Save Record
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <script type="module" src="/src/client/translateWidget.ts"></script>
-    <script type="module" src="/src/client/dev.ts"></script>
   </body>
 </html>

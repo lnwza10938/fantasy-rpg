@@ -3,318 +3,105 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Realm Chronicle · Asset Library</title>
+    <title>Realm Chronicle · Dev Assets</title>
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/src/client/style.css" />
   </head>
-  <body class="dev-panel-page dev-assets-page">
-    <a href="/dev-panel" class="dev-launch-btn dev-launch-btn-inline">← Dev Panel</a>
-    <div id="google_translate_element" style="display: none"></div>
-    <button id="translate-btn" type="button">🌐 Translate ▾</button>
-    <div id="translate-panel">
-      <h4>🌍 Choose Language</h4>
-      <div class="lang-list">
-        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
-        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
-        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
-        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
-        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
-        <button class="lang-btn" data-lang="fr" type="button">🇫🇷 Français</button>
-        <button class="lang-btn" data-lang="es" type="button">🇪🇸 Español</button>
-        <button class="lang-btn" data-lang="de" type="button">🇩🇪 Deutsch</button>
-      </div>
-      <div class="auto-toggle">
-        <span style="color: var(--muted)">Auto-translate on load</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="auto-translate-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-    </div>
-
-    <div class="dev-panel-shell">
-      <header class="dev-panel-hero">
-        <div class="dev-panel-kicker">Asset Workbench</div>
-        <h1 class="dev-panel-title">Terrain, Structure, And File Intake</h1>
-        <p class="dev-panel-copy">
-          Upload terrain and structure assets, tag them for map generation, and
-          run filename-to-image review before they enter the registry.
-        </p>
-        <nav class="dev-assets-subnav">
-          <a href="/dev-assets" class="btn btn-primary">Asset Library</a>
-          <a href="/dev-assets/slices" class="btn btn-action">Sheet Slicer</a>
-          <a href="/dev-assets/audio" class="btn btn-action">Audio Intake</a>
-          <a href="/dev-terrain" class="btn btn-action">Terrain Recipes</a>
-        </nav>
-        <div class="dev-assets-hero-actions">
-          <a href="/dev-panel" class="btn btn-action">Open Record Console</a>
-          <button id="asset-workbench-refresh" class="btn btn-primary" type="button">
-            Refresh Library
-          </button>
+  <body class="dev-route-page">
+    <div class="dev-route-shell">
+      <header class="dev-route-header">
+        <div>
+          <div class="dev-route-kicker">Developer Route</div>
+          <h1>Dev Assets</h1>
+          <p>Asset library and asset management workspace for browsing, previewing, tagging, and attaching content.</p>
         </div>
       </header>
 
-      <section class="dev-panel-topbar">
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">How To Add</div>
-          <div class="dev-panel-card-copy">
-            Register the original file here first. Good terrain assets include biome, terrain type, intended use, and tags.
-          </div>
-          <ul class="dev-help-list">
-            <li>Example: `Emerald Plains Tileset`</li>
-            <li>Tags: `terrain, plains, grass`</li>
-            <li>Use `sheet + grid` for packed pixel assets</li>
-          </ul>
+      <div class="dev-assets-topbar">
+        <div class="dev-assets-topbar-group">
+          <input type="search" class="dev-assets-search" placeholder="Search assets" />
+          <button type="button" class="btn btn-action">Filter</button>
         </div>
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">Browse Order</div>
-          <div class="dev-panel-card-copy">
-            Toggle whether the library favors the newest or oldest uploads first.
-          </div>
-          <div class="dev-inline-form">
-            <select id="asset-sort-order">
-              <option value="latest">Latest First</option>
-              <option value="oldest">Oldest First</option>
-            </select>
-          </div>
+        <div class="dev-assets-topbar-group">
+          <button type="button" class="btn btn-primary">Upload Asset</button>
+          <button type="button" class="btn btn-action">Import Pack</button>
         </div>
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">AI Review</div>
-          <div class="dev-panel-card-copy" id="asset-ai-copy">
-            Image review uses a free captioning pass first, then falls back safely if unavailable.
-          </div>
-          <div id="asset-ai-status" class="dev-inline-status"></div>
-        </div>
-        <div class="dev-panel-topbar-card">
-          <div class="dev-panel-card-title">Terrain Generator Ready</div>
-          <div class="dev-panel-card-copy">
-            The intake form stores biome, terrain role, layer, intended use, and palette hints so these assets can feed geography rendering later.
-          </div>
-        </div>
-      </section>
+      </div>
 
-      <section class="dev-assets-layout">
-        <aside class="dev-assets-sidebar">
-          <div class="dev-panel-card-title">Asset Sources</div>
-          <div class="dev-panel-card-copy">
-            Choose the library bucket you want to browse or upload into.
+      <main class="dev-assets-layout">
+        <aside class="dev-assets-panel">
+          <div class="dev-command-heading">Categories</div>
+          <div class="dev-filter-stack">
+            <button type="button" class="dev-filter-chip active">All</button>
+            <button type="button" class="dev-filter-chip">Portraits</button>
+            <button type="button" class="dev-filter-chip">Biomes</button>
+            <button type="button" class="dev-filter-chip">Props</button>
+            <button type="button" class="dev-filter-chip">UI</button>
           </div>
-          <div id="asset-source-list" class="dev-assets-source-list"></div>
+
+          <div class="dev-command-heading">Tags</div>
+          <div class="dev-filter-stack">
+            <button type="button" class="dev-filter-chip">dark fantasy</button>
+            <button type="button" class="dev-filter-chip">atlas</button>
+            <button type="button" class="dev-filter-chip">combat</button>
+          </div>
+
+          <div class="dev-command-heading">Library Actions</div>
+          <div class="dev-command-actions">
+            <button type="button" class="btn btn-action">Search</button>
+            <button type="button" class="btn btn-action">Filter</button>
+            <button type="button" class="btn btn-action">Sort</button>
+          </div>
         </aside>
 
-        <main class="dev-assets-main">
-          <section class="dev-assets-grid-shell">
-            <div class="dev-panel-section-header">
-              <div>
-                <div id="asset-section-kicker" class="dev-panel-kicker">Asset Source</div>
-                <h2 id="asset-section-title" class="dev-panel-section-title">
-                  Loading asset library...
-                </h2>
-                <p id="asset-section-copy" class="dev-panel-copy">
-                  Pulling registered asset files from the database...
-                </p>
+        <section class="dev-assets-panel dev-assets-library-panel">
+          <div class="dev-command-heading">Asset Library</div>
+          <div class="dev-asset-grid">
+            <article class="dev-asset-card active">
+              <div class="dev-asset-thumb">Preview</div>
+              <div class="dev-asset-meta">
+                <strong>Asset Name</strong>
+                <span>portrait · tagged</span>
               </div>
-              <div id="asset-section-meta" class="dev-panel-section-meta">...</div>
-            </div>
-            <div id="asset-record-grid" class="dev-assets-record-grid"></div>
-          </section>
-
-          <section class="dev-assets-intake-shell">
-            <div class="dev-assets-intake-head">
-              <div>
-                <div class="dev-panel-kicker">Asset Intake</div>
-                <h2 id="asset-intake-title" class="dev-panel-section-title">New Asset</h2>
-                <p id="asset-intake-copy" class="dev-panel-copy">
-                  Upload a file to the server, tune metadata for map generation, and save it directly into the registry.
-                </p>
+            </article>
+            <article class="dev-asset-card">
+              <div class="dev-asset-thumb">Preview</div>
+              <div class="dev-asset-meta">
+                <strong>Asset Name</strong>
+                <span>biome · draft</span>
               </div>
-              <div class="dev-assets-intake-actions">
-                <button id="asset-autofill-btn" class="btn btn-action" type="button">
-                  Auto Fill
-                </button>
-                <button id="asset-intake-reset" class="btn btn-action" type="button">
-                  Reset
-                </button>
-                <button id="asset-intake-delete" class="btn btn-action" type="button">
-                  Delete
-                </button>
+            </article>
+            <article class="dev-asset-card">
+              <div class="dev-asset-thumb">Preview</div>
+              <div class="dev-asset-meta">
+                <strong>Asset Name</strong>
+                <span>ui · ready</span>
               </div>
-            </div>
-            <div id="asset-autofill-status" class="dev-inline-status"></div>
+            </article>
+          </div>
+        </section>
 
-            <div class="dev-assets-intake-grid">
-              <label class="dev-override-field">
-                <span>Source Bucket</span>
-                <select id="asset-source-select"></select>
-              </label>
-              <label class="dev-override-field">
-                <span>Title</span>
-                <input id="asset-title" type="text" />
-              </label>
-              <label class="dev-override-field">
-                <span>Slug</span>
-                <input id="asset-slug" type="text" />
-              </label>
-              <label class="dev-override-field">
-                <span>World Binding</span>
-                <input id="asset-world-binding" type="text" placeholder="Optional world_definition_id" />
-              </label>
-              <label class="dev-override-field dev-override-field-wide">
-                <span>Summary</span>
-                <textarea id="asset-summary" class="dev-assets-textarea"></textarea>
-              </label>
-              <label class="dev-override-field dev-override-field-wide">
-                <span>Tags</span>
-                <input id="asset-tags" type="text" placeholder="terrain, plains, bridge" />
-              </label>
-            </div>
+        <aside class="dev-assets-panel dev-assets-inspector-panel">
+          <div class="dev-command-heading">Selected Asset</div>
+          <div class="dev-asset-preview">Asset Preview</div>
 
-            <div class="dev-assets-file-zone">
-              <label class="btn btn-action dev-file-import-btn">
-                Choose File
-                <input id="asset-file-input" type="file" hidden />
-              </label>
-              <div id="asset-file-meta" class="dev-inline-status">
-                No file selected yet.
-              </div>
-            </div>
+          <div class="dev-command-heading">Metadata</div>
+          <div class="dev-asset-field">title</div>
+          <div class="dev-asset-field">tags</div>
+          <div class="dev-asset-field dev-asset-field-tall">description</div>
 
-            <div class="dev-assets-intake-grid">
-              <label class="dev-override-field">
-                <span>Asset Kind</span>
-                <select id="asset-kind">
-                  <option value="single">Single Image</option>
-                  <option value="sheet">Sprite Sheet</option>
-                  <option value="atlas">Atlas Pack</option>
-                  <option value="gif">Animated GIF</option>
-                  <option value="audio">Audio</option>
-                </select>
-              </label>
-              <label class="dev-override-field">
-                <span>Biome</span>
-                <input id="asset-biome" type="text" placeholder="forest" />
-              </label>
-              <label class="dev-override-field">
-                <span>Terrain Type</span>
-                <input id="asset-terrain-type" type="text" placeholder="plains" />
-              </label>
-              <label class="dev-override-field">
-                <span>Structure Type</span>
-                <input id="asset-structure-type" type="text" placeholder="bridge, ruin, city" />
-              </label>
-              <label class="dev-override-field">
-                <span>Render Layer</span>
-                <select id="asset-render-layer">
-                  <option value="background">Background</option>
-                  <option value="midground">Midground</option>
-                  <option value="foreground">Foreground</option>
-                  <option value="overlay">Overlay</option>
-                </select>
-              </label>
-              <label class="dev-override-field dev-override-field-wide">
-                <span>Intended Use</span>
-                <input id="asset-intended-use" type="text" placeholder="world-geography, regional-map, local-dungeon" />
-              </label>
-              <label class="dev-override-field dev-override-field-wide">
-                <span>Palette Hints</span>
-                <input id="asset-palette-hints" type="text" placeholder="emerald, mist, granite" />
-              </label>
-              <label class="dev-override-field">
-                <span>Slice Mode</span>
-                <select id="asset-slice-mode">
-                  <option value="none">None</option>
-                  <option value="grid">Grid</option>
-                  <option value="manual">Manual</option>
-                  <option value="auto">Auto Detect</option>
-                </select>
-              </label>
-              <label class="dev-override-field">
-                <span>Frame Width</span>
-                <input id="asset-frame-width" type="number" min="0" step="1" placeholder="32" />
-              </label>
-              <label class="dev-override-field">
-                <span>Frame Height</span>
-                <input id="asset-frame-height" type="number" min="0" step="1" placeholder="32" />
-              </label>
-              <label class="dev-override-field">
-                <span>Columns</span>
-                <input id="asset-columns" type="number" min="0" step="1" placeholder="8" />
-              </label>
-              <label class="dev-override-field">
-                <span>Rows</span>
-                <input id="asset-rows" type="number" min="0" step="1" placeholder="8" />
-              </label>
-              <label class="dev-override-field">
-                <span>Padding</span>
-                <input id="asset-padding" type="number" min="0" step="1" placeholder="0" />
-              </label>
-              <label class="dev-override-field">
-                <span>Spacing</span>
-                <input id="asset-spacing" type="number" min="0" step="1" placeholder="0" />
-              </label>
-              <label class="dev-override-field">
-                <span>Canvas Width</span>
-                <input id="asset-canvas-width" type="number" min="0" step="1" placeholder="1024" />
-              </label>
-              <label class="dev-override-field">
-                <span>Canvas Height</span>
-                <input id="asset-canvas-height" type="number" min="0" step="1" placeholder="1024" />
-              </label>
-            </div>
-
-            <div class="dev-assets-toggle-row">
-              <label class="dev-topology-check">
-                <input id="asset-tileable" type="checkbox" />
-                <span>Tileable</span>
-              </label>
-              <label class="dev-topology-check">
-                <input id="asset-seamless" type="checkbox" />
-                <span>Seamless</span>
-              </label>
-            </div>
-
-            <label class="dev-override-field dev-override-field-wide">
-              <span>Body / Notes</span>
-              <textarea id="asset-body-text" class="dev-assets-textarea dev-assets-textarea-large"></textarea>
-            </label>
-
-            <div class="dev-assets-review-shell">
-              <div class="dev-assets-preview-card">
-                <div class="dev-panel-kicker">Preview</div>
-                <div id="asset-preview" class="dev-assets-preview"></div>
-              </div>
-              <div class="dev-assets-review-card">
-                <div class="dev-panel-kicker">AI Filename Review</div>
-                <p class="dev-panel-copy">
-                  Check whether the image content matches the chosen filename/title before saving.
-                </p>
-                <div class="dev-assets-review-actions">
-                  <button id="asset-review-btn" class="btn btn-action" type="button">
-                    Review Filename Match
-                  </button>
-                  <button id="asset-apply-ai-btn" class="btn btn-action" type="button">
-                    Apply Suggestions
-                  </button>
-                </div>
-                <div id="asset-review-status" class="dev-inline-status"></div>
-                <div id="asset-review-result" class="dev-assets-review-result"></div>
-              </div>
-            </div>
-
-            <div class="dev-editor-actions">
-              <button id="asset-save-btn" class="btn btn-primary" type="button">
-                Save Asset
-              </button>
-            </div>
-          </section>
-        </main>
-      </section>
+          <div class="dev-command-heading">Selection Actions</div>
+          <div class="dev-command-actions">
+            <button type="button" class="btn btn-primary">Preview</button>
+            <button type="button" class="btn btn-action">Edit Metadata</button>
+            <button type="button" class="btn btn-action">Attach to Content</button>
+            <button type="button" class="btn btn-action">Archive</button>
+          </div>
+        </aside>
+      </main>
     </div>
-
-    <script type="module" src="/src/client/translateWidget.ts"></script>
-    <script type="module" src="/src/client/devAssets.ts"></script>
   </body>
 </html>
