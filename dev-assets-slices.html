@@ -8,14 +8,9 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" src="/src/client/i18n.ts"></script>
     <link rel="stylesheet" href="/src/client/style.css" />
-  
-    <style>
-
-    </style>
-
-    <style id="i18n-style">
+  <script type="module" src="/src/client/i18n.ts"></script>
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -55,7 +50,24 @@
   </head>
   <body class="dev-panel-page dev-assets-page">
     <a href="/dev-assets" class="dev-launch-btn dev-launch-btn-inline">← Asset Library</a>
-
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
     </div>
 
     <div class="dev-panel-shell">
@@ -195,9 +207,9 @@
       </section>
     </div>
 
+    <script type="module" src="/src/client/translateWidget.ts"></script>
     <script type="module" src="/src/client/devAssetSlices.ts"></script>
-
-    <script type="module" id="i18n-js">
+      <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
         document.querySelectorAll("[data-lang-set]").forEach(btn => {

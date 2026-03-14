@@ -8,17 +8,12 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" src="/src/client/i18n.ts"></script>
     <link rel="stylesheet" href="/src/client/style.css" />
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  
-    <style>
-
-    </style>
-
-    <style id="i18n-style">
+  <script type="module" src="/src/client/i18n.ts"></script>
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -62,7 +57,7 @@
       <button class="i18n-btn" data-lang-set="en">EN</button>
       <button class="i18n-btn" data-lang-set="th">TH</button>
     </div>
-
+    
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
         <h1>⚔ Realm Chronicle</h1>
@@ -95,7 +90,7 @@
                 <strong>Traversal</strong>
                 <span>Travel from area to area, trigger encounters, and continue where you left off.</span>
               </div>
-          </div>
+            </div>
           </div>
           <div class="card fade-in auth-card">
             <h3 id="auth-title">🔐 Enter the Realm</h3>
@@ -210,34 +205,35 @@
           </div>
         </div>
       </div>
+    </div>
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
           <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">
-            <span data-i18n="nav.home">🏠 Home</span>
+            🏠 Home
           </button>
           <button
             class="btn btn-nav"
             data-nav-page="adventure"
             onclick="showAdventurePage()"
           >
-            <span data-i18n="nav.journey">🧭 Journey</span>
+            🧭 Journey
           </button>
           <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">
-            <span data-i18n="nav.map">🗺 World Map</span>
+            🗺 World Map
           </button>
           <button
             class="btn btn-nav"
             data-nav-page="forge"
             onclick="showForge('menu')"
           >
-            <span data-i18n="nav.create_hero">⚒ Create Hero</span>
+            ⚒ Create Hero
           </button>
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">
-            <span data-i18n="nav.archive">🧙 Hero Archive</span>
+            🧙 Hero Archive
           </button>
-          <button class="btn btn-nav" onclick="logout()"><span data-i18n="common.logout">⇦ Logout</span></button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
@@ -281,7 +277,7 @@
                   🗺 Open World Map
                 </button>
                 <button class="btn btn-action" onclick="showForge('menu')">
-                  <span data-i18n="nav.create_hero">⚒ Create Hero</span>
+                  ⚒ Create Hero
                 </button>
                 <button class="btn btn-action" onclick="showVault()">
                   🧙 Open Hero Archive
@@ -1020,7 +1016,7 @@
               <div class="hero-panel-actions">
                 <button class="btn btn-gold" onclick="saveGame()">💾 Save Game</button>
                 <button class="btn btn-action" onclick="showScreen('menu')">
-                  <span data-i18n="nav.home">🏠 Home</span>
+                  🏠 Home
                 </button>
               </div>
             </section>
@@ -1554,8 +1550,7 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-
-    <script type="module" id="i18n-js">
+      <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
         document.querySelectorAll("[data-lang-set]").forEach(btn => {

@@ -8,14 +8,9 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <script type="module" src="/src/client/i18n.ts"></script>
     <link rel="stylesheet" href="/src/client/style.css" />
-  
-    <style>
-
-    </style>
-
-    <style id="i18n-style">
+  <script type="module" src="/src/client/i18n.ts"></script>
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -146,8 +141,7 @@
         </aside>
       </main>
     </div>
-
-    <script type="module" id="i18n-js">
+      <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
         document.querySelectorAll("[data-lang-set]").forEach(btn => {

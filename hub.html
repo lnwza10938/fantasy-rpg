@@ -8,17 +8,12 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Spectral:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script type="module" src="/src/client/i18n.ts"></script>
     <link rel="stylesheet" href="/src/client/style.css" />
     <script>
       document.documentElement.classList.add("app-booting");
     </script>
-  
-    <style>
-
-    </style>
-
-    <style id="i18n-style">
+  <script type="module" src="/src/client/i18n.ts"></script>
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -62,24 +57,57 @@
       <button class="i18n-btn" data-lang-set="en">EN</button>
       <button class="i18n-btn" data-lang-set="th">TH</button>
     </div>
+    <div id="google_translate_element" style="display: none"></div>
+    <button id="translate-btn" type="button">🌐 Translate ▾</button>
+    <div id="translate-panel">
+      <h4>🌍 Choose Language</h4>
+      <div class="lang-list">
+        <button class="lang-btn active" data-lang="" type="button">🇺🇸 English</button>
+        <button class="lang-btn" data-lang="th" type="button">🇹🇭 ไทย</button>
+        <button class="lang-btn" data-lang="ja" type="button">🇯🇵 日本語</button>
+        <button class="lang-btn" data-lang="zh-CN" type="button">🇨🇳 中文</button>
+        <button class="lang-btn" data-lang="ko" type="button">🇰🇷 한국어</button>
+        <button class="lang-btn" data-lang="fr" type="button">🇫🇷 Français</button>
+        <button class="lang-btn" data-lang="es" type="button">🇪🇸 Español</button>
+        <button class="lang-btn" data-lang="de" type="button">🇩🇪 Deutsch</button>
+        <button class="lang-btn" data-lang="ru" type="button">🇷🇺 Русский</button>
+        <button class="lang-btn" data-lang="ar" type="button">🇸🇦 العربية</button>
+      </div>
+      <div class="auto-toggle">
+        <span style="color: var(--muted)">Auto-translate on load</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="auto-translate-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="auto-toggle" style="border-top: none; margin-top: 0">
+        <span style="color: var(--accent)">Mobile Layout (Force)</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="ui-mode-toggle" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+    <script type="module" src="/src/client/translateWidget.ts"></script>
 
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()"><span data-i18n="nav.home">🏠 Home</span></button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
           <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
-            <span data-i18n="nav.journey">🧭 Journey</span>
+            🧭 Journey
           </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()"><span data-i18n="nav.map">🗺 World Map</span></button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
           <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
-            <span data-i18n="nav.create_hero">⚒ Create Hero</span>
+            ⚒ Create Hero
           </button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()"><span data-i18n="nav.archive">🧙 Hero Archive</span></button>
-          <button class="btn btn-nav" onclick="logout()"><span data-i18n="common.logout">⇦ Logout</span></button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
+      </div>
 
       <div class="container">
         <div id="screen-menu" class="screen fade-in">
@@ -112,7 +140,7 @@
               <div class="hub-action-grid">
                 <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey</button>
                 <button class="btn btn-action" onclick="showMapPage()">🗺 Open World Map</button>
-                <button class="btn btn-action" onclick="showForge('menu')"><span data-i18n="nav.create_hero">⚒ Create Hero</span></button>
+                <button class="btn btn-action" onclick="showForge('menu')">⚒ Create Hero</button>
                 <button class="btn btn-action" onclick="showVault()">🧙 Open Hero Archive</button>
               </div>
             </div>
@@ -156,7 +184,7 @@
                     A quick legend shelf so the hub stays a dashboard instead of opening the full vault.
                   </p>
                 </div>
-                <button class="btn btn-action" onclick="showVault()"><span data-i18n="nav.archive">🧙 Hero Archive</span></button>
+                <button class="btn btn-action" onclick="showVault()">🧙 Hero Archive</button>
               </div>
               <div id="hub-legend-preview" class="hub-dashboard-list">
                 <div class="hub-list-empty">
@@ -189,8 +217,7 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-
-    <script type="module" id="i18n-js">
+      <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
         document.querySelectorAll("[data-lang-set]").forEach(btn => {

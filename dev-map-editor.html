@@ -8,7 +8,6 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <script type="module" src="/src/client/i18n.ts"></script>
     <link rel="stylesheet" href="/src/client/style.css" />
     <style>
       .i18n-switcher {
@@ -19,14 +18,23 @@
         border-radius: 99px;
         border: 1px solid rgba(212, 188, 132, 0.2);
       }
-
+      .i18n-btn {
+        background: none;
+        border: none;
+        color: rgba(255,255,255,0.4);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 90px;
+        transition: all 0.2s;
+      }
+      .i18n-btn.active {
+        background: rgba(212, 188, 132, 0.2);
+        color: #f4ead2;
+      }
     </style>
-  
-    <style>
-
-    </style>
-
-    <style id="i18n-style">
+      <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
         top: 20px;
@@ -274,7 +282,28 @@
 
     <div id="map-editor-context-menu" class="dev-map-context-menu" hidden></div>
 
-    <script type="module" id="i18n-js">
+    <script type="module">
+      import { i18n } from "/src/client/i18n.ts";
+      
+      const updateSwitcher = () => {
+        document.querySelectorAll("[data-lang-set]").forEach(btn => {
+          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
+        });
+      };
+
+      document.querySelectorAll("[data-lang-set]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          i18n.setLanguage(btn.dataset.langSet);
+          updateSwitcher();
+        });
+      });
+
+      // Simple wait for i18n to ready
+      window.addEventListener("languageChanged", updateSwitcher);
+      updateSwitcher();
+    </script>
+    <script type="module" src="/src/client/devMapEditor.ts"></script>
+      <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
         document.querySelectorAll("[data-lang-set]").forEach(btn => {
