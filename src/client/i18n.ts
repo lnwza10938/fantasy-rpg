@@ -17,9 +17,9 @@ class I18nManager {
 
   async loadTranslations(lang: string) {
     try {
-      const resp = await fetch(`/src/client/locales/${lang}.json`);
+      const resp = await fetch(`/locales/${lang}.json`);
       if (!resp.ok) throw new Error(`Failed to load ${lang}`);
-      this.translations = await resp.ok ? await resp.json() : {};
+      this.translations = await resp.json();
       this.currentLang = lang;
       localStorage.setItem(LANG_STORAGE_KEY, lang);
     } catch (err) {
