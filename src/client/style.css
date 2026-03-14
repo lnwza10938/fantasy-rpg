@@ -8906,3 +8906,64 @@ html[data-app-page="map"] .lang-btn.active {
     align-items: stretch;
   }
 }
+
+/* ======= MAP PAGE CLEANUP (TASK 010) ======= */
+html[data-app-page="map"] #game-ui-screen {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: calc(100vh - 88px);
+}
+
+html[data-app-page="map"] #gp-center-top {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+}
+
+html[data-app-page="map"] #gp-center-bot {
+  display: none !important;
+}
+
+html[data-app-page="map"] .command-deck-panel,
+html[data-app-page="map"] .command-deck-shell,
+html[data-app-page="map"] .command-deck-main,
+html[data-app-page="map"] .command-deck-header,
+html[data-app-page="map"] .command-deck-title,
+html[data-app-page="map"] .command-deck-copy,
+html[data-app-page="map"] .command-deck-dialogue,
+html[data-app-page="map"] .command-actions-grid {
+  display: none !important;
+}
+
+html[data-app-page="map"] #gp-center-top {
+  padding: 16px;
+}
+
+html[data-app-page="map"] .journey-map-panel,
+html[data-app-page="map"] .journey-map-stage,
+html[data-app-page="map"] #region-list.map-region-map-shell,
+html[data-app-page="map"] .map-topology-board,
+html[data-app-page="map"] .map-topology-viewport,
+html[data-app-page="map"] .map-topology-canvas {
+  height: 100%;
+  min-height: 0;
+}
+
+html[data-app-page="map"] .map-topology-viewport {
+  border-radius: 26px;
+}
+
+html[data-app-page="map"] .map-topology-canvas {
+  min-height: 100%;
+}
+
+@media (max-width: 850px) {
+  html[data-app-page="map"] #game-ui-screen {
+    grid-template-rows: minmax(0, 1fr);
+    height: auto;
+  }
+
+  html[data-app-page="map"] #gp-center-bot {
+    display: none !important;
+  }
+}

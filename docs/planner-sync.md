@@ -32,6 +32,12 @@
   - Integrated `validateSession` in `onLoginSuccess`.
 - **Status**: PATCHED (Round 2).
 
+### FILE: src/client/style.css
+- **Role**: Main stylesheet for all game and dev pages.
+- **Issue**: Map page was less dominant due to unnecessary command deck space.
+- **Implemented Change**: Removed Command Deck from `/map` route via CSS. Let map take full height.
+- **Status**: PATCHED (TASK 010).
+
 ### FILE: src/core/worldSystem.ts
 - **Role**: Manages the singleton `WorldInstance` on the server.
 - **Issue**: The `worldSystem` instance is shared across characters in memory but should be character-specific or cleared between calls. In serverless, it's ephemeral, but in local dev, it might leak state.
