@@ -10,8 +10,8 @@
 ### FILE: src/core/sessionPersistence.ts
 - **Role**: Reconciles database records into the `GameStateManager` and serializes session data for storage.
 - **Issue**: Mapping between `last_event` JSON and `TraversalRuntimeState`.
-- **Planned Change**: Harden `parseStoredWorldSession` logic.
-- **Status**: Researching.
+- **Implemented Change**: Added `validateStoredTraversalState` to harden `parseStoredWorldSession` against invalid or unknown region/path IDs during hydration.
+- **Status**: PATCHED (Round 1 - Validation).
 
 ### FILE: src/api/gameplayRoutes.ts
 - **Role**: Main API router for game logic. Handles `/start`, `/event`, `/travel`, and `/save`.

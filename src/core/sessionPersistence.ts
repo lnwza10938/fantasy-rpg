@@ -119,9 +119,111 @@ function parseEquipment(raw: unknown): EquipmentSlots {
   };
 }
 
+interface StoredTraversalLike {
+  currentRegionId?: unknown;
+  discoveredRegionIds?: unknown;
+  visitedRegionIds?: unknown;
+  clearedRegionIds?: unknown;
+  lockedRegionIds?: unknown;
+  revealedPathIds?: unknown;
+  traversedPathIds?: unknown;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function validateStoredTraversalState(
+  traversal: StoredTraversalLike | null | undefined,
+  worldDefinition?: { regions?: Array<{ id: string }>; mapLayout?: { paths?: Array<{ id: string }> } } | null,
+) {
+  if (!traversal || typeof traversal !== "object") {
+    throw new Error("Missing traversal state");
+  }
+
+  const currentRegionId = typeof traversal.currentRegionId === "string" ? traversal.currentRegionId : null;
+  if (!currentRegionId) {
+    throw new Error("Missing currentRegionId");
+  }
+
+  const discoveredRegionIds = asStringArray(traversal.discoveredRegionIds);
+  const visitedRegionIds = asStringArray(traversal.visitedRegionIds);
+  const clearedRegionIds = asStringArray(traversal.clearedRegionIds);
+  const lockedRegionIds = asStringArray(traversal.lockedRegionIds);
+  const revealedPathIds = asStringArray(traversal.revealedPathIds);
+  const traversedPathIds = asStringArray(traversal.traversedPathIds);
+
+  if (!worldDefinition) {
+    return {
+      currentRegionId,
+      discoveredRegionIds,
+      visitedRegionIds,
+      clearedRegionIds,
+      lockedRegionIds,
+      revealedPathIds,
+      traversedPathIds,
+    };
+  }
+
+  const validRegionIds = new Set(
+    Array.isArray(worldDefinition.regions)
+      ? worldDefinition.regions
+          .map((region) => region?.id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      : []
+  );
+
+  const validPathIds = new Set(
+    Array.isArray(worldDefinition.mapLayout?.paths)
+      ? worldDefinition.mapLayout!.paths!
+          .map((path) => path?.id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      : []
+  );
+
+  if (!validRegionIds.has(currentRegionId)) {
+    throw new Error(`Invalid currentRegionId: ${currentRegionId}`);
+  }
+
+  const assertKnownRegions = (label: string, ids: string[]) => {
+    for (const id of ids) {
+      if (!validRegionIds.has(id)) {
+        throw new Error(`Unknown region id in ${label}: ${id}`);
+      }
+    }
+  };
+
+  const assertKnownPaths = (label: string, ids: string[]) => {
+    for (const id of ids) {
+      if (!validPathIds.has(id)) {
+        throw new Error(`Unknown path id in ${label}: ${id}`);
+      }
+    }
+  };
+
+  assertKnownRegions("discoveredRegionIds", discoveredRegionIds);
+  assertKnownRegions("visitedRegionIds", visitedRegionIds);
+  assertKnownRegions("clearedRegionIds", clearedRegionIds);
+  assertKnownRegions("lockedRegionIds", lockedRegionIds);
+  assertKnownPaths("revealedPathIds", revealedPathIds);
+  assertKnownPaths("traversedPathIds", traversedPathIds);
+
+  return {
+    currentRegionId,
+    discoveredRegionIds,
+    visitedRegionIds,
+    clearedRegionIds,
+    lockedRegionIds,
+    revealedPathIds,
+    traversedPathIds,
+  };
+}
+
 function parseStoredWorldSession(
   raw: unknown,
   seed: number,
+  worldDefinition?: any,
 ): {
   metadata: WorldMetadata;
   location: { regionId: string | null };
@@ -137,9 +239,14 @@ function parseStoredWorldSession(
 
   if (raw.startsWith(WORLD_SESSION_PREFIX)) {
     try {
-      const parsed = JSON.parse(
-        raw.slice(WORLD_SESSION_PREFIX.length),
-      ) as PersistedWorldSessionEnvelope;
+      const jsonStr = raw.substring(WORLD_SESSION_PREFIX.length);
+      const parsed = JSON.parse(jsonStr);
+
+      const validatedTraversal = validateStoredTraversalState(
+        parsed.traversal,
+        worldDefinition,
+      );
+
       return {
         metadata: normalizeWorldMetadata(parsed.metadata, seed),
         location: {
@@ -149,10 +256,11 @@ function parseStoredWorldSession(
               ? parsed.location.regionId.trim()
               : null,
         },
-        traversal: normalizeTraversalRuntimeState(parsed.traversal),
+        traversal: normalizeTraversalRuntimeState(validatedTraversal),
       };
-    } catch {
-      /* fall through */
+    } catch (err) {
+      console.warn("[SessionRestore] traversal validation failed:", err);
+      /* fall through to default */
     }
   }
 
