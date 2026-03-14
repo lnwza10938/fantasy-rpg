@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Realm Chronicle · Map Editor</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/client/style.css" />
+  </head>
+  <body class="map-editor-page">
+    <div class="map-editor-shell">
+      <header class="map-editor-topbar">
+        <div class="map-editor-brand">Realm Map Editor</div>
+        <div class="map-editor-topbar-actions">
+          <button type="button" class="btn btn-action">Realm</button>
+          <button type="button" class="btn btn-action">Save</button>
+          <button type="button" class="btn btn-action">Export</button>
+          <button type="button" class="btn btn-action">Validate</button>
+          <button type="button" class="btn btn-action">Grid</button>
+        </div>
+      </header>
+
+
+      <main class="map-editor-layout">
+        <aside class="map-editor-panel map-editor-toolbox">
+          <div class="map-editor-panel-title">Toolbox</div>
+          <div class="map-editor-tool-list">
+            <button type="button" class="map-editor-tool active">select</button>
+            <button type="button" class="map-editor-tool">move</button>
+            <button type="button" class="map-editor-tool">add node</button>
+            <button type="button" class="map-editor-tool">add path</button>
+            <button type="button" class="map-editor-tool">delete</button>
+            <button type="button" class="map-editor-tool">pan</button>
+          </div>
+        </aside>
+
+
+        <section class="map-editor-panel map-editor-canvas-panel">
+          <div class="map-editor-panel-title">Map Canvas</div>
+          <div class="map-editor-canvas-shell">
+            <div class="map-editor-grid"></div>
+            <div class="map-editor-canvas-placeholder">MAP</div>
+          </div>
+        </section>
+
+
+        <aside class="map-editor-panel map-editor-inspector">
+          <div class="map-editor-panel-title">Node Data</div>
+          <div class="map-editor-inspector-group">
+            <label>node info</label>
+            <div class="map-editor-field">No node selected</div>
+          </div>
+          <div class="map-editor-inspector-group">
+            <label>biome</label>
+            <div class="map-editor-field">—</div>
+          </div>
+          <div class="map-editor-inspector-group">
+            <label>danger</label>
+            <div class="map-editor-field">—</div>
+          </div>
+          <div class="map-editor-inspector-group">
+            <label>description</label>
+            <div class="map-editor-field map-editor-field-multiline">Select a node to inspect its narrative metadata.</div>
+          </div>
+          <div class="map-editor-inspector-group">
+            <label>enemies</label>
+            <div class="map-editor-field">—</div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>
