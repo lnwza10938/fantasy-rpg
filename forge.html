@@ -15,43 +15,13 @@
     </script>
   
     <style>
-      .i18n-switcher-fixed {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 10000;
-        display: flex;
-        gap: 6px;
-        background: rgba(14, 16, 21, 0.9);
-        padding: 5px;
-        border-radius: 99px;
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(212, 188, 132, 0.25);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-      }
-      .i18n-btn {
-        background: transparent;
-        border: none;
-        color: rgba(255,255,255,0.4);
-        font-size: 11px;
-        font-weight: 800;
-        cursor: pointer;
-        padding: 6px 14px;
-        border-radius: 99px;
-        transition: all 0.2s;
-        font-family: 'Inter', sans-serif;
-      }
-      .i18n-btn.active {
-        background: rgba(212, 188, 132, 0.25);
-        color: #f4ead2;
-        box-shadow: inset 0 0 8px rgba(212, 188, 132, 0.1);
-      }
-      .i18n-btn:hover:not(.active) {
-        color: #fff;
-        background: rgba(255,255,255,0.05);
-      }
+      
+      
+      
+      
     </style>
 
+    
     <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
@@ -89,32 +59,27 @@
         background: rgba(255,255,255,0.05);
       }
     </style>
-</head>
+  </head>
   <body>
     <div class="i18n-switcher-fixed">
       <button class="i18n-btn" data-lang-set="en">EN</button>
       <button class="i18n-btn" data-lang-set="th">TH</button>
     </div>
+    
 
     
     
     
-      <div class="auto-toggle">
-        <span style="color: var(--muted)">Auto-translate on load</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="auto-translate-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
+      
       <div class="auto-toggle" style="border-top: none; margin-top: 0">
-        <span style="color: var(--accent)">Mobile Layout (Force)</span>
+        <span style="color: var(--accent)"></span>
         <label class="toggle-switch">
           <input type="checkbox" id="ui-mode-toggle" />
           <span class="toggle-track"></span>
         </label>
       </div>
     </div>
-    <script type="module" src="/src/client/translateWidget.ts"></script>
+    
 
     <div id="game-container" style="display: none">
       <div class="header">
@@ -427,22 +392,9 @@
 
     <script type="module" src="/src/client/main.ts"></script>
   
-    <script type="module">
-      import { i18n } from "/src/client/i18n.ts";
-      const refreshSwitcher = () => {
-        document.querySelectorAll("[data-lang-set]").forEach(btn => {
-          btn.classList.toggle("active", btn.dataset.langSet === i18n.getLanguage());
-        });
-      };
-      document.querySelectorAll("[data-lang-set]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          i18n.setLanguage(btn.dataset.langSet);
-          refreshSwitcher();
-        });
-      });
-      refreshSwitcher();
-    </script>
+    
 
+    
     <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
@@ -458,5 +410,5 @@
       });
       refreshSwitcher();
     </script>
-</body>
+  </body>
 </html>
