@@ -809,7 +809,7 @@
 
               <div id="story-scene-stage" class="story-scene-stage">
                 <div class="story-scene-copy">
-                  <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
+                  <div class="story-scene-kicker" id="story-scene-kicker" data-i18n="common.story">Story</div>
                   <div id="story-scene-title" class="story-scene-title">
                     Choose your next route data-i18n="game.next_route_prompt"
                   </div>
@@ -847,13 +847,13 @@
                   ⚔️ Battle data-i18n="game.battle_title"
                 </h3>
                 <div id="combat-stage-text" class="battle-dialogue-inline">
-                  An enemy blocks the route. Pick a battle command below.
+                  <span data-i18n="game.battle_block">An enemy blocks the route. Pick a battle command below.</span>
                 </div>
                 <div class="battlefield-shell">
                   <div class="battlefield-stage">
                     <div class="battle-status enemy-status">
                       <div class="battle-status-row">
-                        <div id="combat-enemy-name" class="battle-name">Enemy</div>
+                        <div id="combat-enemy-name" class="battle-name" data-i18n="game.enemy">Enemy</div>
                         <div id="combat-enemy-level" class="battle-level">Lv.1</div>
                       </div>
                       <div class="battle-hp-row">
@@ -923,7 +923,7 @@
           <!-- ═══ RIGHT TOP: Hero + Realm Info ═══ -->
           <div id="gp-left" class="gp journey-side-panel">
             <section class="journey-sidebar-section hero-summary-card">
-              <div class="map-section-kicker">Hero</div>
+              <div class="map-section-kicker" data-i18n="common.hero">Hero</div>
               <div class="hero-panel-top">
                 <div id="gp-hero-portrait" class="hero-portrait-frame">🧙</div>
                 <div class="hero-panel-copy">
@@ -998,7 +998,7 @@
 
               <div class="hero-side-columns">
                 <div class="hero-side-card">
-                  <div class="map-section-kicker">Gear</div>
+                  <div class="map-section-kicker" data-i18n="game.gear_section">Gear</div>
                   <div class="hero-gear-list">
                     <div><strong>Weapon</strong><span id="inv-weapon">— None —</span></div>
                     <div><strong>Armor</strong><span id="inv-armor">— None —</span></div>
@@ -1006,7 +1006,7 @@
                   </div>
                 </div>
                 <div class="hero-side-card">
-                  <div class="map-section-kicker">Items</div>
+                  <div class="map-section-kicker" data-i18n="game.items_section">Items</div>
                   <div id="inv-display" class="hero-item-list">
                     <p>No items yet. data-i18n="game.no_items"</p>
                   </div>
@@ -1014,7 +1014,7 @@
               </div>
 
               <div class="hero-panel-actions">
-                <button class="btn btn-gold" onclick="saveGame()">💾 Save Game</button>
+                <button class="btn btn-gold" onclick="saveGame()"><span data-i18n="common.save">💾 Save Game</span></button>
                 <button class="btn btn-action" onclick="showScreen('menu')">
                   🏠 Home
                 </button>
@@ -1022,7 +1022,7 @@
             </section>
 
             <section class="journey-sidebar-section realm-summary-card">
-              <div class="map-section-kicker">Realm</div>
+              <div class="map-section-kicker" data-i18n="common.realm">Realm</div>
               <div id="map-world-name" class="map-camera-world-name">
                 Uncharted Realm data-i18n="game.uncharted"
               </div>

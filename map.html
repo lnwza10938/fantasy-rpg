@@ -137,7 +137,7 @@
               <div id="gp-skill-brief" style="font-size: 10px; color: var(--text); line-height: 1.3; margin-top: 2px; opacity: 0.8; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical">No skill selected</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px">
-              <button class="btn btn-gold" style="font-size: 11px; width: 100%" onclick="saveGame()">💾 Save Game</button>
+              <button class="btn btn-gold" style="font-size: 11px; width: 100%" onclick="saveGame()"><span data-i18n="common.save">💾 Save Game</span></button>
               <button class="btn btn-action" style="font-size: 11px; width: 100%" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
             </div>
           </div>
@@ -179,11 +179,11 @@
 
                 <div id="story-scene-stage" class="story-scene-stage">
                   <div class="story-scene-copy">
-                    <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
+                    <div class="story-scene-kicker" id="story-scene-kicker" data-i18n="common.story">Story</div>
                     <div id="story-scene-title" class="story-scene-title">Choose your next route data-i18n="game.next_route_prompt"</div>
                     <div id="story-scene-speaker" class="story-scene-speaker">Realm Chronicle</div>
                     <div id="story-scene-dialogue" class="story-scene-dialogue typewriting">
-                      Travel, dialogue, and outcomes take the focus here whenever the journey shifts away from the map.
+                      <span data-i18n="game.story_desc">Travel, dialogue, and outcomes take the focus here whenever the journey shifts away from the map.</span>
                     </div>
                   </div>
                   <div class="story-scene-portrait">
@@ -197,7 +197,7 @@
                     <div class="battlefield-stage">
                       <div class="battle-status enemy-status">
                         <div class="battle-status-row">
-                          <div id="combat-enemy-name" class="battle-name">Enemy</div>
+                          <div id="combat-enemy-name" class="battle-name" data-i18n="game.enemy">Enemy</div>
                           <div id="combat-enemy-level" class="battle-level">Lv.1</div>
                         </div>
                         <div class="battle-hp-row"><span>HP</span><span id="combat-enemy-hp">100/100</span></div>
