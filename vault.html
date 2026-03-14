@@ -92,18 +92,18 @@
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
           <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
             🧭 Journey
           </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
           <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
             ⚒ Create Hero
           </button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero data-i18n="game.hero_section" Archive<  data-i18n="nav.archive">🧙 Hero data-i18n="game.hero_section" Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
-        <h1>⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas hero archive</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>

@@ -92,18 +92,18 @@
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
           <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
             🧭 Journey
           </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
           <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
             ⚒ Create Hero
           </button>
-          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero Archive</button>
-          <button class="btn btn-nav" onclick="logout()">⇦ Logout</button>
+          <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero data-i18n="game.hero_section" Archive<  data-i18n="nav.archive">🧙 Hero data-i18n="game.hero_section" Archive</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
-        <h1>⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas world map</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
@@ -111,18 +111,18 @@
       <div class="container">
         <div id="game-ui-screen" data-adventure-mode="map">
           <div id="gp-left" class="gp">
-            <h3>🧙 Hero</h3>
+            <h3>🧙 Hero data-i18n="game.hero_section"</h3>
             <div style="text-align: center; margin-bottom: 10px">
               <div style="font-size: 40px; line-height: 1">🧙</div>
               <div id="gp-char-name" style="font-weight: 700; font-size: 13px; margin-top: 4px">Hero</div>
               <div id="gp-char-class" style="font-size: 10px; color: var(--muted)">Level 1 Hero</div>
             </div>
             <div style="margin-bottom: 10px">
-              <div class="bar-label"><span>❤️ HP</span><span id="gp-hp-txt" style="color: var(--green); font-size: 10px">100/100</span></div>
+              <div class="bar-label"><span data-i18n="common.hp">❤️ HP</span><span id="gp-hp-txt" style="color: var(--green); font-size: 10px">100/100</span></div>
               <div class="bar" style="margin-bottom: 5px"><div id="gp-hp-bar" class="bar-fill bar-hp" style="width: 100%"></div></div>
-              <div class="bar-label"><span>💧 MP</span><span id="gp-mp-txt" style="color: var(--accent); font-size: 10px">50/50</span></div>
+              <div class="bar-label"><span data-i18n="common.mp">💧 MP</span><span id="gp-mp-txt" style="color: var(--accent); font-size: 10px">50/50</span></div>
               <div class="bar" style="margin-bottom: 5px"><div id="gp-mp-bar" class="bar-fill bar-mana" style="width: 100%"></div></div>
-              <div class="bar-label"><span>⭐ EXP</span><span id="gp-exp-txt" style="color: var(--gold); font-size: 10px">0/100</span></div>
+              <div class="bar-label"><span data-i18n="common.exp">⭐ EXP</span><span id="gp-exp-txt" style="color: var(--gold); font-size: 10px">0/100</span></div>
               <div class="bar"><div id="gp-exp-bar" class="bar-fill bar-exp" style="width: 0%"></div></div>
             </div>
             <div id="gp-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 10px">
@@ -132,13 +132,13 @@
               <div style="background: var(--surface2); border-radius: 6px; padding: 6px; text-align: center"><div style="font-size: 9px; color: var(--muted)">GOLD</div><div id="gp-gold" style="font-weight: 700; color: var(--gold); font-size: 14px">0</div></div>
             </div>
             <div id="gp-skill-preview" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px">
-              <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px">Signature Skill</div>
+              <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px">Signature Skill data-i18n="game.signature_skill"</div>
               <div id="gp-skill-name" style="font-size: 11px; font-weight: 700; color: var(--accent)">— None —</div>
               <div id="gp-skill-brief" style="font-size: 10px; color: var(--text); line-height: 1.3; margin-top: 2px; opacity: 0.8; height: 26px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical">No skill selected</div>
             </div>
             <div style="display: flex; flex-direction: column; gap: 5px">
               <button class="btn btn-gold" style="font-size: 11px; width: 100%" onclick="saveGame()">💾 Save Game</button>
-              <button class="btn btn-action" style="font-size: 11px; width: 100%" onclick="showHubPage()">🏠 Home</button>
+              <button class="btn btn-action" style="font-size: 11px; width: 100%" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
             </div>
           </div>
 
@@ -180,7 +180,7 @@
                 <div id="story-scene-stage" class="story-scene-stage">
                   <div class="story-scene-copy">
                     <div class="story-scene-kicker" id="story-scene-kicker">Story</div>
-                    <div id="story-scene-title" class="story-scene-title">Choose your next route</div>
+                    <div id="story-scene-title" class="story-scene-title">Choose your next route data-i18n="game.next_route_prompt"</div>
                     <div id="story-scene-speaker" class="story-scene-speaker">Realm Chronicle</div>
                     <div id="story-scene-dialogue" class="story-scene-dialogue typewriting">
                       Travel, dialogue, and outcomes take the focus here whenever the journey shifts away from the map.
@@ -192,7 +192,7 @@
                 </div>
 
                 <div id="map-combat-stage" class="map-combat-stage map-scene-overlay" style="display: none">
-                  <h3 id="combat-title" style="color: var(--red); font-size: 11px; margin-bottom: 10px">⚔️ Battle</h3>
+                  <h3 id="combat-title" style="color: var(--red); font-size: 11px; margin-bottom: 10px">⚔️ Battle data-i18n="game.battle_title"</h3>
                   <div class="battlefield-shell">
                     <div class="battlefield-stage">
                       <div class="battle-status enemy-status">
@@ -238,10 +238,10 @@
               <div class="command-deck-main">
                 <div class="command-deck-header">
                   <div>
-                    <div class="map-section-kicker">Command Deck</div>
-                    <div id="command-deck-title" class="command-deck-title">Choose your next move</div>
+                    <div class="map-section-kicker">Command Deck data-i18n="game.command_deck"</div>
+                    <div id="command-deck-title" class="command-deck-title">Choose your next move data-i18n="game.deck_title"</div>
                     <div id="command-deck-copy" class="command-deck-copy">
-                      Select a reachable location to unlock travel, exploration, and battle commands here.
+                      Select a reachable location to unlock travel, exploration, and battle commands here. data-i18n="game.deck_copy"
                     </div>
                   </div>
                   <div id="command-deck-state" class="command-deck-state">Idle</div>
@@ -256,7 +256,7 @@
 
               <aside class="map-camera-panel">
                 <div class="map-camera-controls-card">
-                  <div class="map-section-kicker">Map Controls</div>
+                  <div class="map-section-kicker">Map Controls data-i18n="game.map_controls"</div>
                   <div class="map-camera-dpad">
                     <button type="button" class="map-camera-btn map-camera-spacer" aria-hidden="true" tabindex="-1"></button>
                     <button type="button" class="map-camera-btn" data-map-control onclick="panMap('up')">↑</button>
@@ -277,23 +277,23 @@
 
                 <div class="map-camera-summary-card">
                   <div class="map-camera-summary">
-                    <div class="map-section-kicker">Map Intel</div>
-                    <div id="map-world-name" class="map-camera-world-name">Uncharted Realm</div>
-                    <div id="map-world-meta" class="map-camera-world-meta">No world loaded yet</div>
-                    <div id="map-region-chip" class="map-region-chip map-camera-region-chip">No location selected</div>
-                    <div id="map-region-heading" class="map-camera-region-heading">Choose your next route</div>
+                    <div class="map-section-kicker">Map Intel data-i18n="game.map_intel"</div>
+                    <div id="map-world-name" class="map-camera-world-name">Uncharted Realm data-i18n="game.uncharted"</div>
+                    <div id="map-world-meta" class="map-camera-world-meta">No world loaded yet data-i18n="game.no_world_loaded"</div>
+                    <div id="map-region-chip" class="map-region-chip map-camera-region-chip">No location selected data-i18n="game.no_loc_selected"</div>
+                    <div id="map-region-heading" class="map-camera-region-heading">Choose your next route data-i18n="game.next_route_prompt"</div>
                     <div id="map-region-copy" class="map-camera-region-copy">
                       Follow connected routes from your current area. Travel and the next encounter resolve on the map.
                     </div>
                     <div id="map-preview-diff-block" class="map-preview-diff-block" style="display: none">
-                      <div class="map-section-kicker">Draft Changes</div>
+                      <div class="map-section-kicker">Draft Changes data-i18n="game.draft_changes"</div>
                       <div id="map-preview-diff-list" class="map-preview-diff-list"></div>
                     </div>
                     <div class="map-camera-event-block">
-                      <div class="map-section-kicker">Current Encounter</div>
-                      <div id="explore-title" class="map-camera-event-title">🧭 Select a region first</div>
+                      <div class="map-section-kicker">Current Encounter data-i18n="game.current_encounter"</div>
+                      <div id="explore-title" class="map-camera-event-title">🧭 Select a region first data-i18n="game.select_region_first"</div>
                       <div id="map-event-copy" class="map-camera-event-copy">
-                        Encounters, discoveries, and monster battles appear here.
+                        Encounters, discoveries, and monster battles appear here. data-i18n="game.encounter_copy"
                       </div>
                     </div>
                   </div>
@@ -303,35 +303,35 @@
           </div>
 
           <div id="gp-right" class="gp">
-            <h3>🎒 Gear</h3>
+            <h3>🎒 Gear data-i18n="game.gear_section"</h3>
             <div style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px">
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">⚔️ WEAPON</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">⚔️ WEAPON data-i18n="game.weapon"</div>
                 <div id="inv-weapon" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">🛡️ ARMOR</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">🛡️ ARMOR data-i18n="game.armor"</div>
                 <div id="inv-armor" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
               <div style="background: var(--surface2); border-radius: 6px; padding: 7px">
-                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">💍 RELIC</div>
+                <div style="font-size: 9px; color: var(--muted); margin-bottom: 2px">💍 RELIC data-i18n="game.relic"</div>
                 <div id="inv-access" style="font-size: 11px; font-weight: 600">— None —</div>
               </div>
             </div>
 
-            <h3>🧪 Items</h3>
+            <h3>🧪 Items data-i18n="game.items_section"</h3>
             <div id="inv-display" style="font-size: 11px; color: var(--muted)">
-              <p>No items yet.</p>
+              <p>No items yet. data-i18n="game.no_items"</p>
             </div>
 
             <div class="map-log-panel sidebar-action-log">
               <div class="map-log-header">
-                <h3 style="margin-bottom: 0">📜 Action Log</h3>
-                <button onclick="clearAdventureLog()" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px">Clear</button>
+                <h3 style="margin-bottom: 0">📜 Action Log data-i18n="game.log_section"</h3>
+                <button onclick="clearAdventureLog()" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 10px">Clear data-i18n="game.clear_log"</button>
               </div>
               <div id="gp-log" class="map-log-box" data-pristine="true">
                 <div style="color: var(--muted); font-style: italic">
-                  Choose a saved realm to inspect its map progress...
+                  Choose a saved realm to inspect its map progress... data-i18n="game.pristine_log"
                 </div>
               </div>
               <div id="event-log" style="display: none"></div>

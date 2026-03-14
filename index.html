@@ -98,14 +98,14 @@
 
     <div id="screen-auth" class="screen active">
       <div class="header" style="margin-bottom: 0">
-        <h1>⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p data-i18n="auth.subtitle">A realm that remembers every hero, route, and battle</p>
       </div>
       <div class="landing-shell">
         <div class="landing-grid">
           <div class="card landing-hero fade-in">
             <div>
-              <div class="landing-kicker" data-i18n="auth.welcome">Welcome to the Realm</div>
+              <div class="landing-kicker" data-i18n="auth.welcome">Welcome to the Realm data-i18n="hub.welcome"</div>
               <h2 class="landing-title" data-i18n="auth.hero_choice">
                 Choose a hero, enter a realm, and let the journey grow.
               </h2>
@@ -143,7 +143,7 @@
                   <input
                     type="email"
                     id="auth-email"
-                    placeholder="hero@example.com"
+                    placeholder="hero@example.com" data-i18n="auth.email"
                     autocomplete="email"
                     required
                   />
@@ -153,7 +153,7 @@
                   <input
                     type="password"
                     id="auth-password"
-                    placeholder="••••••••"
+                    placeholder="••••••••" data-i18n="auth.password"
                     autocomplete="current-password"
                     required
                   />
@@ -191,7 +191,7 @@
                   <input
                     type="text"
                     id="auth-invite-code"
-                    placeholder="STREAMER-ACCESS"
+                    placeholder="STREAMER-ACCESS" data-i18n="auth.invite"
                     autocomplete="off"
                     spellcheck="false"
                   />
@@ -260,11 +260,11 @@
             ⚒ Create Hero
           </button>
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">
-            🧙 Hero Archive
+            🧙 Hero data-i18n="game.hero_section" Archive
           </button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout">⇦ Logout</button>
+          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
-        <h1>⚔ Realm Chronicle</h1>
+        <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display" data-i18n="auth.subtitle">A world that remembers</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
       </div>
@@ -276,7 +276,7 @@
             <div class="card hub-hero-card">
               <div class="landing-kicker" data-i18n="nav.home">Home</div>
               <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="hub.welcome">
-                Welcome to the Realm
+                Welcome to the Realm data-i18n="hub.welcome"
               </h2>
               <p class="landing-copy" style="max-width: 680px" data-i18n="hub.copy">
                 Use the hub to choose your next step: begin a new run, reopen a
@@ -285,37 +285,37 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.realms">Realm Archive</div>
+                  <div class="label" data-i18n="hub.realms">Realm Archive data-i18n="hub.realms"</div>
                   <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.journeys">Saved Journeys</div>
+                  <div class="label" data-i18n="hub.journeys">Saved Journeys data-i18n="hub.journeys"</div>
                   <div class="value" id="hub-save-count">0 journeys</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.access">Access Mode</div>
+                  <div class="label" data-i18n="hub.access">Access Mode data-i18n="hub.access"</div>
                   <div class="value" id="hub-access-mode">Account</div>
                 </div>
               </div>
 
               <div class="hub-action-grid">
                 <button class="btn btn-primary" onclick="startWizard()">
-                  🧭 Begin New Journey
+                  🧭 Begin New Journey data-i18n="hub.new_journey"
                 </button>
                 <button class="btn btn-action" onclick="showMapPage()">
-                  🗺 Open World Map
+                  🗺 Open World Map data-i18n="hub.open_map"
                 </button>
                 <button class="btn btn-action" onclick="showForge('menu')">
                   ⚒ Create Hero
                 </button>
                 <button class="btn btn-action" onclick="showVault()">
-                  🧙 Open Hero Archive
+                  🧙 Open Hero Archive data-i18n="hub.open_archive"
                 </button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker">Current Journey</div>
+              <div class="landing-kicker">Current Journey data-i18n="hub.current"</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
                 A quick snapshot of the latest journey before you return to
@@ -333,7 +333,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>📂 Recent Journeys</h3>
+                  <h3>📂 Recent Journeys data-i18n="hub.recent"</h3>
                   <p class="hub-panel-copy">
                     Your latest saved expeditions, ready to reopen.
                   </p>
@@ -352,7 +352,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>🗂️ Realm Archive Preview</h3>
+                  <h3>🗂️ Realm Archive data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
                   <p class="hub-panel-copy">
                     Saved realms with just enough detail to choose where to go next.
                   </p>
@@ -400,7 +400,7 @@
                 transition: all 0.3s;
               "
             >
-              1️⃣ World
+              1️⃣ World data-i18n="wizard.step_world"
             </div>
             <div
               id="step-indicator-2"
@@ -415,7 +415,7 @@
                 transition: all 0.3s;
               "
             >
-              2️⃣ Legend
+              2️⃣ Legend data-i18n="wizard.step_legend"
             </div>
             <div id="step-indicator-3" style="display: none"></div>
             <div
@@ -431,7 +431,7 @@
                 transition: all 0.3s;
               "
             >
-              3️⃣ Start
+              3️⃣ Start data-i18n="wizard.step_start"
             </div>
           </div>
 
@@ -555,7 +555,7 @@
                 </div>
               </div>
 
-              <!-- Seed & Name Row (shown only for custom) -->
+              <!-- Seed data-i18n="wizard.seed" & Name Row (shown only for custom) -->
               <div
                 id="seed-row"
                 style="
@@ -569,7 +569,7 @@
               >
                 <div style="display: flex; gap: 10px; align-items: flex-end">
                   <div style="flex: 2">
-                    <label>Custom World Name</label>
+                    <label>Custom World Name data-i18n="wizard.world_name"</label>
                     <input
                       type="text"
                       id="input-world-name"
@@ -579,7 +579,7 @@
                   </div>
                   <div style="flex: 1">
                     <label
-                      >Seed
+                      >Seed data-i18n="wizard.seed"
                       <span style="color: var(--muted); font-size: 9px"
                         >(optional)</span
                       ></label
@@ -587,14 +587,14 @@
                     <input
                       type="number"
                       id="input-seed"
-                      placeholder="e.g. 123456789"
+                      placeholder="e.g. 123456789" data-i18n="wizard.seed_ph"
                       autocomplete="off"
                     />
                   </div>
                   <button
                     type="button"
                     class="btn btn-action"
-                    onclick="rollRandomSeed()"
+                    onclick="rollRandomSeed data-i18n="wizard.seed"()"
                   >
                     🎲 Roll
                   </button>
@@ -617,7 +617,7 @@
                     margin-bottom: 10px;
                   "
                 >
-                  <h3 style="margin-bottom: 0">🗂️ Realm Archive</h3>
+                  <h3 style="margin-bottom: 0">🗂️ Realm Archive data-i18n="wizard.archive_title" data-i18n="hub.realms"</h3>
                   <button
                     class="btn btn-action"
                     type="button"
@@ -653,7 +653,7 @@
                   "
                   onclick="wizardGoStep(2)"
                 >
-                  Next: Choose a Legend →
+                  Next: Choose a Legend → data-i18n="wizard.next_legend"
                 </button>
               </div>
               <div class="card fade-in">
@@ -692,9 +692,9 @@
                   margin-bottom: 12px;
                 "
               >
-                <h3>📜 Step 2: Choose a Hero</h3>
+                <h3>📜 Step 2: Choose a Hero data-i18n="wizard.choose_hero"</h3>
                 <button class="btn btn-action" onclick="showForge('wizard')">
-                  ⚡ Create New Hero
+                  ⚡ Create New Hero data-i18n="wizard.create_new"
                 </button>
               </div>
               <p
@@ -742,7 +742,7 @@
                   style="flex: 2"
                   disabled
                 >
-                  Review Journey Setup
+                  Review Journey Setup data-i18n="wizard.review_setup"
                 </button>
               </div>
             </div>
@@ -753,7 +753,7 @@
           <!-- STEP 4: Confirm & Start -->
           <div id="wizard-step-4" class="fade-in" style="display: none">
             <div class="card">
-              <h3>⚔️ Step 3: Begin Your Journey</h3>
+              <h3>⚔️ Step 3: Begin Your Journey data-i18n="wizard.begin_journey"</h3>
               <div
                 id="confirm-summary"
                 style="
@@ -957,7 +957,7 @@
               </div>
             </div>
 
-            <!-- Signature Skill Preview -->
+            <!-- Signature Skill data-i18n="game.signature_skill" Preview -->
             <div
               id="gp-skill-preview"
               style="
@@ -976,7 +976,7 @@
                   margin-bottom: 4px;
                 "
               >
-                Signature Skill
+                Signature Skill data-i18n="game.signature_skill"
               </div>
               <div
                 id="gp-skill-name"
@@ -1070,7 +1070,7 @@
                 id="explore-title"
                 style="font-size: 12px; font-weight: 700; margin-bottom: 6px"
               >
-                🧭 Select a region first
+                🧭 Select a region first data-i18n="game.select_region_first"
               </div>
               <button
                 class="btn btn-primary"
@@ -1167,7 +1167,7 @@
                 align-items: center;
               "
             >
-              <h3 style="margin-bottom: 0">📜 Action Log</h3>
+              <h3 style="margin-bottom: 0">📜 Action Log data-i18n="game.log_section"</h3>
               <button
                 onclick="document.getElementById('gp-log').innerHTML = ''"
                 style="
@@ -1178,7 +1178,7 @@
                   font-size: 10px;
                 "
               >
-                Clear
+                Clear data-i18n="game.clear_log"
               </button>
             </div>
             <!-- Shared log that both explore and combat write to -->
@@ -1230,7 +1230,7 @@
                     margin-bottom: 2px;
                   "
                 >
-                  ⚔️ WEAPON
+                  ⚔️ WEAPON data-i18n="game.weapon"
                 </div>
                 <div id="inv-weapon" style="font-size: 11px; font-weight: 600">
                   — None —
@@ -1250,7 +1250,7 @@
                     margin-bottom: 2px;
                   "
                 >
-                  🛡️ ARMOR
+                  🛡️ ARMOR data-i18n="game.armor"
                 </div>
                 <div id="inv-armor" style="font-size: 11px; font-weight: 600">
                   — None —
@@ -1278,9 +1278,9 @@
               </div>
             </div>
 
-            <h3>🧪 Items</h3>
+            <h3>🧪 Items data-i18n="game.items_section"</h3>
             <div id="inv-display" style="font-size: 11px; color: var(--muted)">
-              <p>No items yet.</p>
+              <p>No items yet. data-i18n="game.no_items"</p>
             </div>
           </div>
         </div>
@@ -1529,7 +1529,7 @@
                       color: var(--accent);
                     "
                   >
-                    Signature Skill
+                    Signature Skill data-i18n="game.signature_skill"
                   </h4>
                   <button
                     id="btn-roll-forge"
