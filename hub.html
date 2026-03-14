@@ -15,13 +15,9 @@
     </script>
   
     <style>
-      
-      
-      
-      
+
     </style>
 
-    
     <style id="i18n-style">
       .i18n-switcher-fixed {
         position: fixed;
@@ -66,21 +62,6 @@
       <button class="i18n-btn" data-lang-set="en">EN</button>
       <button class="i18n-btn" data-lang-set="th">TH</button>
     </div>
-    
-
-    
-    
-    
-      
-      <div class="auto-toggle" style="border-top: none; margin-top: 0">
-        <span style="color: var(--accent)"></span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="ui-mode-toggle" />
-          <span class="toggle-track"></span>
-        </label>
-      </div>
-    </div>
-    
 
     <div id="game-container" style="display: none">
       <div class="header">
@@ -99,7 +80,6 @@
         <h1>⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
         <div id="header-hero-status" class="header-hero-status">No active hero</div>
-      </div>
 
       <div class="container">
         <div id="screen-menu" class="screen fade-in">
@@ -209,10 +189,7 @@
     </div>
 
     <script type="module" src="/src/client/main.ts"></script>
-  
-    
 
-    
     <script type="module" id="i18n-js">
       import { i18n } from "/src/client/i18n.ts";
       const refreshSwitcher = () => {
