@@ -65,7 +65,47 @@ const UI_DICTIONARY: Record<string, string> = {
   "Battle": "การต่อสู้",
   "Outcome": "ผลลัพธ์",
   "Victory": "ชัยชนะ",
-  "Defeat": "พ่ายแพ้"
+  "Defeat": "พ่ายแพ้",
+
+  // Map Editor / Dev
+  "Map Editor": "ตัวแก้ไขแผนที่",
+  "World & Tools": "โลกและเครื่องมือ",
+  "Tool Mode": "โหมดเครื่องมือ",
+  "Layers": "เลเยอร์",
+  "Quick Actions": "ทางลัด",
+  "Inspector": "ตัวตรวจสอบ",
+  "Selection": "สิ่งที่เลือก",
+  "Global Layout": "เลย์เอาต์รวม",
+  "Node": "โหนด",
+  "Story": "เนื้อเรื่อง",
+  "Fights": "การต่อสู้",
+  "Draft": "แบบร่าง",
+  "Preview": "ตัวอย่าง",
+  "Undo": "เลิกทำ",
+  "Redo": "ทำซ้ำ",
+  "Validate": "ตรวจสอบ",
+  "Save": "บันทึก",
+  "Reset": "รีเซ็ต",
+  "Paths": "เส้นทาง",
+  "Nodes": "โหนด",
+  "Labels": "ฉลาก",
+  "Regions": "ภูมิภาค",
+  "Terrain": "ภูมิประเทศ",
+
+  // Forge Options
+  "Identity": "ตัวตน",
+  "Skill": "สกิล",
+  "Combat Archetype": "รูปแบบการต่อสู้",
+  "Skin Tone": "โทนสีผิว",
+  "Face Shape": "รูปหน้า",
+  "Hair Style & Color": "ทรงผมและสีผม",
+  "Eye Color": "สีตา",
+  "Warrior": "นักรบ",
+  "Mage": "จอมเวท",
+  "Rogue": "โจร",
+  "Cleric": "นักบวช",
+  "Roll New Skill": "สุ่มสกิลใหม่",
+  "Manifest Destiny": "กำหนดโชคชะตา"
 };
 
 class DualTranslator {

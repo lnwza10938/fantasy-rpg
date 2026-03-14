@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { createClient } from "@supabase/supabase-js";
+import "./translator.js";
 import {
   evaluatePathTraversal,
   formatTraversalBlockedReason,
