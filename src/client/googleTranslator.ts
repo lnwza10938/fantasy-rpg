@@ -1,6 +1,8 @@
 /**
- * Google Translate Integration (Stable + Zero Reload)
- * This handles Google Translate widget without breaking the UI.
+ * Google Translate Bridge v5 (Final Polish)
+ * - Uses 'notranslate' on UI.
+ * - Handles both Cookie and Combo-box triggers.
+ * - Robust restoration with multiple detection layers.
  */
 
 class GoogleTranslator {
@@ -16,7 +18,7 @@ class GoogleTranslator {
     this.injectGoogleScripts();
     this.injectSwitcher();
     this.setupGlobalListeners();
-    this.pollForElement();
+    this.syncInitialState();
   }
 
   private injectStyles() {
@@ -26,8 +28,17 @@ class GoogleTranslator {
     style.innerHTML = `
       iframe.goog-te-banner-frame { display: none !important; }
       body { top: 0 !important; }
-      #google_translate_element, .goog-te-gadget { display: none !important; }
+      #google_translate_element, .goog-te-gadget { 
+        position: absolute;
+        top: -1000px;
+        opacity: 0;
+        pointer-events: none;
+      }
       .goog-te-spinner-pos { display: none !important; }
+      
+      /* Reset Google Font Overrides */
+      font { background-color: transparent !important; box-shadow: none !important; }
+      .goog-text-highlight { background-color: transparent !important; box-shadow: none !important; }
 
       /* Premium Switcher UI */
       .google-switcher {
@@ -55,15 +66,14 @@ class GoogleTranslator {
         transition: all 0.2s;
         font-family: 'Inter', sans-serif;
         letter-spacing: 0.5px;
+        text-transform: uppercase;
       }
       .google-btn.active {
         background: rgba(212, 188, 132, 0.2);
         color: #f4ead2;
-        box-shadow: inset 0 0 10px rgba(212, 188, 132, 0.1);
       }
       .google-btn:hover:not(.active) {
         color: #fff;
-        background: rgba(255,255,255,0.05);
       }
     `;
     document.head.appendChild(style);
@@ -74,13 +84,13 @@ class GoogleTranslator {
     
     const gElem = document.createElement('div');
     gElem.id = 'google_translate_element';
+    gElem.className = 'notranslate';
     document.body.appendChild(gElem);
 
     (window as any).googleTranslateElementInit = () => {
       new (window as any).google.translate.TranslateElement({
         pageLanguage: 'en',
-        includedLanguages: 'en,th',
-        layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE,
+        includedLanguages: 'th',
         autoDisplay: false
       }, 'google_translate_element');
     };
@@ -92,19 +102,16 @@ class GoogleTranslator {
 
   private injectSwitcher() {
     if (document.querySelector('.google-switcher')) return;
-    
     const switcher = document.createElement('div');
-    switcher.className = 'google-switcher';
+    switcher.className = 'google-switcher notranslate';
     switcher.innerHTML = `
       <button class="google-btn ${this.currentLang === 'en' ? 'active' : ''}" data-lang-set="en">EN</button>
       <button class="google-btn ${this.currentLang === 'th' ? 'active' : ''}" data-lang-set="th">TH</button>
     `;
-
     document.body.appendChild(switcher);
   }
 
   private setupGlobalListeners() {
-    // Listen for ANY element with data-lang-set or similar
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       const btn = target.closest('[data-lang-set]');
@@ -112,73 +119,98 @@ class GoogleTranslator {
         const lang = (btn as HTMLElement).dataset.langSet;
         if (lang) this.setLanguage(lang);
       }
-      
-      // Also listen for your specific toggle switch if it exists
-      const toggle = target.closest('#translate-toggle') as HTMLInputElement;
-      if (toggle) {
-        this.setLanguage(toggle.checked ? 'th' : 'en');
-      }
     });
   }
 
   public setLanguage(lang: string) {
+    if (this.currentLang === lang && document.documentElement.lang === lang) return;
+    
     this.currentLang = lang;
     localStorage.setItem('app_lang', lang);
 
-    // Sync all UI buttons/toggles
     document.querySelectorAll('[data-lang-set]').forEach(el => {
       el.classList.toggle('active', (el as HTMLElement).dataset.langSet === lang);
     });
-    
-    const toggle = document.querySelector('#translate-toggle') as HTMLInputElement;
-    if (toggle) toggle.checked = (lang === 'th');
 
-    if (lang === 'en') {
-      this.restoreOriginal();
+    if (lang === 'th') {
+      this.applyThai();
     } else {
-      this.triggerGoogle(lang);
+      this.restoreEnglish();
     }
   }
 
-  private restoreOriginal() {
-    // 1. Try to find the 'Show Original' button in Google's hidden iframe
-    const iframe = document.querySelector('.goog-te-banner-frame') as HTMLIFrameElement;
-    if (iframe && iframe.contentWindow) {
-      const restoreBtn = iframe.contentWindow.document.querySelector('.goog-te-button button') as HTMLElement;
-      if (restoreBtn) {
-        restoreBtn.click();
-        return;
+  private applyThai() {
+    this.setGoogleCookie('/en/th');
+    this.triggerCombo('th');
+  }
+
+  private restoreEnglish() {
+    this.setGoogleCookie(''); // Clear cookie
+
+    // 1. Try to trigger "Show Original" in the hidden banner frame
+    const banner = document.querySelector('.goog-te-banner-frame') as HTMLIFrameElement;
+    if (banner && banner.contentWindow) {
+      try {
+        const resetBtn = banner.contentWindow.document.querySelector('.goog-te-button button') as HTMLElement;
+        if (resetBtn) {
+          resetBtn.click();
+          return;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Try to trigger via combo box
+    this.triggerCombo('');
+
+    // 3. Last resort fallback: If still translated, we might need a refresh,
+    // but we'll try to just wait and re-trigger.
+    setTimeout(() => {
+        if (document.querySelector('font')) {
+            this.triggerCombo('en'); // Sometimes value 'en' works better than empty
+        }
+    }, 500);
+  }
+
+  private setGoogleCookie(val: string) {
+    const expires = val ? "; expires=Fri, 31 Dec 9999 23:59:59 GMT" : "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+    const domain = window.location.hostname;
+    document.cookie = "googtrans=" + val + "; path=/; " + expires;
+    document.cookie = "googtrans=" + val + "; path=/; domain=" + domain + expires;
+    if (domain.includes('.')) {
+        const partDomain = "." + domain.split('.').slice(-2).join('.');
+        document.cookie = "googtrans=" + val + "; path=/; domain=" + partDomain + expires;
+    }
+  }
+
+  private triggerCombo(lang: string) {
+    const combo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (combo) {
+      combo.value = lang;
+      combo.dispatchEvent(new Event('change'));
+    } else {
+      // Find ANY select with TH option
+      const selects = document.querySelectorAll('select');
+      for (const s of Array.from(selects)) {
+          if (Array.from(s.options).some(o => o.value === 'th')) {
+              s.value = lang;
+              s.dispatchEvent(new Event('change'));
+              return;
+          }
       }
-    }
-
-    // 2. Fallback: Force the combo to empty and trigger change
-    const googleCombo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (googleCombo) {
-      googleCombo.value = '';
-      googleCombo.dispatchEvent(new Event('change'));
+      setTimeout(() => this.triggerCombo(lang), 500);
     }
   }
 
-  private triggerGoogle(lang: string) {
-    const googleCombo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-    if (googleCombo) {
-      googleCombo.value = lang;
-      googleCombo.dispatchEvent(new Event('change'));
-    } else {
-      setTimeout(() => this.triggerGoogle(lang), 500);
-    }
-  }
-
-  private pollForElement() {
+  private syncInitialState() {
     const check = () => {
       const combo = document.querySelector('.goog-te-combo');
       if (combo) {
-        if (this.currentLang === 'th') this.triggerGoogle('th');
+        if (this.currentLang === 'th') this.applyThai();
       } else {
         setTimeout(check, 1000);
       }
     };
-    check();
+    if (this.currentLang === 'th') check();
   }
 }
 
