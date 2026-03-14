@@ -1085,17 +1085,39 @@ router.post("/spawn", async (req, res) => {
 // --- /save ---
 router.post("/save", async (req, res) => {
   try {
-    const { characterId, log } = req.body;
+    const { characterId, log, revision } = req.body;
     if (!characterId) {
       res.status(400).json({ success: false, error: "characterId required" });
       return;
+    }
+
+    // Revision Guard: Prevent stale state from overwriting newer server state
+    const { data: currentRow, error: readError } = await supabase
+      .from("player_states")
+      .select("updated_at")
+      .eq("character_id", characterId)
+      .single();
+
+    if (readError && readError.code !== "PGRST116") {
+      throw readError;
+    }
+
+    const storedRevision = currentRow?.updated_at || null;
+    if (revision && storedRevision && revision < storedRevision) {
+      return res.status(409).json({
+        success: false,
+        reason: "stale_save",
+        revision: storedRevision,
+        message: "A newer save exists. Please refresh to synchronize."
+      });
     }
 
     const result = await autoSave(characterId, log);
     res.json({ 
       success: result.success, 
       message: result.success ? "Game saved!" : "Save operation failed",
-      revision: result.revision 
+      revision: result.revision,
+      savedAt: Date.now()
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

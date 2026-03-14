@@ -4746,21 +4746,29 @@ async function loadGame(cid: string, charName?: string) {
 
 // --- SAVE ---
 async function saveGame() {
+  const lastRevision = sessionStorage.getItem("rpg_last_revision");
   try {
     pendingSave = fetch(API + "/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ characterId: G.characterId }),
+      body: JSON.stringify({ 
+        characterId: G.characterId,
+        revision: lastRevision
+      }),
     }).then(async (res) => {
       const j = await res.json();
+      if (res.status === 409) {
+        showToast("⚠️ State Conflict: A newer save exists.", "info");
+        if (j.revision) sessionStorage.setItem("rpg_last_revision", j.revision);
+        return j;
+      }
       if (j.success) {
         showToast("💾 Game Saved!", "success");
-        // Update local session info if revision is returned
         if (j.revision) {
           sessionStorage.setItem("rpg_last_revision", j.revision);
         }
       } else {
-        showToast(j.error, "error");
+        showToast(j.error || "Save failed", "error");
       }
       return j;
     });

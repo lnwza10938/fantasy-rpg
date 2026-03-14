@@ -9,21 +9,28 @@
 
 ### FILE: src/core/sessionPersistence.ts
 - **Role**: Reconciles database records into the `GameStateManager` and serializes session data for storage.
-- **Issue**: Current mapping between `last_event` JSON and the `TraversalRuntimeState` is complex.
-- **Planned Change**: Harden the `parseStoredWorldSession` logic with stricter schema validation.
+- **Issue**: Mapping between `last_event` JSON and `TraversalRuntimeState`.
+- **Planned Change**: Harden `parseStoredWorldSession` logic.
 - **Status**: Researching.
 
 ### FILE: src/api/gameplayRoutes.ts
 - **Role**: Main API router for game logic. Handles `/start`, `/event`, `/travel`, and `/save`.
-- **Issue**: Race conditions where page transitions happen before `autoSave` completes.
-- **Implemented Change**: Updated `/save` to return a `revision` (timestamp) and wait for the DB operation to complete. Added `/session/validate` endpoint for revision checking.
-- **Status**: PATCHED (Round 1).
+- **Issue**: Race conditions and stale state overwrites.
+- **Implemented Change**: 
+  - Updated `/save` to return `revision` and `savedAt`.
+  - Added **Optimistic Locking**: `/save` now requires a `revision` and returns `409 Conflict` (stale_save) if the server has a newer version.
+  - Added `/session/validate` for deep consistency checks on init.
+- **Status**: PATCHED (Round 2 - Consistency & Locking).
 
 ### FILE: src/client/main.ts
 - **Role**: Frontend entry point and route manager.
-- **Issue**: Global state reset on page load leading to stale data if the previous save was slow.
-- **Implemented Change**: Added `pendingSave` guard and `waitForPendingSave()` synchronization. Integrated `validateSession()` on app initialization to check revisions.
-- **Status**: PATCHED (Round 1).
+- **Issue**: UI desync during multi-page transitions.
+- **Implemented Change**: 
+  - Added `pendingSave` guard.
+  - `navigateToPage` now awaits `pendingSave` to ensure data persistence before exit.
+  - Updated `saveGame` to send `revision` and handle `409 Conflict` with a user notification.
+  - Integrated `validateSession` in `onLoginSuccess`.
+- **Status**: PATCHED (Round 2).
 
 ### FILE: src/core/worldSystem.ts
 - **Role**: Manages the singleton `WorldInstance` on the server.
