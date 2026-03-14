@@ -93,16 +93,16 @@
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
           <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
             🧭 Journey
           </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
           <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
             ⚒ Create Hero
           </button>
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero data-i18n="game.hero_section" Archive<  data-i18n="nav.archive">🧙 Hero data-i18n="game.hero_section" Archive</button>
-          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display">A world that remembers</p>
@@ -115,7 +115,7 @@
             <div class="card hub-hero-card">
               <div class="landing-kicker">Home</div>
               <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)">
-                Welcome to the Realm data-i18n="hub.welcome"
+                Welcome to the Realm data-i18n="hub.welcome" data-i18n="hub.welcome"
               </h2>
               <p class="landing-copy" style="max-width: 680px">
                 Use the hub to choose your next step: begin a new run, reopen a
@@ -124,29 +124,29 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label">Realm Archive data-i18n="hub.realms"</div>
+                  <div class="label">Realm Archive data-i18n="hub.realms" data-i18n="hub.realms"</div>
                   <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label">Saved Journeys data-i18n="hub.journeys"</div>
+                  <div class="label">Saved Journeys data-i18n="hub.journeys" data-i18n="hub.journeys"</div>
                   <div class="value" id="hub-save-count">0 journeys</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label">Access Mode data-i18n="hub.access"</div>
+                  <div class="label">Access Mode data-i18n="hub.access" data-i18n="hub.access"</div>
                   <div class="value" id="hub-access-mode">Account</div>
                 </div>
               </div>
 
               <div class="hub-action-grid">
-                <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey data-i18n="hub.new_journey"</button>
-                <button class="btn btn-action" onclick="showMapPage()">🗺 Open World Map data-i18n="hub.open_map"</button>
-                <button class="btn btn-action" onclick="showForge('menu')">⚒ Create Hero<  data-i18n="nav.create_hero">⚒ Create Hero</button>
-                <button class="btn btn-action" onclick="showVault()">🧙 Open Hero Archive data-i18n="hub.open_archive"</button>
+                <button class="btn btn-primary" onclick="startWizard()">🧭 Begin New Journey data-i18n="hub.new_journey" data-i18n="hub.new_journey"</button>
+                <button class="btn btn-action" onclick="showMapPage()">🗺 Open World Map data-i18n="hub.open_map" data-i18n="hub.open_map"</button>
+                <button class="btn btn-action" onclick="showForge('menu')">⚒ Create Hero<  data-i18n="nav.create_hero">⚒ Create Hero<  data-i18n="nav.create_hero">⚒ Create Hero<  data-i18n="nav.create_hero">⚒ Create Hero</button>
+                <button class="btn btn-action" onclick="showVault()">🧙 Open Hero Archive data-i18n="hub.open_archive" data-i18n="hub.open_archive"</button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker">Current Journey data-i18n="hub.current"</div>
+              <div class="landing-kicker">Current Journey data-i18n="hub.current" data-i18n="hub.current"</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
                 A quick snapshot of the latest journey before you return to
@@ -164,7 +164,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>📂 Recent Journeys data-i18n="hub.recent"</h3>
+                  <h3>📂 Recent Journeys data-i18n="hub.recent" data-i18n="hub.recent"</h3>
                   <p class="hub-panel-copy">Your latest saved expeditions, ready to reopen.</p>
                 </div>
                 <button class="btn btn-action" onclick="fetchSaveList()">🔄 Refresh</button>
@@ -196,7 +196,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>🗂️ Realm Archive data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
+                  <h3>🗂️ Realm Archive data-i18n="hub.realms" data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
                   <p class="hub-panel-copy">
                     Saved realms with just enough detail to choose where to go next.
                   </p>

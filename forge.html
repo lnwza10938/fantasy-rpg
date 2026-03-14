@@ -92,16 +92,16 @@
     <div id="game-container" style="display: none">
       <div class="header">
         <div class="top-nav-shell">
-          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
+          <button class="btn btn-nav" data-nav-page="hub" onclick="showHubPage()">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home<  data-i18n="nav.home">🏠 Home</button>
           <button class="btn btn-nav" data-nav-page="adventure" onclick="showAdventurePage()">
             🧭 Journey
           </button>
-          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
+          <button class="btn btn-nav" data-nav-page="map" onclick="showMapPage()">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map<  data-i18n="nav.map">🗺 World Map</button>
           <button class="btn btn-nav" data-nav-page="forge" onclick="showForge('menu')">
             ⚒ Create Hero
           </button>
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()">🧙 Hero data-i18n="game.hero_section" Archive<  data-i18n="nav.archive">🧙 Hero data-i18n="game.hero_section" Archive</button>
-          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" onclick="logout()">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display">Mythic Atlas hero forge</p>
@@ -141,7 +141,7 @@
 
               <div class="dev-topology-form-grid" style="margin-top: 0">
                 <label class="dev-topology-field dev-topology-field-wide">
-                  <span>Hero Name</span>
+                  <span>Hero Name data-i18n="forge.hero_name"</span>
                   <input
                     type="text"
                     id="forge-name"
@@ -168,40 +168,40 @@
                   </select>
                 </label>
                 <label class="dev-topology-field">
-                  <span>Skin Tone</span>
+                  <span>Skin Tone data-i18n="forge.skin"</span>
                   <select id="forge-skin">
-                    <option value="fair">Fair</option>
-                    <option value="tanned">Tanned</option>
-                    <option value="dark">Dark</option>
-                    <option value="pale">Pale</option>
+                    <option value="fair">Fair value="fair" data-i18n="forge.options.fair">Fair</option>
+                    <option value="tanned">Tanned value="tanned" data-i18n="forge.options.tanned">Tanned</option>
+                    <option value="dark">Dark value="dark" data-i18n="forge.options.dark">Dark</option>
+                    <option value="pale">Pale value="pale" data-i18n="forge.options.pale">Pale</option>
                     <option value="obsidian">Obsidian</option>
                   </select>
                 </label>
                 <label class="dev-topology-field">
-                  <span>Face Shape</span>
+                  <span>Face Shape data-i18n="forge.face"</span>
                   <select id="forge-face">
-                    <option value="round">Round</option>
+                    <option value="round">Round value="round" data-i18n="forge.options.round">Round</option>
                     <option value="sharp">Sharp & Angular</option>
-                    <option value="soft">Soft</option>
-                    <option value="rugged">Rugged</option>
+                    <option value="soft">Soft value="soft" data-i18n="forge.options.soft">Soft</option>
+                    <option value="rugged">Rugged value="rugged" data-i18n="forge.options.rugged">Rugged</option>
                   </select>
                 </label>
                 <label class="dev-topology-field">
-                  <span>Hair Style & Color</span>
+                  <span>Hair Style & Color data-i18n="forge.hair"</span>
                   <select id="forge-hair">
-                    <option value="black">Raven Black</option>
-                    <option value="blonde">Golden Blonde</option>
-                    <option value="brown">Chestnut Brown</option>
-                    <option value="white">Ghost White</option>
-                    <option value="red">Crimson Red</option>
+                    <option value="black">Raven Black value="black" data-i18n="forge.options.black">Raven Black</option>
+                    <option value="blonde">Golden Blonde value="blonde" data-i18n="forge.options.blonde">Golden Blonde</option>
+                    <option value="brown">Chestnut Brown value="brown" data-i18n="forge.options.brown">Chestnut Brown</option>
+                    <option value="white">Ghost White value="white" data-i18n="forge.options.white">Ghost White</option>
+                    <option value="red">Crimson Red value="red" data-i18n="forge.options.red">Crimson Red</option>
                   </select>
                 </label>
                 <label class="dev-topology-field">
-                  <span>Eye Color</span>
+                  <span>Eye Color data-i18n="forge.eyes"</span>
                   <select id="forge-eyes">
                     <option value="brown">Earth Brown</option>
-                    <option value="blue">Ocean Blue</option>
-                    <option value="green">Emerald Green</option>
+                    <option value="blue">Ocean Blue value="blue" data-i18n="forge.options.blue">Ocean Blue</option>
+                    <option value="green">Emerald Green value="green" data-i18n="forge.options.green">Emerald Green</option>
                     <option value="red">Ruby Red</option>
                     <option value="purple">Amethyst</option>
                   </select>
@@ -240,7 +240,7 @@
                     Signature Skill data-i18n="game.signature_skill"
                   </h4>
                   <button id="btn-roll-forge" class="btn btn-action" onclick="rollForgeSkill()">
-                    🎲 Roll New Skill
+                    🎲 Roll New Skill data-i18n="forge.roll_skill_btn"
                   </button>
                 </div>
 
@@ -318,7 +318,7 @@
                         text-transform: uppercase;
                       "
                     >
-                      Technical Mechanics
+                      Technical Mechanics data-i18n="forge.tech_mech"
                     </div>
                     <p
                       id="forge-skill-mechanics"

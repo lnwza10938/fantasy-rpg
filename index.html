@@ -105,7 +105,7 @@
         <div class="landing-grid">
           <div class="card landing-hero fade-in">
             <div>
-              <div class="landing-kicker" data-i18n="auth.welcome">Welcome to the Realm data-i18n="hub.welcome"</div>
+              <div class="landing-kicker" data-i18n="auth.welcome">Welcome to the Realm data-i18n="hub.welcome" data-i18n="hub.welcome"</div>
               <h2 class="landing-title" data-i18n="auth.hero_choice">
                 Choose a hero, enter a realm, and let the journey grow.
               </h2>
@@ -262,7 +262,7 @@
           <button class="btn btn-nav" data-nav-page="vault" onclick="showVault()" data-i18n="nav.archive">
             🧙 Hero data-i18n="game.hero_section" Archive
           </button>
-          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
+          <button class="btn btn-nav" onclick="logout()" data-i18n="common.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout<  data-i18n="nav.logout">⇦ Logout</button>
         </div>
         <h1>⚔ Realm Chronicle</h1> <h1 data-i18n="auth.title">⚔ Realm Chronicle</h1>
         <p id="user-display" data-i18n="auth.subtitle">A world that remembers</p>
@@ -276,7 +276,7 @@
             <div class="card hub-hero-card">
               <div class="landing-kicker" data-i18n="nav.home">Home</div>
               <h2 class="landing-title" style="font-size: clamp(30px, 4vw, 46px)" data-i18n="hub.welcome">
-                Welcome to the Realm data-i18n="hub.welcome"
+                Welcome to the Realm data-i18n="hub.welcome" data-i18n="hub.welcome"
               </h2>
               <p class="landing-copy" style="max-width: 680px" data-i18n="hub.copy">
                 Use the hub to choose your next step: begin a new run, reopen a
@@ -285,37 +285,37 @@
 
               <div class="hub-summary-row">
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.realms">Realm Archive data-i18n="hub.realms"</div>
+                  <div class="label" data-i18n="hub.realms">Realm Archive data-i18n="hub.realms" data-i18n="hub.realms"</div>
                   <div class="value" id="hub-world-count">0 realms</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.journeys">Saved Journeys data-i18n="hub.journeys"</div>
+                  <div class="label" data-i18n="hub.journeys">Saved Journeys data-i18n="hub.journeys" data-i18n="hub.journeys"</div>
                   <div class="value" id="hub-save-count">0 journeys</div>
                 </div>
                 <div class="hub-summary-card">
-                  <div class="label" data-i18n="hub.access">Access Mode data-i18n="hub.access"</div>
+                  <div class="label" data-i18n="hub.access">Access Mode data-i18n="hub.access" data-i18n="hub.access"</div>
                   <div class="value" id="hub-access-mode">Account</div>
                 </div>
               </div>
 
               <div class="hub-action-grid">
                 <button class="btn btn-primary" onclick="startWizard()">
-                  🧭 Begin New Journey data-i18n="hub.new_journey"
+                  🧭 Begin New Journey data-i18n="hub.new_journey" data-i18n="hub.new_journey"
                 </button>
                 <button class="btn btn-action" onclick="showMapPage()">
-                  🗺 Open World Map data-i18n="hub.open_map"
+                  🗺 Open World Map data-i18n="hub.open_map" data-i18n="hub.open_map"
                 </button>
                 <button class="btn btn-action" onclick="showForge('menu')">
                   ⚒ Create Hero
                 </button>
                 <button class="btn btn-action" onclick="showVault()">
-                  🧙 Open Hero Archive data-i18n="hub.open_archive"
+                  🧙 Open Hero Archive data-i18n="hub.open_archive" data-i18n="hub.open_archive"
                 </button>
               </div>
             </div>
 
             <div class="card hub-status-card">
-              <div class="landing-kicker">Current Journey data-i18n="hub.current"</div>
+              <div class="landing-kicker">Current Journey data-i18n="hub.current" data-i18n="hub.current"</div>
               <h3 style="margin: 0 0 8px">Pick Up The Journey</h3>
               <p class="hub-panel-copy">
                 A quick snapshot of the latest journey before you return to
@@ -333,7 +333,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>📂 Recent Journeys data-i18n="hub.recent"</h3>
+                  <h3>📂 Recent Journeys data-i18n="hub.recent" data-i18n="hub.recent"</h3>
                   <p class="hub-panel-copy">
                     Your latest saved expeditions, ready to reopen.
                   </p>
@@ -352,7 +352,7 @@
             <div class="card fade-in" style="margin-top: 16px">
               <div class="hub-panel-head">
                 <div>
-                  <h3>🗂️ Realm Archive data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
+                  <h3>🗂️ Realm Archive data-i18n="hub.realms" data-i18n="wizard.archive_title" data-i18n="hub.realms" Preview</h3>
                   <p class="hub-panel-copy">
                     Saved realms with just enough detail to choose where to go next.
                   </p>
@@ -617,7 +617,7 @@
                     margin-bottom: 10px;
                   "
                 >
-                  <h3 style="margin-bottom: 0">🗂️ Realm Archive data-i18n="wizard.archive_title" data-i18n="hub.realms"</h3>
+                  <h3 style="margin-bottom: 0">🗂️ Realm Archive data-i18n="hub.realms" data-i18n="wizard.archive_title" data-i18n="hub.realms"</h3>
                   <button
                     class="btn btn-action"
                     type="button"
@@ -1352,7 +1352,7 @@
 
               <!-- Basic Identity -->
               <div style="margin-bottom: 20px">
-                <label>Hero Name</label>
+                <label>Hero Name data-i18n="forge.hero_name"</label>
                 <input
                   type="text"
                   id="forge-name"
@@ -1393,7 +1393,7 @@
                 </div>
                 <div>
                   <label
-                    >Skin Tone
+                    >Skin Tone data-i18n="forge.skin"
                     <span style="font-size: 10px">(สีผิว)</span></label
                   >
                   <select
@@ -1408,16 +1408,16 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="fair">Fair</option>
-                    <option value="tanned">Tanned</option>
-                    <option value="dark">Dark</option>
-                    <option value="pale">Pale</option>
+                    <option value="fair">Fair value="fair" data-i18n="forge.options.fair">Fair</option>
+                    <option value="tanned">Tanned value="tanned" data-i18n="forge.options.tanned">Tanned</option>
+                    <option value="dark">Dark value="dark" data-i18n="forge.options.dark">Dark</option>
+                    <option value="pale">Pale value="pale" data-i18n="forge.options.pale">Pale</option>
                     <option value="obsidian">Obsidian (Fantasy)</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Face Shape
+                    >Face Shape data-i18n="forge.face"
                     <span style="font-size: 10px">(ใบหน้า)</span></label
                   >
                   <select
@@ -1432,15 +1432,15 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="round">Round</option>
+                    <option value="round">Round value="round" data-i18n="forge.options.round">Round</option>
                     <option value="sharp">Sharp & Angular</option>
-                    <option value="soft">Soft</option>
-                    <option value="rugged">Rugged</option>
+                    <option value="soft">Soft value="soft" data-i18n="forge.options.soft">Soft</option>
+                    <option value="rugged">Rugged value="rugged" data-i18n="forge.options.rugged">Rugged</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Hair Style & Color
+                    >Hair Style & Color data-i18n="forge.hair"
                     <span style="font-size: 10px">(สีผม)</span></label
                   >
                   <select
@@ -1455,16 +1455,16 @@
                       border-radius: 6px;
                     "
                   >
-                    <option value="black">Raven Black</option>
-                    <option value="blonde">Golden Blonde</option>
-                    <option value="brown">Chestnut Brown</option>
-                    <option value="white">Ghost White</option>
-                    <option value="red">Crimson Red</option>
+                    <option value="black">Raven Black value="black" data-i18n="forge.options.black">Raven Black</option>
+                    <option value="blonde">Golden Blonde value="blonde" data-i18n="forge.options.blonde">Golden Blonde</option>
+                    <option value="brown">Chestnut Brown value="brown" data-i18n="forge.options.brown">Chestnut Brown</option>
+                    <option value="white">Ghost White value="white" data-i18n="forge.options.white">Ghost White</option>
+                    <option value="red">Crimson Red value="red" data-i18n="forge.options.red">Crimson Red</option>
                   </select>
                 </div>
                 <div>
                   <label
-                    >Eye Color
+                    >Eye Color data-i18n="forge.eyes"
                     <span style="font-size: 10px">(สีตา)</span></label
                   >
                   <select
@@ -1480,8 +1480,8 @@
                     "
                   >
                     <option value="brown">Earth Brown</option>
-                    <option value="blue">Ocean Blue</option>
-                    <option value="green">Emerald Green</option>
+                    <option value="blue">Ocean Blue value="blue" data-i18n="forge.options.blue">Ocean Blue</option>
+                    <option value="green">Emerald Green value="green" data-i18n="forge.options.green">Emerald Green</option>
                     <option value="red">Ruby Red (Fantasy)</option>
                     <option value="purple">Amethyst (Fantasy)</option>
                   </select>
@@ -1501,7 +1501,7 @@
                   onclick="forgeGoStep(2)"
                   style="flex: 2"
                 >
-                  Next: Manifest Destiny ✨
+                  Next: Manifest Destiny ✨ data-i18n="forge.manifest"
                 </button>
               </div>
             </div>
@@ -1536,7 +1536,7 @@
                     class="btn btn-action"
                     onclick="rollForgeSkill()"
                   >
-                    🎲 Roll New Skill
+                    🎲 Roll New Skill data-i18n="forge.roll_skill_btn"
                   </button>
                 </div>
 
@@ -1624,7 +1624,7 @@
                         text-transform: uppercase;
                       "
                     >
-                      Technical Mechanics
+                      Technical Mechanics data-i18n="forge.tech_mech"
                     </div>
                     <p
                       id="forge-skill-mechanics"
