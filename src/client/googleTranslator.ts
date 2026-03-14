@@ -133,16 +133,38 @@ class GoogleTranslator {
     const toggle = document.querySelector('#translate-toggle') as HTMLInputElement;
     if (toggle) toggle.checked = (lang === 'th');
 
-    this.triggerGoogle(lang);
+    if (lang === 'en') {
+      this.restoreOriginal();
+    } else {
+      this.triggerGoogle(lang);
+    }
+  }
+
+  private restoreOriginal() {
+    // 1. Try to find the 'Show Original' button in Google's hidden iframe
+    const iframe = document.querySelector('.goog-te-banner-frame') as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      const restoreBtn = iframe.contentWindow.document.querySelector('.goog-te-button button') as HTMLElement;
+      if (restoreBtn) {
+        restoreBtn.click();
+        return;
+      }
+    }
+
+    // 2. Fallback: Force the combo to empty and trigger change
+    const googleCombo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
+    if (googleCombo) {
+      googleCombo.value = '';
+      googleCombo.dispatchEvent(new Event('change'));
+    }
   }
 
   private triggerGoogle(lang: string) {
     const googleCombo = document.querySelector('.goog-te-combo') as HTMLSelectElement;
     if (googleCombo) {
-      googleCombo.value = lang === 'en' ? '' : lang;
+      googleCombo.value = lang;
       googleCombo.dispatchEvent(new Event('change'));
     } else {
-      // If combo not ready, wait and try again
       setTimeout(() => this.triggerGoogle(lang), 500);
     }
   }
