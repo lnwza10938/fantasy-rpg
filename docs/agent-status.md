@@ -15,6 +15,7 @@
 - [x] Implemented `savedAt` and `revision` tracking in frontend/backend.
 - [x] Implemented Hardened Session Restore Validation (TASK 005).
 - [x] Created dedicated Map Editor Shell (TASK 007).
+- [x] Refactored Map Editor into 3-column workspace (TASK 009).
 - [x] Refactored Dev Panel and Asset Library layouts (TASK 008).
 - [x] Verified Round 2 consistency patches and updated `docs/planner-sync.md`.
 
