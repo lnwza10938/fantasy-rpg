@@ -411,9 +411,9 @@ async function getSession(
 /**
  * Internal helper to persist state to Supabase.
  */
-async function autoSave(characterId: string, lastLog?: string): Promise<void> {
+async function autoSave(characterId: string, lastLog?: string): Promise<{ success: boolean; revision: string | null }> {
   const gsm = await getSession(characterId);
-  if (!gsm) return;
+  if (!gsm) return { success: false, revision: null };
 
   const session = gsm.getStructuredState();
   const payload = serializeSessionForSave(session, lastLog);
@@ -421,7 +421,11 @@ async function autoSave(characterId: string, lastLog?: string): Promise<void> {
     .from("player_states")
     .upsert(payload, { onConflict: "character_id" });
 
-  if (error) console.error(`[AutoSave Error] ${characterId}:`, error.message);
+  if (error) {
+    console.error(`[AutoSave Error] ${characterId}:`, error.message);
+    return { success: false, revision: null };
+  }
+  return { success: true, revision: payload.updated_at };
 }
 
 async function persistCanonicalWorldForCharacter(params: {
@@ -1087,8 +1091,43 @@ router.post("/save", async (req, res) => {
       return;
     }
 
-    await autoSave(characterId, log);
-    res.json({ success: true, message: "Game saved!" });
+    const result = await autoSave(characterId, log);
+    res.json({ 
+      success: result.success, 
+      message: result.success ? "Game saved!" : "Save operation failed",
+      revision: result.revision 
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- /session/validate ---
+router.get("/session/validate", async (req, res) => {
+  try {
+    const { characterId, revision } = req.query;
+    if (!characterId) {
+      return res.status(400).json({ success: false, error: "characterId required" });
+    }
+
+    const { data, error } = await supabase
+      .from("player_states")
+      .select("updated_at")
+      .eq("character_id", characterId)
+      .single();
+
+    if (error || !data) {
+      return res.json({ success: true, outOfSync: false });
+    }
+
+    const serverRevision = data.updated_at;
+    const isOutOfSync = revision && revision !== serverRevision;
+
+    res.json({
+      success: true,
+      outOfSync: !!isOutOfSync,
+      revision: serverRevision
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

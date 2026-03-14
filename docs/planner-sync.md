@@ -9,21 +9,21 @@
 
 ### FILE: src/core/sessionPersistence.ts
 - **Role**: Reconciles database records into the `GameStateManager` and serializes session data for storage.
-- **Issue**: Current mapping between `last_event` JSON and the `TraversalRuntimeState` is complex. If the JSON structure deviates (e.g., during a schema update), session hydration fails silently to defaults.
+- **Issue**: Current mapping between `last_event` JSON and the `TraversalRuntimeState` is complex.
 - **Planned Change**: Harden the `parseStoredWorldSession` logic with stricter schema validation.
 - **Status**: Researching.
 
 ### FILE: src/api/gameplayRoutes.ts
 - **Role**: Main API router for game logic. Handles `/start`, `/event`, `/travel`, and `/save`.
-- **Issue**: The `sessions` cache (in-memory) is unreliable in serverless environments. While `getSession` attempts to hydrate from DB, there are race conditions where a page transition happens before the `autoSave` completes.
-- **Planned Change**: Ensure `/save` is awaited before allowing navigation on the frontend, and investigate "stale world" issues during `/start` redirects.
-- **Status**: Audit in progress.
+- **Issue**: Race conditions where page transitions happen before `autoSave` completes.
+- **Implemented Change**: Updated `/save` to return a `revision` (timestamp) and wait for the DB operation to complete. Added `/session/validate` endpoint for revision checking.
+- **Status**: PATCHED (Round 1).
 
 ### FILE: src/client/main.ts
 - **Role**: Frontend entry point and route manager.
-- **Issue**: The global `G` object is reset on every page load (since it's a multi-page app). It relies on fetching the state from the API on every page's `init`. If the API returns a stale session because the previous page's save was slow, the UI desyncs.
-- **Planned Change**: Implement a "Pending Save" guard on the frontend.
-- **Status**: Planning.
+- **Issue**: Global state reset on page load leading to stale data if the previous save was slow.
+- **Implemented Change**: Added `pendingSave` guard and `waitForPendingSave()` synchronization. Integrated `validateSession()` on app initialization to check revisions.
+- **Status**: PATCHED (Round 1).
 
 ### FILE: src/core/worldSystem.ts
 - **Role**: Manages the singleton `WorldInstance` on the server.

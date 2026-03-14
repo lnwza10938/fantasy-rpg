@@ -44,6 +44,7 @@ const INVITE_STORAGE_KEY = "rpg_invite_code";
 const PENDING_LOAD_KEY = "rpg_pending_load";
 const MAP_EDITOR_PREVIEW_KEY = "rpg_map_editor_preview_draft";
 const DEFAULT_MAP_CAMERA = Object.freeze({ x: 0, y: 0, scale: 1 });
+let pendingSave: Promise<any> | null = null;
 const NORMALIZED_PATH =
   window.location.pathname.replace(/\.html$/, "").replace(/\/+$/, "") || "/";
 const APP_PAGE =
@@ -318,6 +319,18 @@ function pageHref(page: string) {
   if (page === "forge") return "/forge";
   if (page === "adventure") return "/adventure";
   return "/";
+}
+
+async function waitForPendingSave() {
+  if (pendingSave) {
+    try {
+      await pendingSave;
+    } catch (e) {
+      console.warn("Pending save failed:", e);
+    } finally {
+      pendingSave = null;
+    }
+  }
 }
 
 function humanizeSkillTerm(value: unknown) {
@@ -1526,7 +1539,7 @@ function syncSelectedRegionFromSession(preferCurrent = false) {
   G.selectedRegion = regions[G.selectedRegionIndex] || null;
 }
 
-function navigateToPage(page: string, params?: Record<string, string>) {
+async function navigateToPage(page: string, params?: Record<string, string>) {
   const url = new URL(pageHref(page), window.location.origin);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -1539,6 +1552,7 @@ function navigateToPage(page: string, params?: Record<string, string>) {
   ) {
     return;
   }
+  await waitForPendingSave();
   window.location.href = url.toString();
 }
 
@@ -1743,7 +1757,24 @@ async function handleAuth(event?: Event) {
   }
 }
 
-function onLoginSuccess() {
+async function validateSession() {
+  if (!G.characterId) return;
+  const lastRevision = sessionStorage.getItem("rpg_last_revision");
+  try {
+    const res = await fetch(`${API}/session/validate?characterId=${G.characterId}&revision=${lastRevision || ""}`);
+    const j = await res.json();
+    if (j.success && j.outOfSync) {
+      console.warn("Session out of sync, force reloading state...");
+      // In a real app, we might force a refresh or prompt
+      // For now, let's just update the local cache
+      if (j.revision) sessionStorage.setItem("rpg_last_revision", j.revision);
+    }
+  } catch (e) {
+    console.error("Session validation failed", e);
+  }
+}
+
+async function onLoginSuccess() {
   const authScreen = document.getElementById("screen-auth");
   const gameContainer = document.getElementById("game-container");
   const userDisplay = document.getElementById("user-display");
@@ -1757,6 +1788,8 @@ function onLoginSuccess() {
       : G.user.isInvite
         ? `Invite Access: ${G.user.label || "Streamer"}`
         : `Logged in as: ${G.user.email}`;
+  
+  await validateSession();
   syncPageChrome();
   if (APP_PAGE === "menu" || APP_PAGE === "adventure") {
     loadWorldContent();
@@ -1819,7 +1852,7 @@ async function bootstrapAuthState() {
       const j = await res.json();
       if (j.success) {
         G.user = { ...j.data.profile, inviteCode: savedInviteCode };
-        onLoginSuccess();
+        await onLoginSuccess();
         return;
       }
       localStorage.removeItem(INVITE_STORAGE_KEY);
@@ -1829,13 +1862,13 @@ async function bootstrapAuthState() {
   }
   if (localStorage.getItem(GUEST_STORAGE_KEY) === "true") {
     G.user = { id: null, email: GUEST_EMAIL, isGuest: true };
-    onLoginSuccess();
+    await onLoginSuccess();
     return;
   }
   const { data } = await supabase.auth.getSession();
   if (data.session) {
     G.user = data.session.user;
-    onLoginSuccess();
+    await onLoginSuccess();
   } else {
     enterLoggedOutState();
   }
@@ -4714,16 +4747,28 @@ async function loadGame(cid: string, charName?: string) {
 // --- SAVE ---
 async function saveGame() {
   try {
-    const res = await fetch(API + "/save", {
+    pendingSave = fetch(API + "/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ characterId: G.characterId }),
+    }).then(async (res) => {
+      const j = await res.json();
+      if (j.success) {
+        showToast("💾 Game Saved!", "success");
+        // Update local session info if revision is returned
+        if (j.revision) {
+          sessionStorage.setItem("rpg_last_revision", j.revision);
+        }
+      } else {
+        showToast(j.error, "error");
+      }
+      return j;
     });
-    const j = await res.json();
-    if (j.success) showToast("💾 Game Saved!", "success");
-    else showToast(j.error, "error");
+    await pendingSave;
   } catch {
     showToast("Save failed", "error");
+  } finally {
+    pendingSave = null;
   }
 }
 
