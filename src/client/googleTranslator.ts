@@ -14,6 +14,7 @@ class GoogleTranslator {
   private init() {
     this.injectStyles();
     this.injectGoogleScripts();
+    this.injectSwitcher();
     this.setupGlobalListeners();
     this.pollForElement();
   }
@@ -27,6 +28,43 @@ class GoogleTranslator {
       body { top: 0 !important; }
       #google_translate_element, .goog-te-gadget { display: none !important; }
       .goog-te-spinner-pos { display: none !important; }
+
+      /* Premium Switcher UI */
+      .google-switcher {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 100000;
+        display: flex;
+        background: rgba(14, 16, 21, 0.9);
+        border: 1px solid rgba(212, 188, 132, 0.3);
+        border-radius: 99px;
+        padding: 4px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      }
+      .google-btn {
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.4);
+        font-size: 11px;
+        font-weight: 800;
+        padding: 6px 16px;
+        border-radius: 99px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+        letter-spacing: 0.5px;
+      }
+      .google-btn.active {
+        background: rgba(212, 188, 132, 0.2);
+        color: #f4ead2;
+        box-shadow: inset 0 0 10px rgba(212, 188, 132, 0.1);
+      }
+      .google-btn:hover:not(.active) {
+        color: #fff;
+        background: rgba(255,255,255,0.05);
+      }
     `;
     document.head.appendChild(style);
   }
@@ -50,6 +88,19 @@ class GoogleTranslator {
     const script = document.createElement('script');
     script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
     document.head.appendChild(script);
+  }
+
+  private injectSwitcher() {
+    if (document.querySelector('.google-switcher')) return;
+    
+    const switcher = document.createElement('div');
+    switcher.className = 'google-switcher';
+    switcher.innerHTML = `
+      <button class="google-btn ${this.currentLang === 'en' ? 'active' : ''}" data-lang-set="en">EN</button>
+      <button class="google-btn ${this.currentLang === 'th' ? 'active' : ''}" data-lang-set="th">TH</button>
+    `;
+
+    document.body.appendChild(switcher);
   }
 
   private setupGlobalListeners() {
